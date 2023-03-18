@@ -1,4 +1,4 @@
-# RECUP
+# RADICAL Workflow Mini-App
 Mini-apps development repo
 
 WF Mini-apps can be scaled and configured without application specific deployment challenges and constraints​
