@@ -19,12 +19,12 @@ if __name__ == '__main__':
     root_path_out = sys.argv[25]
 
     for pi in range(num_step):
-        
+
         cubic_start_in = cubic_start + pi * cubic_step_size
         cubic_end_in = cubic_end - (num_step - 1 - pi) * cubic_step_size
         cubic_step_size_in = cubic_step_size * num_step
 
-        cubic_file_name = root_dir + '/configs_phase{}/config_1001460_cubic.txt'.format(pi)
+        cubic_file_name = root_dir + '/configs_phase{}/config_1001460_cubic.txt'.format(pi) #OOK: Why we have hardcoded numbers?
         os.makedirs(os.path.dirname(cubic_file_name), exist_ok = True)
         with open(cubic_file_name, "w") as f:
             f.write("[Global_Params]\n")

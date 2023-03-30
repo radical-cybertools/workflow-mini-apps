@@ -29,6 +29,8 @@ class MVP(object):
         args = parser.parse_args()
         self.args = args
 
+    #TODO we need to provide a generic execution for anyone to use
+    #FIXME we need to use relative path.
     # This is for simulation, return a sim task
     def run_mpi_sweep_hdf5_py(self, phase_idx):
 
@@ -79,8 +81,8 @@ class MVP(object):
         return t
 
     def generate_pipeline(self):
-        
-        p = entk.Pipeline() 
+
+        p = entk.Pipeline()
 
         s0 = entk.Stage()
         t0 = self.run_mpi_sweep_hdf5_py(0)
@@ -109,7 +111,7 @@ class MVP(object):
 
 
 if __name__ == "__main__":
-
+#TODO maybe we can use arguments to ask for resource, walltime, cpu, gpu too
     mvp = MVP()
     n_nodes = 2
     mvp.set_resource(res_desc = {
@@ -120,6 +122,5 @@ if __name__ == "__main__":
         'cpus'    : 64 * n_nodes,
         'gpus'    : 0 * n_nodes,
         'project' : mvp.args.project_id
-#        'project' : 'CSC249ADCD08'
         })
     mvp.run_workflow()

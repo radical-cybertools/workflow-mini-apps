@@ -50,7 +50,7 @@ class MVP(object):
             'cpu_threads': 64,
             'cpu_thread_type': None
             }
-        
+
         s = entk.Stage()
         s.add_tasks(t)
         return s
@@ -83,7 +83,7 @@ class MVP(object):
         return s
 
     def generate_pipeline(self):
-        
+
         p = entk.Pipeline()
         for phase in range(int(self.args.num_phase)):
             s1 = self.run_mpi_sweep_hdf5_py(phase)
@@ -110,6 +110,5 @@ if __name__ == "__main__":
         'cpus'    : 64 * n_nodes,
         'gpus'    : 0 * n_nodes,
         'project' : mvp.args.project_id
-#        'project' : 'CSC249ADCD08'
         })
     mvp.run_workflow()

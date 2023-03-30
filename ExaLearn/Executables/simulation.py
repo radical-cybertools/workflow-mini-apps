@@ -17,6 +17,10 @@ def parse_args():
                     help='the root dir of gsas output data')
     parser.add_argument('--exec_pattern', default='single-thread',
                     help='running pattern, can be single-thread, multi-thread or MPI')
+#FIXME default should ne total CPU -1
+#TODO add this option to the code
+    parser.add_argument('--num-CPU', default=0,
+                    help='number of CPU to use for multi-thread if not specified it will use 3x3')
     args = parser.parse_args()
     return args
 
@@ -50,6 +54,7 @@ def parMatMult(a, b, nblocks, mblocks, dot_func=matMult):
     a_blocks = blockshaped(a, nblocks, 1)
     b_blocks = blockshaped(b, 1, mblocks)
 
+#TODO We don't want hard coded threading
     threads = []
     for i in range(nblocks):
         for j in range(mblocks):
@@ -136,7 +141,7 @@ def main():
     elif (args.exec_pattern == "multi-thread"):
         print("Multi Threaded execution")
         start = time.time()
-        C = parMatMult(A, B, 3, 3)
+        C = parMatMult(A, B, 5, 5) #TODO Fix this we don't want Nblocks and Mblocks hard coded
         time_par = time.time() - start
         print('multi thread: {:.2f} seconds taken'.format(time_par))
     elif (args.exec_pattern == "MPI"):
@@ -145,9 +150,9 @@ def main():
     else:
         print("exec_pattern has to be single-thread, multi-thread or MPI")
         sys.exit(1)
-        
+
 #    print(C)
-    
+
     filename = root_path + 'all_X_data.npy'
     os.makedirs(os.path.dirname(filename), exist_ok=True)
     print("Start to write to file ", filename)

@@ -25,7 +25,7 @@ parser.add_argument('--device', default='cpu',
                     help='Wheter this is running on cpu or gpu')
 parser.add_argument('--phase', type=int, default=0,
                     help='the current phase of workflow, phase0 will not read model')
-parser.add_argument('--num_threads', type=int, default=0, 
+parser.add_argument('--num_threads', type=int, default=0,
                     help='set number of threads per worker')
 parser.add_argument('--data_root_dir', default='./',
                     help='the root dir of gsas output data')
@@ -65,7 +65,7 @@ print("X_scale y size:",len(X_scaled[0]))
 print(X_scaled)
 print("Y_sclae size:",len(y_scaled))
 
-
+#TODO We need to consider how we want to do trainin using multiple resources CPU/GPU
 t1 = time.time()
 R=np.matmul(X_scaled, X_scaled)
 t2 = time.time()
