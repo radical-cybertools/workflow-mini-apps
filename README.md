@@ -3,7 +3,7 @@ Mini-apps development repo
 
 WF Mini-apps can be scaled and configured without application specific deployment challenges and constraints​
 
-WF Mini-app facilitate experimentation, understand workflow (distinct from application) performance, while while leveraging RECUP driven advances and development (e.g., monitoring service, optimal decision)​
+WF Mini-app facilitate experimentation, understand workflow (distinct from application) performance​
 
 We will develop 2 WF mini-apps:
  
@@ -36,18 +36,18 @@ ExaLearn mini-app implementation will use Radical enTK and two mini tasks.
 
 Milestones:
 
-- [ ] Add configuration reading to Data Generation mini-app
-- [ ] Print the matrix multiplication product in a format to be read by ML mini-app
-- [ ] Add reading functionality for ML mini-app
-- [ ] Run both mini-apps as stand-alone apps
-- [ ] Test ExaLearn mini-apps workflow using Theta 1 and 2 nodes.
+- [x] Add configuration reading to Data Generation mini-app
+- [x] Print the matrix multiplication product in a format to be read by ML mini-app
+- [x] Add reading functionality for ML mini-app
+- [x] Run both mini-apps as stand-alone apps
+- [x] Test ExaLearn mini-apps workflow using Theta 1 and 2 nodes.
 
 
 Current Status:
 
   - WF1:
     
-     - Collecting Requirement (WIP) : We have test requirements but we are waiting the full requirements from ExaLearn team. ExaLearn team is working on a paper deadline for this week.
+     - Collecting Requirement (Done) : 
      
      - Building enTK Template to run (DONE)
      
