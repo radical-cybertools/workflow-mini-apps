@@ -65,9 +65,10 @@ print("Y_sclae size:",len(y_scaled))
 
 #TODO We need to consider how we want to do trainin using multiple resources CPU/GPU
 t1 = time.time()
-R=np.matmul(X_scaled, X_scaled)
+for epoch in args.num_epoch:
+    R=np.matmul(X_scaled, X_scaled)
 t2 = time.time()
-print ("Time taken to multiply is {}".format(t2-t1))
+print ("Time taken to multiply is {} for num of epoch = {}".format(t2-t1, args.num_epoch))
 
 with open(args.model_dir + '/result_phase{}.npy'.format(args.phase), 'wb') as f:
     np.save(f, R)
