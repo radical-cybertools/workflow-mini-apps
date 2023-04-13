@@ -26,6 +26,8 @@ class MVP(object):
                         help='the directory where save and load model')
         parser.add_argument('--project_id', required=True,
                         help='the project ID we used to launch the job')
+        parser.add_argument('--num_CPU', type=int, default=9,
+                        help='num of CPU used for simulation (later also for training)')
         args = parser.parse_args()
         self.args = args
 
@@ -37,21 +39,30 @@ class MVP(object):
         t = entk.Task()
         t.pre_exec = [
                 "module load conda/2021-09-22",
-                "export OMP_NUM_THREADS=32"
                 ]
         t.executable = 'python'
-        t.arguments = ['../Executables/mini-mpi_sweep_hdf5_theta.py',
+        t.arguments = ['../Executables/simulation.py',
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--phase={}'.format(phase_idx),
                        '--mat_size={}'.format(self.args.mat_size),
-                       '--exec_pattern={}'.format(self.args.exec_pattern)]
+                       '--exec_pattern={}'.format(self.args.exec_pattern),
+                       '--num_CPU={}'.format(self.args.num_CPU)]
         t.post_exec = []
-        t.cpu_reqs = {
-            'cpu_processes': 1,
-            'cpu_process_type': None,
-            'cpu_threads': 64,
-            'cpu_thread_type': None
-            }
+
+        if self.args.exec_pattern == "single-thread":
+            t.cpu_reqs = {
+                    'cpu_processes': 1,
+                    'cpu_process_type': None,
+                    'cpu_threads': 1,
+                    'cpu_thread_type': OpenMP
+                    }
+        else if self.args.exec_pattern == "multi-thread":
+            t.cpu_reqs = {
+                    'cpu_processes': 1,
+                    'cpu_process_type': None,
+                    'cpu_threads': self.args.num_CPU,
+                    'cpu_thread_type': OpenMP
+                    }
 
         return t
 
@@ -62,10 +73,9 @@ class MVP(object):
         t = entk.Task()
         t.pre_exec = [
                 'module load conda/2021-09-22',
-                'export OMP_NUM_THREADS=32'
                 ]
         t.executable = 'python'
-        t.arguments = ['../Executables/test_training.py',
+        t.arguments = ['../Executables/training.py',
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--model_dir={}'.format(self.args.model_dir),
                        '--phase={}'.format(phase_idx),
@@ -75,7 +85,7 @@ class MVP(object):
              'cpu_processes'    : 1,
              'cpu_process_type' : None,
              'cpu_threads'      : 64,
-             'cpu_thread_type'  : None
+             'cpu_thread_type'  : OpenMP
              }
 
         return t
