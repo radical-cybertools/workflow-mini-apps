@@ -9,4 +9,4 @@ python ../rct-scripts/new_parallel_multiphase_rct_v1.py \
 	--model_dir ${model_dir} \
 	--exec_pattern multi-thread \
        	--mat_size 900 \
-	--project_id CSC249ADCD08 
+	--project_id <project-id> 
