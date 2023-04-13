@@ -18,10 +18,13 @@ def parse_args():
     parser.add_argument('--exec_pattern', default='single-thread',
                     help='running pattern, can be single-thread, multi-thread or MPI')
 #FIXME default should ne total CPU -1
-#TODO add this option to the code
-    parser.add_argument('--num-CPU', default=0,
+    parser.add_argument('--num_CPU', default=9,
                     help='number of CPU to use for multi-thread if not specified it will use 3x3')
     args = parser.parse_args()
+
+    if args.exec_pattern == "multi-thread":
+        args.inner_bsz = int(np.sqrt(args.num_CPU))
+
     return args
 
 
@@ -54,7 +57,7 @@ def parMatMult(a, b, nblocks, mblocks, dot_func=matMult):
     a_blocks = blockshaped(a, nblocks, 1)
     b_blocks = blockshaped(b, 1, mblocks)
 
-#TODO We don't want hard coded threading
+#TODO We might need to fix this algorithm for correct results
     threads = []
     for i in range(nblocks):
         for j in range(mblocks):
@@ -141,7 +144,7 @@ def main():
     elif (args.exec_pattern == "multi-thread"):
         print("Multi Threaded execution")
         start = time.time()
-        C = parMatMult(A, B, 5, 5) #TODO Fix this we don't want Nblocks and Mblocks hard coded
+        C = parMatMult(A, B, args.inner_bsz, args.inner_bsz) 
         time_par = time.time() - start
         print('multi thread: {:.2f} seconds taken'.format(time_par))
     elif (args.exec_pattern == "MPI"):

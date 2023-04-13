@@ -38,7 +38,7 @@ class MVP(object):
                 "export OMP_NUM_THREADS=32"
                 ]
         t.executable = 'python'
-        t.arguments = ['/home/twang3/myWork/miniapp-exalearn/RECUP/mini-apps/ExaLearn-final/Executables/mini-mpi_sweep_hdf5_theta.py',
+        t.arguments = ['../Executables/mini-mpi_sweep_hdf5_theta.py',
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--phase={}'.format(phase_idx),
                        '--mat_size={}'.format(self.args.mat_size),
@@ -65,7 +65,7 @@ class MVP(object):
                 'export OMP_NUM_THREADS=32'
                 ]
         t.executable = 'python'
-        t.arguments = ['/home/twang3/myWork/miniapp-exalearn/RECUP/mini-apps/ExaLearn-final/Executables/test_training.py',
+        t.arguments = ['../ExaLearn-final/Executables/test_training.py',
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--model_dir={}'.format(self.args.model_dir),
                        '--phase={}'.format(phase_idx),
