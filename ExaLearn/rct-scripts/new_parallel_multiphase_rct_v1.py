@@ -1,10 +1,14 @@
 from radical import entk
 import os
 import argparse, sys, math
+import radical.pilot as rp
 
 class MVP(object):
 
     def __init__(self):
+        self.env_work_dir = os.getenv("MINI_APP_EXALEARN_DIR")
+        if self.env_work_dir is None:
+            print("Warning: Did not set up work_dir using env var, need to set it up in parser manually!")
         self.set_argparse()
         self.am = entk.AppManager()
 
@@ -28,11 +32,12 @@ class MVP(object):
                         help='the project ID we used to launch the job')
         parser.add_argument('--num_CPU', type=int, default=9,
                         help='num of CPU used for simulation (later also for training)')
+        parser.add_argument('--work_dir', default=self.env_work_dir,
+                        help='working dir, which is the dir of this repo')
+
         args = parser.parse_args()
         self.args = args
 
-    #TODO we need to provide a generic execution for anyone to use
-    #FIXME we need to use relative path.
     # This is for simulation, return a sim task
     def run_mpi_sweep_hdf5_py(self, phase_idx):
 
@@ -41,7 +46,7 @@ class MVP(object):
                 "module load conda/2021-09-22",
                 ]
         t.executable = 'python'
-        t.arguments = ['../Executables/simulation.py',
+        t.arguments = ['{}/Executables/simulation.py'.format(self.args.work_dir),
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--phase={}'.format(phase_idx),
                        '--mat_size={}'.format(self.args.mat_size),
@@ -54,14 +59,14 @@ class MVP(object):
                     'cpu_processes': 1,
                     'cpu_process_type': None,
                     'cpu_threads': 1,
-                    'cpu_thread_type': OpenMP
+                    'cpu_thread_type': rp.OpenMP
                     }
-        else if self.args.exec_pattern == "multi-thread":
+        elif self.args.exec_pattern == "multi-thread":
             t.cpu_reqs = {
                     'cpu_processes': 1,
                     'cpu_process_type': None,
                     'cpu_threads': self.args.num_CPU,
-                    'cpu_thread_type': OpenMP
+                    'cpu_thread_type': rp.OpenMP
                     }
 
         return t
@@ -75,7 +80,7 @@ class MVP(object):
                 'module load conda/2021-09-22',
                 ]
         t.executable = 'python'
-        t.arguments = ['../Executables/training.py',
+        t.arguments = ['{}/Executables/training.py'.format(self.args.work_dir),
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--model_dir={}'.format(self.args.model_dir),
                        '--phase={}'.format(phase_idx),
@@ -85,7 +90,7 @@ class MVP(object):
              'cpu_processes'    : 1,
              'cpu_process_type' : None,
              'cpu_threads'      : 64,
-             'cpu_thread_type'  : OpenMP
+             'cpu_thread_type'  : rp.OpenMP
              }
 
         return t

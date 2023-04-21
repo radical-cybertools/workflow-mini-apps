@@ -18,7 +18,7 @@ def parse_args():
     parser.add_argument('--exec_pattern', default='single-thread',
                     help='running pattern, can be single-thread, multi-thread or MPI')
 #FIXME default should ne total CPU -1
-    parser.add_argument('--num_CPU', default=9,
+    parser.add_argument('--num_CPU', type=int, default=9,
                     help='number of CPU to use for multi-thread if not specified it will use 3x3')
     args = parser.parse_args()
 
