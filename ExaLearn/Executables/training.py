@@ -19,7 +19,7 @@ parser = argparse.ArgumentParser(description='Exalearn_miniapp_training')
 
 #parser.add_argument('--batch-size', type=int, default=64, metavar='N',
 #                    help='input batch size for training (default: 64)')
-parser.add_argument('--epochs', type=int, default=30, metavar='N',
+parser.add_argument('--num_epochs', type=int, default=30, metavar='N',
                     help='number of epochs to train (default: 30)')
 parser.add_argument('--device', default='cpu',
                     help='Wheter this is running on cpu or gpu')
@@ -35,8 +35,6 @@ parser.add_argument('--mat_size', type=int, default=3000,
                     help='the matrix with have size of mat_size * mat_size')
 #parser.add_argument('--rank_data_gen', type=int, default=256,
 #                    help='number of ranks used to generate input data')
-#parser.add_argument('--rank_in_max', type=int, default=64,
-#                    help='inner block size for two-layer merging')
 args = parser.parse_args()
 args.cuda = args.device.find("gpu")!=-1
 
@@ -67,9 +65,10 @@ print("Y_sclae size:",len(y_scaled))
 
 #TODO We need to consider how we want to do trainin using multiple resources CPU/GPU
 t1 = time.time()
-R=np.matmul(X_scaled, X_scaled)
+for epoch in range(args.num_epochs):
+    R=np.matmul(X_scaled, X_scaled)
 t2 = time.time()
-print ("Time taken to multiply is {}".format(t2-t1))
+print ("Time taken to multiply is {} for num of epoch = {}".format(t2-t1, args.num_epochs))
 
 with open(args.model_dir + '/result_phase{}.npy'.format(args.phase), 'wb') as f:
     np.save(f, R)

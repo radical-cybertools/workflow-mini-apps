@@ -1,10 +1,14 @@
 from radical import entk
 import os
 import argparse, sys, math
+import radical.pilot as rp
 
 class MVP(object):
 
     def __init__(self):
+        self.env_work_dir = os.getenv("MINI_APP_EXALEARN_DIR")
+        if self.env_work_dir is None:
+            print("Warning: Did not set up work_dir using env var, need to set it up in parser manually!")
         self.set_argparse()
         self.am = entk.AppManager()
 
@@ -26,32 +30,44 @@ class MVP(object):
                         help='the directory where save and load model')
         parser.add_argument('--project_id', required=True,
                         help='the project ID we used to launch the job')
+        parser.add_argument('--num_CPU', type=int, default=9,
+                        help='num of CPU used for simulation (later also for training)')
+        parser.add_argument('--work_dir', default=self.env_work_dir,
+                        help='working dir, which is the dir of this repo')
+
         args = parser.parse_args()
         self.args = args
 
-    #TODO we need to provide a generic execution for anyone to use
-    #FIXME we need to use relative path.
     # This is for simulation, return a sim task
     def run_mpi_sweep_hdf5_py(self, phase_idx):
 
         t = entk.Task()
         t.pre_exec = [
                 "module load conda/2021-09-22",
-                "export OMP_NUM_THREADS=32"
                 ]
         t.executable = 'python'
-        t.arguments = ['/home/twang3/myWork/miniapp-exalearn/RECUP/mini-apps/ExaLearn-final/Executables/mini-mpi_sweep_hdf5_theta.py',
+        t.arguments = ['{}/Executables/simulation.py'.format(self.args.work_dir),
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--phase={}'.format(phase_idx),
                        '--mat_size={}'.format(self.args.mat_size),
-                       '--exec_pattern={}'.format(self.args.exec_pattern)]
+                       '--exec_pattern={}'.format(self.args.exec_pattern),
+                       '--num_CPU={}'.format(self.args.num_CPU)]
         t.post_exec = []
-        t.cpu_reqs = {
-            'cpu_processes': 1,
-            'cpu_process_type': None,
-            'cpu_threads': 64,
-            'cpu_thread_type': None
-            }
+
+        if self.args.exec_pattern == "single-thread":
+            t.cpu_reqs = {
+                    'cpu_processes': 1,
+                    'cpu_process_type': None,
+                    'cpu_threads': 1,
+                    'cpu_thread_type': rp.OpenMP
+                    }
+        elif self.args.exec_pattern == "multi-thread":
+            t.cpu_reqs = {
+                    'cpu_processes': 1,
+                    'cpu_process_type': None,
+                    'cpu_threads': self.args.num_CPU,
+                    'cpu_thread_type': rp.OpenMP
+                    }
 
         return t
 
@@ -62,10 +78,9 @@ class MVP(object):
         t = entk.Task()
         t.pre_exec = [
                 'module load conda/2021-09-22',
-                'export OMP_NUM_THREADS=32'
                 ]
         t.executable = 'python'
-        t.arguments = ['/home/twang3/myWork/miniapp-exalearn/RECUP/mini-apps/ExaLearn-final/Executables/test_training.py',
+        t.arguments = ['{}/Executables/training.py'.format(self.args.work_dir),
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--model_dir={}'.format(self.args.model_dir),
                        '--phase={}'.format(phase_idx),
@@ -75,7 +90,7 @@ class MVP(object):
              'cpu_processes'    : 1,
              'cpu_process_type' : None,
              'cpu_threads'      : 64,
-             'cpu_thread_type'  : None
+             'cpu_thread_type'  : rp.OpenMP
              }
 
         return t
