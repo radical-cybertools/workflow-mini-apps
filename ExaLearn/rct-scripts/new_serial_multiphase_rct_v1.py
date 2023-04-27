@@ -92,7 +92,7 @@ class MVP(object):
              'cpu_processes'    : 1,
              'cpu_process_type' : None,
              'cpu_threads'      : 64,
-             'cpu_thread_type'  : None
+             'cpu_thread_type'  : rp.OpenMP
              }
 
         s = entk.Stage()
