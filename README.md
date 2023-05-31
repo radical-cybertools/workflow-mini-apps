@@ -53,7 +53,7 @@ Current Status:
      
      - Creating Data Generation mini-app (DONE)
      
-     - Creating ML Mini-app (WIP)
+     - Creating ML Mini-app (DONE)
      
    - WF2: (TODO)
 
