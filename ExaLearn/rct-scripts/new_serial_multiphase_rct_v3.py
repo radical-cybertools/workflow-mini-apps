@@ -90,15 +90,20 @@ class MVP(object):
                        '--phase={}'.format(phase_idx),
                        '--num_mult={}'.format(self.args.num_mult),
                        '--sim_rank={}'.format(self.args.sim_rank),
+                       '--device=gpu',
                        '--preprocess_time={}'.format(self.args.train_preprocess_time),
                        '--mat_size={}'.format(self.args.mat_size)]
         t.post_exec = []
         t.cpu_reqs = {
-             'cpu_processes'    : self.args.train_rank,
-             'cpu_process_type' : None,
-             'cpu_threads'      : 8,
-             'cpu_thread_type'  : rp.OpenMP
-             }
+            'cpu_processes'     : self.args.train_rank,
+            'cpu_process_type'  : None,
+            'cpu_threads'       : 8,
+            'cpu_thread_type'   : rp.OpenMP
+                }
+        t.gpu_reqs = {
+            'gpu_processes'     : 1,
+            'gpu_process_type'  : rp.CUDA
+                }
 
         s = entk.Stage()
         s.add_tasks(t)
@@ -131,7 +136,7 @@ if __name__ == "__main__":
 #        'queue'   : 'default',
         'walltime': 45, #MIN
         'cpus'    : 32 * n_nodes,
-        'gpus'    : 0 * n_nodes,
+        'gpus'    : 4 * n_nodes,
         'project' : mvp.args.project_id
         })
     mvp.run_workflow()

@@ -3,9 +3,9 @@
 model_dir=$1/serial_wf/model/
 mkdir -p ${model_dir}
 
-python ../rct-scripts/new_serial_multiphase_rct_v2.py \
+python ../rct-scripts/new_serial_multiphase_rct_v3.py \
 	--num_phases 2 \
-	--num_epochs 60 \
+	--num_epochs 15 \
 	--inner_iter 15 \
 	--data_root_dir $1/serial_wf/data/ \
 	--model_dir ${model_dir} \
