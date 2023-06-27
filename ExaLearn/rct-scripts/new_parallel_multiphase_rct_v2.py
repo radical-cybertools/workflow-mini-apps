@@ -16,9 +16,9 @@ class MVP(object):
         self.am.resource_desc = res_desc
 
     def set_argparse(self):
-        parser = argparse.ArgumentParser(description="Exalearn_miniapp_EnTK_serial")
+        parser = argparse.ArgumentParser(description="Exalearn_miniapp_EnTK_parallel")
 
-        parser.add_argument('--num_phases', type=int, default=0,
+        parser.add_argument('--num_phase', type=int, default=0,
                         help='number of phases in the workflow')
         parser.add_argument('--num_epochs', type=int, default=30, metavar='N',
                         help='number of epochs to train (default: 30)')
@@ -46,7 +46,7 @@ class MVP(object):
         args = parser.parse_args()
         self.args = args
 
-    # This is for simulation, return a stage which has a single sim task
+    # This is for simulation, return a sim task
     def run_mpi_sweep_hdf5_py(self, phase_idx):
 
         t = entk.Task()
@@ -63,18 +63,16 @@ class MVP(object):
                        '--mat_size={}'.format(self.args.mat_size)]
         t.post_exec = []
         t.cpu_reqs = {
-             'cpu_processes'    : self.args.sim_rank,
-             'cpu_process_type' : None,
-             'cpu_threads'      : 1,
-             'cpu_thread_type'  : rp.OpenMP
-             }
-
-        s = entk.Stage()
-        s.add_tasks(t)
-        return s
+                'cpu_processes'     : self.args.sim_rank,
+                'cpu_process_type'  : None,
+                'cpu_threads'       : 1,
+                'cpu_thread_type'   : rp.OpenMP
+                }
+        
+        return t
 
 
-    # This is for training, return a stage which has a single training task
+    # This is for training, return a training task
     def run_mtnetwork_training_horovod_py(self, phase_idx):
 
         t = entk.Task()
@@ -100,18 +98,30 @@ class MVP(object):
              'cpu_thread_type'  : rp.OpenMP
              }
 
-        s = entk.Stage()
-        s.add_tasks(t)
-        return s
+        return t
 
     def generate_pipeline(self):
 
         p = entk.Pipeline()
-        for phase in range(int(self.args.num_phases)):
-            s1 = self.run_mpi_sweep_hdf5_py(phase)
-            p.add_stages(s1)
-            s2 = self.run_mtnetwork_training_horovod_py(phase)
-            p.add_stages(s2)
+
+        s0 = entk.Stage()
+        t0 = self.run_mpi_sweep_hdf5_py(0)
+        s0.add_tasks(t0)
+        p.add_stages(s0)
+
+        for phase in range(1, int(self.args.num_phase)):
+            s = entk.Stage()
+            ta = self.run_mpi_sweep_hdf5_py(phase)
+            tb = self.run_mtnetwork_training_horovod_py(phase-1)
+            s.add_tasks(ta)
+            s.add_tasks(tb)
+            p.add_stages(s)
+
+        sf = entk.Stage()
+        tf = self.run_mtnetwork_training_horovod_py(int(self.args.num_phase) - 1)
+        sf.add_tasks(tf)
+        p.add_stages(sf)
+
         return p
 
     def run_workflow(self):
@@ -121,9 +131,9 @@ class MVP(object):
 
 
 if __name__ == "__main__":
-
+    
     mvp = MVP()
-    n_nodes = 1
+    n_nodes = 2
     mvp.set_resource(res_desc = {
         'resource': 'anl.polaris',
         'queue'   : 'debug',

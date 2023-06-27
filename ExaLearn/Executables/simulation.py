@@ -57,20 +57,20 @@ def main():
 
     for mi in range(rank, args.num_mult, size):
         elap = time.time()
-        A = np.random.rand(msz,msz)
-        B = np.random.rand(msz,msz)
 #        print("A = ", A)
 #        print("B = ", B)
         for ini in range(args.inner_iter):
+            A = np.random.rand(msz,msz)
+            B = np.random.rand(msz,msz)
             C = np.matmul(A,B)
 #        print("C = ", C)
         elap = time.time() - elap
         print("Rank is {}, mi is {}, takes {} second".format(rank, mi, elap))
 
-    with open(filename_X, 'wb') as f:
-        np.save(f, C)
-    with open(filename_Y, 'wb') as f:
-        np.save(f, C)
+        with open(filename_X, 'wb') as f:
+            np.save(f, C)
+        with open(filename_Y, 'wb') as f:
+            np.save(f, C)
 
     end_time = time.time()
     print("Rank is {}, total running time is {}) seconds".format(rank, end_time - start_time))

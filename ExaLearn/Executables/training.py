@@ -2,6 +2,7 @@
 
 import sys
 import numpy as np
+import cupy as cp
 import io, os, sys
 import time
 import argparse
@@ -57,17 +58,35 @@ def main():
     args = parse_args()
     if rank == 0:
         print(args)
+    if args.device == 'gpu':
+        print("Rank is {}, gpu id is {}".format(rank, cp.cuda.runtime.getDeviceProperties(0)['uuid']))
 
-    X, y = load_data(args)
+    X, y = load_data(args, rank)
     X = np.float32(X)
     y = np.float32(y)
     preprocess(args.preprocess_time)
     for epoch in range(args.num_epochs):
         tt = time.time()
-        for index, mi in enumerate(range(rank, args.num_mult, args.sim_rank)):
-            R_temp=np.matmul(X[index], y[index])
-        print("Rank is {}, epoch is {}, mult takes {}".format(rank, epoch, time.time() - tt))
-        tt = time.time()
+
+        if args.device == 'cpu':
+            for index, mi in enumerate(range(rank, args.num_mult, args.sim_rank)):
+                R_temp = np.matmul(X[index], y[index])
+            print("Rank is {}, epoch is {}, mult takes {}".format(rank, epoch, time.time() - tt))
+            tt = time.time()
+
+        elif args.device == 'gpu':
+            X_d = cp.asarray(X)
+            y_d = cp.asarray(y)
+            print("Rank is {}, epoch is {}, data movementi (CPU->GPU) takes {}".format(rank, epoch, time.time() - tt))
+            tt = time.time()
+            for index, mi in enumerate(range(rank, args.num_mult, args.sim_rank)):
+                R_temp_d = cp.dot(X_d[index], y_d[index])
+            print("Rank is {}, epoch is {}, mult takes {}".format(rank, epoch, time.time() - tt))
+            tt = time.time()
+            R_temp = cp.asnumpy(R_temp_d)
+            print("Rank is {}, epoch is {}, data movementi (GPU->CPU) takes {}".format(rank, epoch, time.time() - tt))
+            tt = time.time()
+
         R = np.zeros_like(R_temp)
         comm.Allreduce(R_temp, R, op=MPI.SUM)
         print("Rank is {}, epoch is {}, allreduce takes {}".format(rank, epoch, time.time() - tt))
