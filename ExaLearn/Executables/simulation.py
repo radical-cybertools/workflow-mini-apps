@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 
-import os,sys
+import os, sys, socket
 import time
 import numpy as np
 import argparse
@@ -18,7 +18,11 @@ def parse_args():
                     help='number of matrix mult to perform, need to be larger than num_worker!')
     parser.add_argument('--inner_iter', type=int, default=10,
                     help='number of inner iter for each matrix mult. Used to control sim workload size')
-   
+    parser.add_argument('--write_size', type=int, default=-1,
+                    help='size of bytes written to disk, -1 means write data to disk once')
+    parser.add_argument('--read_size', type=int, default=0,
+                    help='size of bytes read from disk')
+
     args = parser.parse_args()
 
     return args
@@ -28,6 +32,7 @@ def matMult(a, b , out):
 
 def main():
 
+    print("Temp for Darshan, sim, PID = {}, hostname = {}".format(os.getpid(), socket.gethostname()))
     start_time = time.time()
     comm = MPI.COMM_WORLD
     size = comm.Get_size()
@@ -67,6 +72,8 @@ def main():
         elap = time.time() - elap
         print("Rank is {}, mi is {}, takes {} second".format(rank, mi, elap))
 
+        if args.write_size == -1:
+            write_time = 1
         with open(filename_X, 'wb') as f:
             np.save(f, C)
         with open(filename_Y, 'wb') as f:

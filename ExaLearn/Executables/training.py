@@ -1,9 +1,8 @@
 #!/usr/bin/env python
 
-import sys
 import numpy as np
 import cupy as cp
-import io, os, sys
+import io, os, sys, socket
 import time
 import argparse
 from mpi4py import MPI
@@ -13,7 +12,7 @@ def parse_args():
     parser.add_argument('--num_epochs', type=int, default=30, metavar='N',
                         help='number of epochs to train (default: 30)')
     parser.add_argument('--device', default='cpu',
-                        help='Wheter this is running on cpu or gpu, currently does not support GPU')
+                        help='Wheter this is running on cpu or gpu')
     parser.add_argument('--phase', type=int, default=0,
                         help='the current phase of workflow, phase0 will not read model')
     parser.add_argument('--data_root_dir', default='./',
@@ -50,6 +49,7 @@ def preprocess(seconds):
 
 def main():
 
+    print("Temp for Darshan, ml, PID = {}, hostname = {}".format(os.getpid(), socket.gethostname()))
     start_time = time.time()
     comm = MPI.COMM_WORLD
     size = comm.Get_size()
