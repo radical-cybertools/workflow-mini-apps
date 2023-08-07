@@ -39,8 +39,12 @@ class MVP(object):
                         help='number of rank used for simulation. This is needed to determine the size of data in those files')
         parser.add_argument('--train_rank', type=int, default=1,
                         help='number of rank used for training.')
-        parser.add_argument('--inner_iter', type=int, default=10,
+        parser.add_argument('--sim_inner_iter', type=int, default=10,
                         help='number of inner iter for each matrix mult in simulation app. Used to control sim workload size')
+        parser.add_argument('--train_inner_iter', type=int, default=1,
+                        help='inner iteration of mult and allreduce')
+        parser.add_argument('--num_allreduce', type=int, default=1,
+                        help='the inner number of allreduce op performed')
         parser.add_argument('--train_preprocess_time', type=float, default=5.0,
                         help='time for doing preprocess in training')
         parser.add_argument('--sim_read_size', type=int, default=0,
@@ -69,7 +73,7 @@ class MVP(object):
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--phase={}'.format(phase_idx),
                        '--num_mult={}'.format(self.args.num_mult),
-                       '--inner_iter={}'.format(self.args.inner_iter),
+                       '--sim_inner_iter={}'.format(self.args.sim_inner_iter),
                        '--mat_size={}'.format(self.args.mat_size),
                        '--write_size={}'.format(self.args.sim_write_size),
                        '--read_size={}'.format(self.args.sim_read_size)]
@@ -103,6 +107,8 @@ class MVP(object):
                        '--device=cpu',
                        '--phase={}'.format(phase_idx),
                        '--num_mult={}'.format(self.args.num_mult),
+                       '--train_inner_iter={}'.format(self.args.train_inner_iter),
+                       '--num_allreduce={}'.format(self.args.num_allreduce),
                        '--sim_rank={}'.format(self.args.sim_rank),
                        '--preprocess_time={}'.format(self.args.train_preprocess_time),
                        '--mat_size={}'.format(self.args.mat_size),
@@ -126,7 +132,7 @@ class MVP(object):
         s0.add_tasks(t0)
         p.add_stages(s0)
 
-        for phase in range(1, int(self.args.num_phase)):
+        for phase in range(1, int(self.args.num_phases)):
             s = entk.Stage()
             ta = self.run_mpi_sweep_hdf5_py(phase)
             tb = self.run_mtnetwork_training_horovod_py(phase-1)
@@ -135,7 +141,7 @@ class MVP(object):
             p.add_stages(s)
 
         sf = entk.Stage()
-        tf = self.run_mtnetwork_training_horovod_py(int(self.args.num_phase) - 1)
+        tf = self.run_mtnetwork_training_horovod_py(int(self.args.num_phases) - 1)
         sf.add_tasks(tf)
         p.add_stages(sf)
 

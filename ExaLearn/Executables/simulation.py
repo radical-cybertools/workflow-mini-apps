@@ -17,7 +17,7 @@ def parse_args():
                     help='the root dir of gsas output data')
     parser.add_argument('--num_mult', type=int, default=10,
                     help='number of matrix mult to perform, need to be larger than num_worker!')
-    parser.add_argument('--inner_iter', type=int, default=10,
+    parser.add_argument('--sim_inner_iter', type=int, default=10,
                     help='number of inner iter for each matrix mult. Used to control sim workload size')
     parser.add_argument('--write_size', type=int, default=-1,
                     help='size of bytes written to disk, -1 means write data to disk once')
@@ -64,20 +64,21 @@ def main():
     if args.write_size == -1:
         write_time = 1
     else:
-        write_time = args.write_size // (msz * msz * 8 * size)
+        print(args.write_size, msz // 4, size, args.write_size // (msz // 4 * msz // 4 * 8 * size))
+        write_time = int(args.write_size // (msz // 4 * msz // 4 * 8 * size))
     print("write_time = {}".format(write_time))
     
     if args.read_size == -1:
         read_time = 1
     else:
-        read_time = args.read_size // (msz * msz * 8 * size)
+        read_time = int(args.read_size // (msz // 4 * msz // 4 * 8 * size))
     print("read_time = {}".format(read_time))
 
     for mi in range(rank, args.num_mult, size):
         elap = time.time()
 #        print("A = ", A)
 #        print("B = ", B)
-        for ini in range(args.inner_iter):
+        for ini in range(args.sim_inner_iter):
             A = np.random.rand(msz,msz)
             B = np.random.rand(msz,msz)
             C = np.matmul(A,B)
@@ -91,9 +92,10 @@ def main():
             np.save(f, C)
     
     fname = root_path + 'all_tmp_data_rank_{}.hdf5'.format(rank)
+    D = np.random.rand(msz//4,msz//4)
     with h5py.File(fname, 'w') as f:
         for i in range(write_time):
-            f.create_dataset("tmp_{}".format(i), data = C)
+            f.create_dataset("tmp_{}".format(i), data = D)
     for i in range(read_time):
         fname = root_path + 'all_tmp_data_rank_{}.hdf5'.format(rank)
         with h5py.File(fname, 'r') as f:

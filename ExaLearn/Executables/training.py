@@ -28,6 +28,10 @@ def parse_args():
                         help='number of rank used for simulation. This is needed to determine the size of data in those files')
     parser.add_argument('--preprocess_time', type=float, default=5.0,
                         help='time for doing preprocess')
+    parser.add_argument('--train_inner_iter', type=int, default=1,
+                        help='inner iteration of mult and allreduce')
+    parser.add_argument('--num_allreduce', type=int, default=1,
+                        help='the inner number of allreduce op performed')
     parser.add_argument('--read_size', type=int, default=0,
                         help='size of bytes read from disk')
 
@@ -38,7 +42,7 @@ def parse_args():
 def read_tmp_data(args, rank, size):
     root_path = args.data_root_dir + '/phase{}'.format(args.phase) + '/'
     msz = args.mat_size
-    read_time = args.read_size // (msz * msz * 8 * size)
+    read_time = int(args.read_size // (msz // 4 * msz // 4 * 8 * size))
     print("read_time = ", read_time)
     fname = root_path + 'all_tmp_data_rank_{}.hdf5'.format(rank)
     for i in range(read_time):
@@ -85,8 +89,9 @@ def main():
         tt = time.time()
 
         if args.device == 'cpu':
-            for index, mi in enumerate(range(rank, args.num_mult, args.sim_rank)):
-                R_temp = np.matmul(X[index], y[index])
+            for ii in range(args.train_inner_iter):
+                for index, mi in enumerate(range(rank, args.num_mult, args.sim_rank)):
+                    R_temp = np.matmul(X[index], y[index])
             print("Rank is {}, epoch is {}, mult takes {}".format(rank, epoch, time.time() - tt))
             tt = time.time()
 
@@ -94,17 +99,23 @@ def main():
             X_d = cp.asarray(X)
             y_d = cp.asarray(y)
             print("Rank is {}, epoch is {}, data movementi (CPU->GPU) takes {}".format(rank, epoch, time.time() - tt))
+            print(X_d.shape, y_d.shape)
             tt = time.time()
-            for index, mi in enumerate(range(rank, args.num_mult, args.sim_rank)):
-                R_temp_d = cp.dot(X_d[index], y_d[index])
+            for ii in range(args.train_inner_iter):
+                for index, mi in enumerate(range(rank, args.num_mult, args.sim_rank)):
+                    R_temp_d = cp.dot(X_d[index], y_d[index])
             print("Rank is {}, epoch is {}, mult takes {}".format(rank, epoch, time.time() - tt))
             tt = time.time()
+            X_temp = cp.asnumpy(X_d)
+            y_temp = cp.asnumpy(y_d)
             R_temp = cp.asnumpy(R_temp_d)
             print("Rank is {}, epoch is {}, data movementi (GPU->CPU) takes {}".format(rank, epoch, time.time() - tt))
+            print(R_temp.shape)
             tt = time.time()
 
-        R = np.zeros_like(R_temp)
-        comm.Allreduce(R_temp, R, op=MPI.SUM)
+        for ii in range(args.train_inner_iter * args.num_allreduce):
+            R = np.zeros_like(R_temp)
+            comm.Allreduce(R_temp, R, op=MPI.SUM)
         print("Rank is {}, epoch is {}, allreduce takes {}".format(rank, epoch, time.time() - tt))
 
     if rank == 0:

@@ -39,8 +39,12 @@ class MVP(object):
                         help='number of rank used for simulation. This is needed to determine the size of data in those files')
         parser.add_argument('--train_rank', type=int, default=1,
                         help='number of rank used for training.')
-        parser.add_argument('--inner_iter', type=int, default=10,
+        parser.add_argument('--sim_inner_iter', type=int, default=10,
                         help='number of inner iter for each matrix mult in simulation app. Used to control sim workload size')
+        parser.add_argument('--train_inner_iter', type=int, default=1,
+                        help='inner iteration of mult and allreduce')
+        parser.add_argument('--num_allreduce', type=int, default=1,
+                        help='the inner number of allreduce op performed')
         parser.add_argument('--train_preprocess_time', type=float, default=5.0,
                         help='time for doing preprocess in training')
         parser.add_argument('--sim_read_size', type=int, default=0,
@@ -69,7 +73,7 @@ class MVP(object):
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--phase={}'.format(phase_idx),
                        '--num_mult={}'.format(self.args.num_mult),
-                       '--inner_iter={}'.format(self.args.inner_iter),
+                       '--sim_inner_iter={}'.format(self.args.sim_inner_iter),
                        '--mat_size={}'.format(self.args.mat_size),
                        '--write_size={}'.format(self.args.sim_write_size),
                        '--read_size={}'.format(self.args.sim_read_size)]
@@ -104,6 +108,8 @@ class MVP(object):
                        '--model_dir={}'.format(self.args.model_dir),
                        '--phase={}'.format(phase_idx),
                        '--num_mult={}'.format(self.args.num_mult),
+                       '--train_inner_iter={}'.format(self.args.train_inner_iter),
+                       '--num_allreduce={}'.format(self.args.num_allreduce),
                        '--sim_rank={}'.format(self.args.sim_rank),
                        '--device=gpu',
                        '--preprocess_time={}'.format(self.args.train_preprocess_time),
