@@ -4,6 +4,7 @@ import os, sys, socket
 import time
 import numpy as np
 import argparse
+import h5py
 from mpi4py import MPI
 
 def parse_args():
@@ -60,6 +61,18 @@ def main():
     filename_Y = root_path + 'all_Y_data_rank_{}.npy'.format(rank)
     os.makedirs(os.path.dirname(filename_Y), exist_ok=True)
 
+    if args.write_size == -1:
+        write_time = 1
+    else:
+        write_time = args.write_size // (msz * msz * 8 * size)
+    print("write_time = {}".format(write_time))
+    
+    if args.read_size == -1:
+        read_time = 1
+    else:
+        read_time = args.read_size // (msz * msz * 8 * size)
+    print("read_time = {}".format(read_time))
+
     for mi in range(rank, args.num_mult, size):
         elap = time.time()
 #        print("A = ", A)
@@ -72,15 +85,22 @@ def main():
         elap = time.time() - elap
         print("Rank is {}, mi is {}, takes {} second".format(rank, mi, elap))
 
-        if args.write_size == -1:
-            write_time = 1
         with open(filename_X, 'wb') as f:
             np.save(f, C)
         with open(filename_Y, 'wb') as f:
             np.save(f, C)
+    
+    fname = root_path + 'all_tmp_data_rank_{}.hdf5'.format(rank)
+    with h5py.File(fname, 'w') as f:
+        for i in range(write_time):
+            f.create_dataset("tmp_{}".format(i), data = C)
+    for i in range(read_time):
+        fname = root_path + 'all_tmp_data_rank_{}.hdf5'.format(rank)
+        with h5py.File(fname, 'r') as f:
+            D = f['tmp_{}'.format(i % write_time)][:]
 
     end_time = time.time()
-    print("Rank is {}, total running time is {}) seconds".format(rank, end_time - start_time))
+    print("Rank is {}, total running time is {} seconds".format(rank, end_time - start_time))
 
 if __name__ == '__main__':
     main()

@@ -5,6 +5,7 @@ import cupy as cp
 import io, os, sys, socket
 import time
 import argparse
+import h5py
 from mpi4py import MPI
 
 def parse_args():
@@ -27,10 +28,24 @@ def parse_args():
                         help='number of rank used for simulation. This is needed to determine the size of data in those files')
     parser.add_argument('--preprocess_time', type=float, default=5.0,
                         help='time for doing preprocess')
+    parser.add_argument('--read_size', type=int, default=0,
+                        help='size of bytes read from disk')
 
     args = parser.parse_args()
 
     return args
+
+def read_tmp_data(args, rank, size):
+    root_path = args.data_root_dir + '/phase{}'.format(args.phase) + '/'
+    msz = args.mat_size
+    read_time = args.read_size // (msz * msz * 8 * size)
+    print("read_time = ", read_time)
+    fname = root_path + 'all_tmp_data_rank_{}.hdf5'.format(rank)
+    for i in range(read_time):
+        with h5py.File(fname, 'r') as f:
+            dataset_len = len(f.keys())
+            print("dataset_len = ", dataset_len)
+            D = f['tmp_{}'.format(i % dataset_len)][:]
 
 def load_data(args, rank):
     root_path = args.data_root_dir + '/phase{}'.format(args.phase) + '/'
@@ -61,6 +76,7 @@ def main():
     if args.device == 'gpu':
         print("Rank is {}, gpu id is {}".format(rank, cp.cuda.runtime.getDeviceProperties(0)['uuid']))
 
+    read_tmp_data(args, rank, size)
     X, y = load_data(args, rank)
     X = np.float32(X)
     y = np.float32(y)
