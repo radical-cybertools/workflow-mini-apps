@@ -2,6 +2,7 @@ from radical import entk
 import os
 import argparse, sys, math
 import radical.pilot as rp
+import radical.utils as ru
 
 class MVP(object):
 
@@ -18,7 +19,7 @@ class MVP(object):
     def set_argparse(self):
         parser = argparse.ArgumentParser(description="Exalearn_miniapp_EnTK_parallel")
 
-        parser.add_argument('--num_phase', type=int, default=0,
+        parser.add_argument('--num_phases', type=int, default=0,
                         help='number of phases in the workflow')
         parser.add_argument('--num_epochs', type=int, default=30, metavar='N',
                         help='number of epochs to train (default: 30)')
@@ -38,10 +39,20 @@ class MVP(object):
                         help='number of rank used for simulation. This is needed to determine the size of data in those files')
         parser.add_argument('--train_rank', type=int, default=1,
                         help='number of rank used for training.')
-        parser.add_argument('--inner_iter', type=int, default=10,
+        parser.add_argument('--sim_inner_iter', type=int, default=10,
                         help='number of inner iter for each matrix mult in simulation app. Used to control sim workload size')
+        parser.add_argument('--train_inner_iter', type=int, default=1,
+                        help='inner iteration of mult and allreduce')
+        parser.add_argument('--num_allreduce', type=int, default=1,
+                        help='the inner number of allreduce op performed')
         parser.add_argument('--train_preprocess_time', type=float, default=5.0,
                         help='time for doing preprocess in training')
+        parser.add_argument('--sim_read_size', type=int, default=0,
+                        help='read bytes for all ranks in one sim task')
+        parser.add_argument('--sim_write_size', type=int, default=0,
+                        help='write bytes for all ranks in one sim task')
+        parser.add_argument('--train_read_size', type=int, default=0,
+                        help='read bytes for all ranks in one train task')
 
         args = parser.parse_args()
         self.args = args
@@ -49,25 +60,30 @@ class MVP(object):
     # This is for simulation, return a sim task
     def run_mpi_sweep_hdf5_py(self, phase_idx):
 
-        t = entk.Task()
+        t = entk.Task({'uid': ru.generate_id("sim")})
         t.pre_exec = [
+                "module load PrgEnv-gnu",
                 "module load conda",
-                "conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris"
+                "conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris",
+                "export IBV_FORK_SAFE=1",
+                "export HDF5_USE_FILE_LOCKING=FALSE"
                 ]
-        t.executable = 'python'
+        t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/lib/python3.8/,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/bin/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/lib/python3.8/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/bin/,/home/twang3/g2full_theta/GSASII/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
         t.arguments = ['{}/Executables/simulation.py'.format(self.args.work_dir),
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--phase={}'.format(phase_idx),
                        '--num_mult={}'.format(self.args.num_mult),
-                       '--inner_iter={}'.format(self.args.inner_iter),
-                       '--mat_size={}'.format(self.args.mat_size)]
+                       '--sim_inner_iter={}'.format(self.args.sim_inner_iter),
+                       '--mat_size={}'.format(self.args.mat_size),
+                       '--write_size={}'.format(self.args.sim_write_size),
+                       '--read_size={}'.format(self.args.sim_read_size)]
         t.post_exec = []
         t.cpu_reqs = {
-                'cpu_processes'     : self.args.sim_rank,
-                'cpu_process_type'  : None,
-                'cpu_threads'       : 1,
-                'cpu_thread_type'   : rp.OpenMP
-                }
+             'cpu_processes'    : self.args.sim_rank,
+             'cpu_process_type' : None,
+             'cpu_threads'      : 1,
+             'cpu_thread_type'  : rp.OpenMP
+             }
         
         return t
 
@@ -75,26 +91,33 @@ class MVP(object):
     # This is for training, return a training task
     def run_mtnetwork_training_horovod_py(self, phase_idx):
 
-        t = entk.Task()
+        t = entk.Task({'uid': ru.generate_id("train")})
         t.pre_exec = [
+                "module load PrgEnv-gnu",
                 'module load conda',
-                "conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris"
+                "conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris",
+                "export IBV_FORK_SAFE=1",
+                "export HDF5_USE_FILE_LOCKING=FALSE"
                 ]
-        t.executable = 'python'
+        t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/lib/python3.8/,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/bin/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/lib/python3.8/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/bin/,/home/twang3/g2full_theta/GSASII/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
         t.arguments = ['{}/Executables/training.py'.format(self.args.work_dir),
                        '--num_epochs={}'.format(self.args.num_epochs),
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--model_dir={}'.format(self.args.model_dir),
+                       '--device=cpu',
                        '--phase={}'.format(phase_idx),
                        '--num_mult={}'.format(self.args.num_mult),
+                       '--train_inner_iter={}'.format(self.args.train_inner_iter),
+                       '--num_allreduce={}'.format(self.args.num_allreduce),
                        '--sim_rank={}'.format(self.args.sim_rank),
                        '--preprocess_time={}'.format(self.args.train_preprocess_time),
-                       '--mat_size={}'.format(self.args.mat_size)]
+                       '--mat_size={}'.format(self.args.mat_size),
+                       '--read_size={}'.format(self.args.train_read_size)]
         t.post_exec = []
         t.cpu_reqs = {
              'cpu_processes'    : self.args.train_rank,
              'cpu_process_type' : None,
-             'cpu_threads'      : 8,
+             'cpu_threads'      : 32,
              'cpu_thread_type'  : rp.OpenMP
              }
 
@@ -109,7 +132,7 @@ class MVP(object):
         s0.add_tasks(t0)
         p.add_stages(s0)
 
-        for phase in range(1, int(self.args.num_phase)):
+        for phase in range(1, int(self.args.num_phases)):
             s = entk.Stage()
             ta = self.run_mpi_sweep_hdf5_py(phase)
             tb = self.run_mtnetwork_training_horovod_py(phase-1)
@@ -118,7 +141,7 @@ class MVP(object):
             p.add_stages(s)
 
         sf = entk.Stage()
-        tf = self.run_mtnetwork_training_horovod_py(int(self.args.num_phase) - 1)
+        tf = self.run_mtnetwork_training_horovod_py(int(self.args.num_phases) - 1)
         sf.add_tasks(tf)
         p.add_stages(sf)
 
@@ -133,11 +156,11 @@ class MVP(object):
 if __name__ == "__main__":
     
     mvp = MVP()
-    n_nodes = 2
+    n_nodes = 8
     mvp.set_resource(res_desc = {
         'resource': 'anl.polaris',
-        'queue'   : 'debug',
-#        'queue'   : 'preemptable',
+#        'queue'   : 'debug',
+        'queue'   : 'preemptable',
 #        'queue'   : 'default',
         'walltime': 45, #MIN
         'cpus'    : 32 * n_nodes,

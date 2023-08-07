@@ -1,145 +1,143 @@
 ===============================================serial workflow============================================
-re.session.polaris-login-01.twang3.019531.0005
+ex3_p1
+
+re.session.polaris-login-01.twang3.019576.0013
 
 python ../rct-scripts/new_serial_multiphase_rct_v2.py \
-        --num_phases 2 \
-        --num_epochs 15 \
-        --inner_iter 15 \
+        --num_phases 3 \
+        --num_epochs 50 \
+        --train_inner_iter 13 \
+        --sim_inner_iter 8 \
         --data_root_dir $1/serial_wf/data/ \
         --model_dir ${model_dir} \
         --mat_size 3000 \
-        --num_mult 300 \
-        --sim_rank 32 \
+        --num_mult 384 \
+	--num_allreduce 1 \
+        --sim_rank 128 \
         --train_rank 4 \
-        --train_preprocess_time 15 \
+        --train_preprocess_time 10 \
+        --sim_read_size 42949672960 \
+        --sim_write_size 10737418240 \
+        --train_read_size 3221225472 \
         --project_id RECUP
-265.9
-122.7
-268.7
-123.4
 
 
-re.session.polaris-login-01.twang3.019532.0000
+ex3_p2
+
+re.session.polaris-login-01.twang3.019576.0015
 
 python ../rct-scripts/new_serial_multiphase_rct_v2.py \
-        --num_phases 2 \
-        --num_epochs 30 \
-        --inner_iter 15 \
+        --num_phases 3 \
+        --num_epochs 25 \
+        --train_inner_iter 13 \
+        --sim_inner_iter 8 \
         --data_root_dir $1/serial_wf/data/ \
         --model_dir ${model_dir} \
         --mat_size 3000 \
-        --num_mult 300 \
-        --sim_rank 32 \
+        --num_mult 384 \
+	--num_allreduce 1 \
+        --sim_rank 128 \
         --train_rank 4 \
-        --train_preprocess_time 15 \
+        --train_preprocess_time 10 \
+        --sim_read_size 42949672960 \
+        --sim_write_size 10737418240 \
+        --train_read_size 3221225472 \
         --project_id RECUP
-266.1
-230.2
-268.0
-230.3
 
 
-re.session.polaris-login-01.twang3.019532.0001
+ex3_p3
+
+re.session.polaris-login-01.twang3.019576.0017
 
 python ../rct-scripts/new_serial_multiphase_rct_v2.py \
-        --num_phases 2 \
-        --num_epochs 60 \
-        --inner_iter 15 \
+        --num_phases 3 \
+        --num_epochs 25 \
+        --train_inner_iter 13 \
+        --sim_inner_iter 8 \
         --data_root_dir $1/serial_wf/data/ \
         --model_dir ${model_dir} \
         --mat_size 3000 \
-        --num_mult 300 \
-        --sim_rank 32 \
+        --num_mult 768 \
+        --num_allreduce 2 \
+        --sim_rank 128 \
         --train_rank 4 \
-        --train_preprocess_time 15 \
+        --train_preprocess_time 10 \
+        --sim_read_size 85899345920 \
+        --sim_write_size 21474836480 \
+        --train_read_size 6442450944 \
         --project_id RECUP
-266.5
-447.0
-266.5
-444.5
-
-
-
 
 ===============================================parallel workflow============================================
-re.session.polaris-login-01.twang3.019533.0000
+ex4_p1
+
+re.session.polaris-login-01.twang3.019576.0020
 
 python ../rct-scripts/new_parallel_multiphase_rct_v2.py \
-        --num_phase 2 \
-        --num_epochs 60 \
-        --inner_iter 15 \
+        --num_phase 3 \
+        --num_epochs 50 \
+        --train_inner_iter 13 \
+        --sim_inner_iter 8 \
         --data_root_dir $1/parallel_wf/data/ \
         --model_dir ${model_dir} \
         --mat_size 3000 \
-        --num_mult 300 \
-        --sim_rank 32 \
+        --num_mult 384 \
+        --num_allreduce 1 \
+        --sim_rank 128 \
         --train_rank 4 \
-        --train_preprocess_time 15 \
+        --train_preprocess_time 10 \
+        --sim_read_size 42949672960 \
+        --sim_write_size 10737418240 \
+        --train_read_size 3221225472 \
         --project_id RECUP
-262.4
-265.0
-442.2
-446.8
 
 
-re.session.polaris-login-01.twang3.019533.0001
+ex4_p2
+
+re.session.polaris-login-01.twang3.019576.0021
 
 python ../rct-scripts/new_parallel_multiphase_rct_v2.py \
-        --num_phase 2 \
-        --num_epochs 30 \
-        --inner_iter 15 \
+        --num_phase 3 \
+        --num_epochs 25 \
+        --train_inner_iter 13 \
+        --sim_inner_iter 8 \
         --data_root_dir $1/parallel_wf/data/ \
         --model_dir ${model_dir} \
         --mat_size 3000 \
-        --num_mult 300 \
-        --sim_rank 32 \
+        --num_mult 384 \
+        --num_allreduce 1 \
+        --sim_rank 128 \
         --train_rank 4 \
-        --train_preprocess_time 15 \
+        --train_preprocess_time 10 \
+        --sim_read_size 42949672960 \
+        --sim_write_size 10737418240 \
+        --train_read_size 3221225472 \
         --project_id RECUP
-264.3
-264.7
-228.7
-230.5
 
 
-re.session.polaris-login-01.twang3.019533.0002
+ex4_p3
+
+re.session.polaris-login-01.twang3.019576.0022
 
 python ../rct-scripts/new_parallel_multiphase_rct_v2.py \
-        --num_phase 2 \
-        --num_epochs 15 \
-        --inner_iter 15 \
+        --num_phase 3 \
+        --num_epochs 25 \
+        --train_inner_iter 13 \
+        --sim_inner_iter 8 \
         --data_root_dir $1/parallel_wf/data/ \
         --model_dir ${model_dir} \
         --mat_size 3000 \
-        --num_mult 300 \
-        --sim_rank 32 \
+        --num_mult 768 \
+        --num_allreduce 2 \
+        --sim_rank 128 \
         --train_rank 4 \
-        --train_preprocess_time 15 \
-        --project_id RECUP
-262.8
-266.6
-123.3
-124.4
-
-
-=============================serial GPU=============================
-re.session.polaris-login-01.twang3.019534.0000
-
-python ../rct-scripts/new_serial_multiphase_rct_v3.py \
-        --num_phases 2 \
-        --num_epochs 15 \
-        --inner_iter 15 \
-        --data_root_dir $1/serial_wf/data/ \
-        --model_dir ${model_dir} \
-        --mat_size 3000 \
-        --num_mult 300 \
-        --sim_rank 32 \
-        --train_rank 4 \
-        --train_preprocess_time 15 \
+        --train_preprocess_time 10 \
+        --sim_read_size 85899345920 \
+        --sim_write_size 21474836480 \
+        --train_read_size 6442450944 \
         --project_id RECUP
 
 
-265.3
-21.3
-263.6
-21.1
+===============================================serial workflow GPU============================================
+ex5_p1
+
+
