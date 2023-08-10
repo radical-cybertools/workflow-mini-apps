@@ -44,7 +44,7 @@ class MVP(object):
         parser.add_argument('--train_inner_iter', type=int, default=1,
                         help='inner iteration of mult and allreduce')
         parser.add_argument('--num_allreduce', type=int, default=1,
-                        help='the inner number of allreduce op performed')
+                        help='the number of allreduce op performed')
         parser.add_argument('--train_preprocess_time', type=float, default=5.0,
                         help='time for doing preprocess in training')
         parser.add_argument('--sim_read_size', type=int, default=0,

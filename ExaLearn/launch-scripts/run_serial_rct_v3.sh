@@ -4,7 +4,7 @@ model_dir=$1/serial_wf/model/
 mkdir -p ${model_dir}
 
 python ../rct-scripts/new_serial_multiphase_rct_v3.py \
-	--num_phases 3 \
+        --num_phases 3 \
         --num_epochs 200 \
         --train_inner_iter 13 \
         --sim_inner_iter 8 \
@@ -12,7 +12,7 @@ python ../rct-scripts/new_serial_multiphase_rct_v3.py \
         --model_dir ${model_dir} \
         --mat_size 3000 \
         --num_mult 384 \
-        --num_allreduce 1 \
+        --num_allreduce 4 \
         --sim_rank 128 \
         --train_rank 16 \
         --train_preprocess_time 10 \

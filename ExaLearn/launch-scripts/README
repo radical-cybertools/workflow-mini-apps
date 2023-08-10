@@ -12,7 +12,7 @@ python ../rct-scripts/new_serial_multiphase_rct_v2.py \
         --model_dir ${model_dir} \
         --mat_size 3000 \
         --num_mult 384 \
-	--num_allreduce 1 \
+	--num_allreduce 13 \
         --sim_rank 128 \
         --train_rank 4 \
         --train_preprocess_time 10 \
@@ -35,7 +35,7 @@ python ../rct-scripts/new_serial_multiphase_rct_v2.py \
         --model_dir ${model_dir} \
         --mat_size 3000 \
         --num_mult 384 \
-	--num_allreduce 1 \
+	--num_allreduce 13 \
         --sim_rank 128 \
         --train_rank 4 \
         --train_preprocess_time 10 \
@@ -58,7 +58,7 @@ python ../rct-scripts/new_serial_multiphase_rct_v2.py \
         --model_dir ${model_dir} \
         --mat_size 3000 \
         --num_mult 768 \
-        --num_allreduce 2 \
+        --num_allreduce 26 \
         --sim_rank 128 \
         --train_rank 4 \
         --train_preprocess_time 10 \
@@ -81,7 +81,7 @@ python ../rct-scripts/new_parallel_multiphase_rct_v2.py \
         --model_dir ${model_dir} \
         --mat_size 3000 \
         --num_mult 384 \
-        --num_allreduce 1 \
+        --num_allreduce 13 \
         --sim_rank 128 \
         --train_rank 4 \
         --train_preprocess_time 10 \
@@ -104,7 +104,7 @@ python ../rct-scripts/new_parallel_multiphase_rct_v2.py \
         --model_dir ${model_dir} \
         --mat_size 3000 \
         --num_mult 384 \
-        --num_allreduce 1 \
+        --num_allreduce 13 \
         --sim_rank 128 \
         --train_rank 4 \
         --train_preprocess_time 10 \
@@ -127,7 +127,7 @@ python ../rct-scripts/new_parallel_multiphase_rct_v2.py \
         --model_dir ${model_dir} \
         --mat_size 3000 \
         --num_mult 768 \
-        --num_allreduce 2 \
+        --num_allreduce 26 \
         --sim_rank 128 \
         --train_rank 4 \
         --train_preprocess_time 10 \
@@ -140,4 +140,99 @@ python ../rct-scripts/new_parallel_multiphase_rct_v2.py \
 ===============================================serial workflow GPU============================================
 ex5_p1
 
+re.session.polaris-login-01.twang3.019577.0003
 
+python ../rct-scripts/new_serial_multiphase_rct_v3.py \
+        --num_phases 3 \
+        --num_epochs 200 \
+        --train_inner_iter 13 \
+        --sim_inner_iter 8 \
+        --data_root_dir $1/serial_wf/data/ \
+        --model_dir ${model_dir} \
+        --mat_size 3000 \
+        --num_mult 384 \
+        --num_allreduce 4 \
+        --sim_rank 128 \
+        --train_rank 16 \
+        --train_preprocess_time 10 \
+        --sim_read_size 42949672960 \
+        --sim_write_size 10737418240 \
+        --train_read_size 3221225472 \
+        --project_id RECUP
+
+
+ex5_p2
+
+re.session.polaris-login-01.twang3.019577.0008
+
+python ../rct-scripts/new_serial_multiphase_rct_v3.py \
+        --num_phases 3 \
+        --num_epochs 100 \
+        --train_inner_iter 13 \
+        --sim_inner_iter 8 \
+        --data_root_dir $1/serial_wf/data/ \
+        --model_dir ${model_dir} \
+        --mat_size 3000 \
+        --num_mult 384 \
+        --num_allreduce 4 \
+        --sim_rank 128 \
+        --train_rank 16 \
+        --train_preprocess_time 10 \
+        --sim_read_size 42949672960 \
+        --sim_write_size 10737418240 \
+        --train_read_size 3221225472 \
+        --project_id RECUP
+
+
+ex5_p3
+
+re.session.polaris-login-01.twang3.019577.0007
+
+python ../rct-scripts/new_serial_multiphase_rct_v3.py \
+        --num_phases 3 \
+        --num_epochs 100 \
+        --train_inner_iter 13 \
+        --sim_inner_iter 8 \
+        --data_root_dir $1/serial_wf/data/ \
+        --model_dir ${model_dir} \
+        --mat_size 3000 \
+        --num_mult 768 \
+        --num_allreduce 4 \
+        --sim_rank 128 \
+        --train_rank 16 \
+        --train_preprocess_time 20 \
+        --sim_read_size 85899345920 \
+        --sim_write_size 21474836480 \
+        --train_read_size 6442450944 \
+        --project_id RECUP
+
+
+
+===============================================reproducibility, only serial workflow GPU with pset1 (ex5_p1) ============================================
+python ../rct-scripts/new_serial_multiphase_rct_v3.py \
+        --num_phases 3 \
+        --num_epochs 200 \
+        --train_inner_iter 13 \
+        --sim_inner_iter 8 \
+        --data_root_dir $1/serial_wf/data/ \
+        --model_dir ${model_dir} \
+        --mat_size 3000 \
+        --num_mult 384 \
+        --num_allreduce 4 \
+        --sim_rank 128 \
+        --train_rank 16 \
+        --train_preprocess_time 10 \
+        --sim_read_size 42949672960 \
+        --sim_write_size 10737418240 \
+        --train_read_size 3221225472 \
+        --project_id RECUP
+
+rep_01		re.session.polaris-login-01.twang3.019578.0000
+rep_02		re.session.polaris-login-01.twang3.019578.0001
+rep_03		re.session.polaris-login-01.twang3.019578.0002
+rep_04		re.session.polaris-login-01.twang3.019579.0006
+rep_05		re.session.polaris-login-01.twang3.019579.0000
+rep_06		re.session.polaris-login-01.twang3.019579.0004
+rep_07		re.session.polaris-login-01.twang3.019579.0001
+rep_08		re.session.polaris-login-01.twang3.019579.0002
+rep_09

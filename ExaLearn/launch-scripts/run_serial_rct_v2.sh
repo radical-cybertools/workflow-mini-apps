@@ -12,7 +12,7 @@ python ../rct-scripts/new_serial_multiphase_rct_v2.py \
 	--model_dir ${model_dir} \
        	--mat_size 3000 \
 	--num_mult 768 \
-	--num_allreduce 2 \
+	--num_allreduce 26 \
 	--sim_rank 128 \
 	--train_rank 4 \
 	--train_preprocess_time 10 \
