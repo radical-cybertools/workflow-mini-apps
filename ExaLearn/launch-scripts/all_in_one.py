@@ -25,28 +25,32 @@ def make_plot(title, x_start_list, x_end_list, read_list, write_list, filename):
     plot_multiple_horizontal_line(x_start_list, x_end_list, read_list, write_list)
 
     plt.grid(True)
+    legend_labels = ['write', 'read']
+    legend_handles = [plt.Line2D([0], [0], color='blue', label='write'),
+                   plt.Line2D([0], [0], color='red', label='read')]
+    plt.legend(handles=legend_handles, labels=legend_labels)
 
     plt.savefig(filename)
 
 log_dict = {
         "ex3_p1": "re.session.polaris-login-01.twang3.019576.0013",
-        "ex3_p2": "re.session.polaris-login-01.twang3.019576.0015"
-#        "ex5_p1": "re.session.polaris-login-01.twang3.019562.0002",
-#        "ex3_p2": "re.session.polaris-login-01.twang3.019561.0000",
-#        "ex4_p2": "re.session.polaris-login-01.twang3.019561.0002",
-#        "ex5_p2": "re.session.polaris-login-01.twang3.019561.0014",
-#        "ex3_p3": "re.session.polaris-login-01.twang3.019561.0003",
-#        "ex4_p3": "re.session.polaris-login-01.twang3.019561.0004",
-#        "ex5_p3": "re.session.polaris-login-01.twang3.019562.0003"
+        "ex3_p2": "re.session.polaris-login-01.twang3.019576.0015",
+        "ex3_p3": "re.session.polaris-login-01.twang3.019576.0017",
+        "ex4_p1": "re.session.polaris-login-01.twang3.019576.0020",
+        "ex4_p2": "re.session.polaris-login-01.twang3.019576.0021",
+        "ex4_p3": "re.session.polaris-login-01.twang3.019576.0022",
+        "ex5_p1": "re.session.polaris-login-01.twang3.019577.0003",
+        "ex5_p2": "re.session.polaris-login-01.twang3.019577.0008",
+        "ex5_p3": "re.session.polaris-login-01.twang3.019577.0007"
 }
 
 state_exec_start = {ru.EVENT: 'exec_start'}
 state_exec_stop = {ru.EVENT: 'exec_stop'}
 
-ra_root = "/eagle/RECUP/twang/miniapp/exalearn-original/workflow-mini-apps/ExaLearn/launch-scripts"
+ra_root = "/eagle/RECUP/twang/miniapp/exalearn-original/workflow-mini-apps/ExaLearn/launch-scripts/"
 
-for exp_id in [3]:
-    for p_id in [1, 2]:
+for exp_id in [3, 4, 5]:
+    for p_id in [1, 2, 3]:
         setup = "ex{}_p{}".format(exp_id, p_id)
         print("setup = ", setup)
         rct_sandbox = log_dict[setup]
@@ -55,7 +59,7 @@ for exp_id in [3]:
         pilots  = session.filter(etype='pilot', inplace=False)
         tasks   = session.filter(etype='task' , inplace=False)
         
-        darshan_dir = "/eagle/RECUP/twang/miniapp/exalearn-original/real_work_polaris_cpu/darshan_record/" + setup + '/'
+        darshan_dir = "/eagle/RECUP/twang/miniapp/exalearn-original/workflow-mini-apps/ExaLearn/launch-scripts/darshan_log/" + setup + '/'
 
         task_all_start = []
         task_all_stop = []
@@ -70,8 +74,15 @@ for exp_id in [3]:
             task_all_dur.append(ts_stop - ts_start)
 #            print(setup, "  task_{}".format(task_id), "   start = {}, stop = {}, dur = {}".format(ts_start, ts_stop, ts_stop - ts_start))
             for io_mode in ['w', 'r']:
-                result = subprocess.run(["./get_io_bytes.sh {} {} {} {} | tail -n 1".format(rct_sandbox, darshan_dir, task_id, io_mode)], shell=True, capture_output=True)
-                output = int(result.stdout.strip().decode().split()[3]) / 1024.0 / 1024.0 / 1024.0
+                if task_id % 2 == 0:
+                    result = subprocess.run(["./get_io_bytes.sh {} {} {} {} {} | tail -n 1".format(rct_sandbox, darshan_dir, "sim", task_id // 2, io_mode)], shell=True, capture_output=True)
+                    output = int(result.stdout.strip().decode().split()[3]) / 1024.0 / 1024.0 / 1024.0
+                if task_id % 2 == 1:
+                    result = subprocess.run(["./get_io_bytes.sh {} {} {} {} {} | tail -n 1".format(rct_sandbox, darshan_dir, "train", task_id // 2, io_mode)], shell=True, capture_output=True)
+                    if exp_id == 5:
+                        output = 4 * int(result.stdout.strip().decode().split()[3]) / 1024.0 / 1024.0 / 1024.0
+                    else:
+                        output = int(result.stdout.strip().decode().split()[3]) / 1024.0 / 1024.0 / 1024.0
                 if io_mode == 'w':
                     task_all_write.append(output)
 #                    print(io_mode, "   ", output, "   ", end="")

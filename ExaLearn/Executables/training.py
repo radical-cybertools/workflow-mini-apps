@@ -31,7 +31,7 @@ def parse_args():
     parser.add_argument('--train_inner_iter', type=int, default=1,
                         help='inner iteration of mult and allreduce')
     parser.add_argument('--num_allreduce', type=int, default=1,
-                        help='the inner number of allreduce op performed')
+                        help='the number of allreduce op performed')
     parser.add_argument('--read_size', type=int, default=0,
                         help='size of bytes read from disk')
 
@@ -113,7 +113,7 @@ def main():
             print(R_temp.shape)
             tt = time.time()
 
-        for ii in range(args.train_inner_iter * args.num_allreduce):
+        for ii in range(args.num_allreduce):
             R = np.zeros_like(R_temp)
             comm.Allreduce(R_temp, R, op=MPI.SUM)
         print("Rank is {}, epoch is {}, allreduce takes {}".format(rank, epoch, time.time() - tt))
