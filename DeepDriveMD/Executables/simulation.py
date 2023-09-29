@@ -11,6 +11,8 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Exalearn_miniapp_simulation')
     parser.add_argument('--phase', type=int, default=0,
                         help='the current phase of workflow, in miniapp all phases do the same thing except rng')
+    parser.add_argument('--task_idx', type=int, default=0,
+                        help='the task index of this simulation task in this stage')
     parser.add_argument('--mat_size', type=int, default=5000,
                         help='the matrix with have size of mat_size * mat_size')
     parser.add_argument('--data_root_dir', default='./',
@@ -37,7 +39,7 @@ def main():
     root_path = args.data_root_dir + '/phase{}'.format(args.phase) + '/'
     print("root_path for data = ", root_path)
 
-    seed = 27 + os.getpid() * 100 + args.phase     #Make sure different running has different seed
+    seed = 27 + args.task_idx * 100 + args.phase     #Make sure different running has different seed
     cp.random.seed(seed)  
 
     msz = args.mat_size
@@ -74,13 +76,13 @@ def main():
     vb = cp.asnumpy(vb_d)
     print(time.time() - start_time)
 
-    fname = root_path + 'all_tmp_data.hdf5'
+    fname = root_path + 'all_tmp_data_{}.hdf5'.format(args.task_idx)
     D = np.random.rand(msz)
     with h5py.File(fname, 'w') as f:
         for i in range(write_time):
             f.create_dataset("tmp_{}".format(i), data = D)
     for i in range(read_time):
-        fname = root_path + 'all_tmp_data.hdf5'
+        fname = root_path + 'all_tmp_data_{}.hdf5'.format(args.task_idx)
         with h5py.File(fname, 'r') as f:
             D = f['tmp_{}'.format(i % write_time)][:]
 

@@ -1,288 +1,258 @@
-import itertools
+from radical import entk
 import os
-import shutil
-from pathlib import Path
-from typing import List, Optional
+import argparse, sys, math
+import radical.pilot as rp
+import radical.utils as ru
+import json
+import math
 
-import radical.utils as ru  # type: ignore[import]
-from radical.entk import AppManager, Pipeline, Stage, Task  # type: ignore[import]
+class MVP(object):
 
-from deepdrivemd.config import BaseStageConfig, ExperimentConfig
-from deepdrivemd.data.api import DeepDriveMD_API
-from deepdrivemd.utils import parse_args
+    def __init__(self):
+        self.env_work_dir = os.getenv("MINI_APP_DeepDriveMD_DIR")
+        if self.env_work_dir is None:
+            print("Warning: Did not set up work_dir using env var, need to set it up in parser manually!")
+        self.set_argparse()
+        self.get_json()
+        self.am = entk.AppManager()
+
+    def set_resource(self, res_desc):
+        self.am.resource_desc = res_desc
+
+    def set_argparse(self):
+        parser = argparse.ArgumentParser(description="DeepDriveMD_miniapp_EnTK_serial")
+
+        parser.add_argument('--num_phases', type=int, default=3,
+                        help='number of phases in the workflow')
+        parser.add_argument('--mat_size', type=int, default=5000,
+                        help='the matrix with have size of mat_size * mat_size')
+        parser.add_argument('--data_root_dir', default='./',
+                        help='the root dir of gsas output data')
+        parser.add_argument('--num_step', type=int, default=1000,
+                        help='number of step in MD simulation')
+        parser.add_argument('--num_epochs_train', type=int, default=150,
+                        help='number of epochs in training task')
+        parser.add_argument('--model_dir', default='./',
+                        help='the directory where save and load model')
+        parser.add_argument('--num_sample', type=int, default=500,
+                        help='num of samples in matrix mult (training and agent)')
+        parser.add_argument('--num_mult_train', type=int, default=4000,
+                        help='number of matrix mult to perform in training task')
+        parser.add_argument('--dense_dim_in', type=int, default=12544,
+                        help='dim for most heavy dense layer, input')
+        parser.add_argument('--dense_dim_out', type=int, default=128,
+                        help='dim for most heavy dense layer, output')
+        parser.add_argument('--preprocess_time', type=float, default=20.0,
+                        help='time for doing preprocess in training')
+        parser.add_argument('--num_epochs_agent', type=int, default=10,
+                        help='number of epochs in agent task')
+        parser.add_argument('--num_mult_agent', type=int, default=4000,
+                        help='number of matrix mult to perform in agent task, inference')
+        parser.add_argument('--num_mult_outlier', type=int, default=10,
+                        help='number of matrix mult to perform in agent task, outlier')
+
+        parser.add_argument('--project_id', required=True,
+                        help='the project ID we used to launch the job')
+        parser.add_argument('--work_dir', default=self.env_work_dir,
+                        help='working dir, which is the dir of this repo')
+        parser.add_argument('--num_sim', type=int, default=12,
+                        help='number of tasks used for simulation')
+        parser.add_argument('--num_nodes', type=int, default=3,
+                        help='number of nodes used for simulation')
+        parser.add_argument('--io_json_file', default="io_size.json",
+                        help='the filename of json file for io size')
+
+        args = parser.parse_args()
+        self.args = args
+
+    def get_json(self):
+        json_file = "{}/launch-scripts/{}".format(self.args.work_dir, self.args.io_json_file)
+        with open(json_file) as f:
+            self.io_dict = json.load(f)
+
+    # This is for simulation, return a stage which has many sim task
+    def run_sim(self, phase_idx):
+
+        s = entk.Stage()
+        for i in range(self.args.num_sim)
+            t = entk.Task()
+            t.pre_exec = [
+                    "module load PrgEnv-gnu",
+                    "module load conda",
+                    "conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris",
+                    "export HDF5_USE_FILE_LOCKING=FALSE"
+                    ]
+            t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
+            t.arguments = ['{}/Executables/simulation.py'.format(self.args.work_dir),
+                           '--phase={}'.format(phase_idx),
+                           '--task_idx={}'.format(i),
+                           '--mat_size={}'.format(self.args.mat_size),
+                           '--data_root_dir={}'.format(self.args.data_root_dir),
+                           '--num_step={}'.format(self.args.num_mult),
+                           '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["sim"]["write"]),
+                           '--read_size={}'.format(io_dict["phase{}".format(phase_idx)]["sim"]["read"])]
+            t.post_exec = []
+            t.cpu_reqs = {
+                 'cpu_processes'    : 1,
+                 'cpu_process_type' : None,
+                 'cpu_threads'      : 8,
+                 'cpu_thread_type'  : rp.OpenMP
+                 }
+            t.gpu_reqs = {
+                 'gpu_processes'     : 1,
+                 'gpu_process_type'  : rp.CUDA
+                 }
+
+            s.add_tasks(t)
+
+        return s
 
 
-def generate_task(cfg: BaseStageConfig) -> Task:
-    task = Task()
-    task.cpu_reqs = cfg.cpu_reqs.dict().copy()
-    task.gpu_reqs = cfg.gpu_reqs.dict().copy()
-    task.pre_exec = cfg.pre_exec.copy()
-    task.executable = cfg.executable
-    task.arguments = cfg.arguments.copy()
-    return task
+    # This is for training, return a stage which has a single training task
+    def run_train(self, phase_idx):
 
+        s = entk.Stage()
+        t = entk.Task()
+        t.pre_exec = [
+                "module load PrgEnv-gnu",
+                'module load conda',
+                "conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris",
+                "export HDF5_USE_FILE_LOCKING=FALSE"
+                ]
 
-class PipelineManager:
+        t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
+        t.arguments = ['{}/Executables/training.py'.format(self.args.work_dir),
+                       '--num_epochs={}'.format(self.args.num_epochs_train),
+                       '--device=gpu',
+                       '--phase={}'.format(phase_idx),
+                       '--data_root_dir={}'.format(self.args.data_root_dir),
+                       '--model_dir={}'.format(self.args.model_dir),
+                       '--num_sample={}'.format(self.args.num_sample),
+                       '--num_mult={}'.format(self.args.num_mult_train),
+                       '--dense_dim_in={}'.format(self.args.dense_dim_in),
+                       '--dense_dim_out={}'.format(self.args.dense_dim_out),
+                       '--mat_size={}'.format(self.args.mat_size),
+                       '--preprocess_time={}'.format(self.args.train_preprocess_time),
+                       '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["train"]["write"]),
+                       '--read_size={}'.format(io_dict["phase{}".format(phase_idx)]["train"]["read"])]
+        t.post_exec = []
+        t.cpu_reqs = {
+            'cpu_processes'     : 1,
+            'cpu_process_type'  : None,
+            'cpu_threads'       : 8,
+            'cpu_thread_type'   : rp.OpenMP
+                }
+        t.gpu_reqs = {
+            'gpu_processes'     : 1,
+            'gpu_process_type'  : rp.CUDA
+                }
+        s.add_tasks(t)
 
-    PIPELINE_NAME = "DeepDriveMD"
-    MOLECULAR_DYNAMICS_STAGE_NAME = "MolecularDynamics"
-    AGGREGATION_STAGE_NAME = "Aggregating"
-    MACHINE_LEARNING_STAGE_NAME = "MachineLearning"
-    MODEL_SELECTION_STAGE_NAME = "ModelSelection"
-    AGENT_STAGE_NAME = "Agent"
+        return s
 
-    def __init__(self, cfg: ExperimentConfig):
-        self.cfg = cfg
-        self.stage_idx = 0
+    # This is for model selection, return a stage which has a single training task
+    def run_selection(self, phase_idx):
 
-        self.api = DeepDriveMD_API(cfg.experiment_directory)
-        self.pipeline = Pipeline()
-        self.pipeline.name = self.PIPELINE_NAME
+        s = entk.Stage()
+        t = entk.Task()
+        t.pre_exec = [
+                "module load PrgEnv-gnu",
+                'module load conda',
+                "conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris",
+                "export HDF5_USE_FILE_LOCKING=FALSE"
+                ]
 
-        self._init_experiment_dir()
+        t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
+        t.arguments = ['{}/Executables/selection.py'.format(self.args.work_dir),
+                       '--phase={}'.format(phase_idx),
+                       '--mat_size={}'.format(self.args.mat_size),
+                       '--data_root_dir={}'.format(self.args.data_root_dir),
+                       '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["selection"]["write"]),
+                       '--read_size={}'.format(io_dict["phase{}".format(phase_idx)]["selection"]["read"])]
+        t.post_exec = []
+        t.cpu_reqs = {
+            'cpu_processes'     : 1,
+            'cpu_process_type'  : None,
+            'cpu_threads'       : 8,
+            'cpu_thread_type'   : rp.OpenMP
+                }
+        s.add_tasks(t)
 
-    def _init_experiment_dir(self) -> None:
-        # Make experiment directories
-        self.cfg.experiment_directory.mkdir()
-        self.api.molecular_dynamics_stage.runs_dir.mkdir()
-        self.api.aggregation_stage.runs_dir.mkdir()
-        self.api.machine_learning_stage.runs_dir.mkdir()
-        self.api.model_selection_stage.runs_dir.mkdir()
-        self.api.agent_stage.runs_dir.mkdir()
+        return s
 
-    def func_condition(self) -> None:
-        if self.stage_idx < self.cfg.max_iteration:
-            self.func_on_true()
-        else:
-            self.func_on_false()
+    # This is for agent, return a stage which has a single training task
+    def run_agent(self, phase_idx):
 
-    def func_on_true(self) -> None:
-        print(f"Finishing stage {self.stage_idx} of {self.cfg.max_iteration}")
-        self._generate_pipeline_iteration()
+        s = entk.Stage()
+        t = entk.Task()
+        t.pre_exec = [
+                "module load PrgEnv-gnu",
+                'module load conda',
+                "conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris",
+                "export HDF5_USE_FILE_LOCKING=FALSE"
+                ]
 
-    def func_on_false(self) -> None:
-        print("Done")
+        t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
+        t.arguments = ['{}/Executables/agent.py'.format(self.args.work_dir),
+                       '--num_epochs={}'.format(self.args.num_epochs_agent),
+                       '--device=gpu',
+                       '--phase={}'.format(phase_idx),
+                       '--data_root_dir={}'.format(self.args.data_root_dir),
+                       '--model_dir={}'.format(self.args.model_dir),
+                       '--num_sample={}'.format(self.args.num_sample),
+                       '--num_mult={}'.format(self.args.num_mult_agent),
+                       '--num_mult_outlier={}'.format(self.args.num_mult_outlier),
+                       '--dense_dim_in={}'.format(self.args.dense_dim_in),
+                       '--dense_dim_out={}'.format(self.args.dense_dim_out),
+                       '--mat_size={}'.format(self.args.mat_size),
+                       '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["agent"]["write"]),
+                       '--read_size={}'.format(io_dict["phase{}".format(phase_idx)]["agent"]["read"])]
+        t.post_exec = []
+        t.cpu_reqs = {
+            'cpu_processes'     : 1,
+            'cpu_process_type'  : None,
+            'cpu_threads'       : self.args.num_sim,
+            'cpu_thread_type'   : rp.OpenMP
+                }
+        t.gpu_reqs = {
+            'gpu_processes'     : 1,
+            'gpu_process_type'  : rp.CUDA
+                }
+        s.add_tasks(t)
 
-    def _generate_pipeline_iteration(self) -> None:
+        return s
 
-        self.pipeline.add_stages(self.generate_molecular_dynamics_stage())
+    def generate_pipeline(self):
 
-        if not cfg.aggregation_stage.skip_aggregation:
-            self.pipeline.add_stages(self.generate_aggregating_stage())
+        p = entk.Pipeline()
+        for phase in range(int(self.args.num_phases)):
+            s1 = self.run_sim(phase)
+            p.add_stages(s1)
+            s2 = self.run_train(phase)
+            p.add_stages(s2)
+            s3 = self.run_selection(phase)
+            p.add_stages(s3)
+            s4 = self.run_agent(phase)
+            p.add_stages(s4)
+        return p
 
-        if self.stage_idx % cfg.machine_learning_stage.retrain_freq == 0:
-            self.pipeline.add_stages(self.generate_machine_learning_stage())
-        self.pipeline.add_stages(self.generate_model_selection_stage())
-
-        agent_stage = self.generate_agent_stage()
-        agent_stage.post_exec = self.func_condition
-        self.pipeline.add_stages(agent_stage)
-
-        self.stage_idx += 1
-
-    def generate_pipelines(self) -> List[Pipeline]:
-        self._generate_pipeline_iteration()
-        return [self.pipeline]
-
-    def generate_molecular_dynamics_stage(self) -> Stage:
-        stage = Stage()
-        stage.name = self.MOLECULAR_DYNAMICS_STAGE_NAME
-        cfg = self.cfg.molecular_dynamics_stage
-        stage_api = self.api.molecular_dynamics_stage
-
-        if self.stage_idx == 0:
-            initial_pdbs = self.api.get_initial_pdbs(cfg.task_config.initial_pdb_dir)
-            filenames: Optional[itertools.cycle[Path]] = itertools.cycle(initial_pdbs)
-        else:
-            filenames = None
-
-        for task_idx in range(cfg.num_tasks):
-
-            output_path = stage_api.task_dir(self.stage_idx, task_idx, mkdir=True)
-            assert output_path is not None
-
-            # Update base parameters
-            cfg.task_config.experiment_directory = self.cfg.experiment_directory
-            cfg.task_config.stage_idx = self.stage_idx
-            cfg.task_config.task_idx = task_idx
-            cfg.task_config.node_local_path = self.cfg.node_local_path
-            cfg.task_config.output_path = output_path
-            if self.stage_idx == 0:
-                assert filenames is not None
-                cfg.task_config.pdb_file = next(filenames)
-            else:
-                cfg.task_config.pdb_file = None
-
-            cfg_path = stage_api.config_path(self.stage_idx, task_idx)
-            assert cfg_path is not None
-            cfg.task_config.dump_yaml(cfg_path)
-            task = generate_task(cfg)
-            task.arguments += ["-c", cfg_path.as_posix()]
-            stage.add_tasks(task)
-
-        return stage
-
-    def generate_aggregating_stage(self) -> Stage:
-        stage = Stage()
-        stage.name = self.AGGREGATION_STAGE_NAME
-        cfg = self.cfg.aggregation_stage
-        stage_api = self.api.aggregation_stage
-
-        task_idx = 0
-        output_path = stage_api.task_dir(self.stage_idx, task_idx, mkdir=True)
-        assert output_path is not None
-
-        # Update base parameters
-        cfg.task_config.experiment_directory = self.cfg.experiment_directory
-        cfg.task_config.stage_idx = self.stage_idx
-        cfg.task_config.task_idx = task_idx
-        cfg.task_config.node_local_path = self.cfg.node_local_path
-        cfg.task_config.output_path = output_path
-
-        # Write yaml configuration
-        cfg_path = stage_api.config_path(self.stage_idx, task_idx)
-        assert cfg_path is not None
-        cfg.task_config.dump_yaml(cfg_path)
-        task = generate_task(cfg)
-        task.arguments += ["-c", cfg_path.as_posix()]
-        stage.add_tasks(task)
-
-        return stage
-
-    def generate_machine_learning_stage(self) -> Stage:
-        stage = Stage()
-        stage.name = self.MACHINE_LEARNING_STAGE_NAME
-        cfg = self.cfg.machine_learning_stage
-        stage_api = self.api.machine_learning_stage
-
-        task_idx = 0
-        output_path = stage_api.task_dir(self.stage_idx, task_idx, mkdir=True)
-        assert output_path is not None
-
-        # Update base parameters
-        cfg.task_config.experiment_directory = self.cfg.experiment_directory
-        cfg.task_config.stage_idx = self.stage_idx
-        cfg.task_config.task_idx = task_idx
-        cfg.task_config.node_local_path = self.cfg.node_local_path
-        cfg.task_config.output_path = output_path
-        cfg.task_config.model_tag = stage_api.unique_name(output_path)
-        if self.stage_idx > 0:
-            # Machine learning should use model selection API
-            cfg.task_config.init_weights_path = None
-
-        # Write yaml configuration
-        cfg_path = stage_api.config_path(self.stage_idx, task_idx)
-        assert cfg_path is not None
-        cfg.task_config.dump_yaml(cfg_path)
-        task = generate_task(cfg)
-        task.arguments += ["-c", cfg_path.as_posix()]
-        stage.add_tasks(task)
-
-        return stage
-
-    def generate_model_selection_stage(self) -> Stage:
-        stage = Stage()
-        stage.name = self.MODEL_SELECTION_STAGE_NAME
-        cfg = self.cfg.model_selection_stage
-        stage_api = self.api.model_selection_stage
-
-        task_idx = 0
-        output_path = stage_api.task_dir(self.stage_idx, task_idx, mkdir=True)
-        assert output_path is not None
-
-        # Update base parameters
-        cfg.task_config.experiment_directory = self.cfg.experiment_directory
-        cfg.task_config.stage_idx = self.stage_idx
-        cfg.task_config.task_idx = task_idx
-        cfg.task_config.node_local_path = self.cfg.node_local_path
-        cfg.task_config.output_path = output_path
-
-        # Write yaml configuration
-        cfg_path = stage_api.config_path(self.stage_idx, task_idx)
-        assert cfg_path is not None
-        cfg.task_config.dump_yaml(cfg_path)
-        task = generate_task(cfg)
-        task.arguments += ["-c", cfg_path.as_posix()]
-        stage.add_tasks(task)
-
-        return stage
-
-    def generate_agent_stage(self) -> Stage:
-        stage = Stage()
-        stage.name = self.AGENT_STAGE_NAME
-        cfg = self.cfg.agent_stage
-        stage_api = self.api.agent_stage
-
-        task_idx = 0
-        output_path = stage_api.task_dir(self.stage_idx, task_idx, mkdir=True)
-        assert output_path is not None
-
-        # Update base parameters
-        cfg.task_config.experiment_directory = self.cfg.experiment_directory
-        cfg.task_config.stage_idx = self.stage_idx
-        cfg.task_config.task_idx = task_idx
-        cfg.task_config.node_local_path = self.cfg.node_local_path
-        cfg.task_config.output_path = output_path
-
-        # Write yaml configuration
-        cfg_path = stage_api.config_path(self.stage_idx, task_idx)
-        assert cfg_path is not None
-        cfg.task_config.dump_yaml(cfg_path)
-        task = generate_task(cfg)
-        task.arguments += ["-c", cfg_path.as_posix()]
-        stage.add_tasks(task)
-
-        return stage
+    def run_workflow(self):
+        p = self.generate_pipeline()
+        self.am.workflow = [p]
+        self.am.run()
 
 
 if __name__ == "__main__":
 
-    args = parse_args()
-    cfg = ExperimentConfig.from_yaml(args.config)
-
-    reporter = ru.Reporter(name="radical.entk")
-    reporter.title(cfg.title)
-
-    # Create Application Manager
-    try:
-#        appman = AppManager(
-#            hostname=os.environ["RMQ_HOSTNAME"],
-#            port=int(os.environ["RMQ_PORT"]),
-#            username=os.environ["RMQ_USERNAME"],
-#            password=os.environ["RMQ_PASSWORD"],
-#        )
-        appman = AppManager()
-    except KeyError:
-        raise ValueError(
-            "Invalid RMQ environment. Please see README.md for configuring environment."
-        )
-
-    # Calculate total number of nodes required. Assumes 1 MD job per GPU
-    # TODO: fix this assumption for NAMD
-    num_full_nodes, extra_gpus = divmod(
-        cfg.molecular_dynamics_stage.num_tasks, cfg.gpus_per_node
-    )
-    extra_node = int(extra_gpus > 0)
-    num_nodes = max(1, num_full_nodes + extra_node)
-
-    appman.resource_desc = {
-        "resource": cfg.resource,
-        "queue": cfg.queue,
-        "schema": cfg.schema_,
-        "walltime": cfg.walltime_min,
-        "project": cfg.project,
-        "cpus": cfg.cpus_per_node * cfg.hardware_threads_per_cpu * num_nodes,
-        "gpus": cfg.gpus_per_node * num_nodes,
-    }
-
-    pipeline_manager = PipelineManager(cfg)
-    # Back up configuration file (PipelineManager must create cfg.experiment_dir)
-    shutil.copy(args.config, cfg.experiment_directory)
-
-    pipelines = pipeline_manager.generate_pipelines()
-    # Assign the workflow as a list of Pipelines to the Application Manager.
-    # All the pipelines in the list will execute concurrently.
-    appman.workflow = pipelines
-
-    # Run the Application Manager
-    appman.run()
+    mvp = MVP()
+    mvp.set_resource(res_desc = {
+        'resource': 'anl.polaris',
+#        'queue'   : 'debug',
+        'queue'   : 'preemptable',
+#        'queue'   : 'default',
+        'walltime': 45, #MIN
+        'cpus'    : 32 * mvp.args.num_nodes,
+        'gpus'    : 4 * mvp.args.num_nodes,
+        'project' : mvp.args.project_id
+        })
+    mvp.run_workflow()

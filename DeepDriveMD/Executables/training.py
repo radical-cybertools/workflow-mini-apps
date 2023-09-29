@@ -50,7 +50,7 @@ def read_tmp_data(args):
         read_time = int(args.read_size // (msz * 8))
     print("read_time = ", read_time)
 
-    fname = root_path + 'all_tmp_data.hdf5'
+    fname = root_path + 'all_tmp_data_0.hdf5'
     for i in range(read_time):
         with h5py.File(fname, 'r') as f:
             dataset_len = len(f.keys())
