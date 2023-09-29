@@ -17,7 +17,7 @@ class MVP(object):
         self.am.resource_desc = res_desc
 
     def set_argparse(self):
-        parser = argparse.ArgumentParser(description="Exalearn_miniapp_EnTK_serial_CPU_GPU")
+        parser = argparse.ArgumentParser(description="Exalearn_miniapp_EnTK_parallel_CPU_GPU")
 
         parser.add_argument('--num_phases', type=int, default=0,
                         help='number of phases in the workflow')
@@ -57,7 +57,7 @@ class MVP(object):
         args = parser.parse_args()
         self.args = args
 
-    # This is for simulation, return a stage which has a single sim task
+    # This is for simulation, return a sim task
     def run_mpi_sweep_hdf5_py(self, phase_idx):
 
         t = entk.Task({'uid': ru.generate_id("sim")})
@@ -84,13 +84,11 @@ class MVP(object):
              'cpu_threads'      : 1,
              'cpu_thread_type'  : rp.OpenMP
              }
-
-        s = entk.Stage()
-        s.add_tasks(t)
-        return s
+        
+        return t
 
 
-    # This is for training, return a stage which has a single training task
+    # This is for training, return a training task
     def run_mtnetwork_training_horovod_py(self, phase_idx):
 
         t = entk.Task({'uid': ru.generate_id("train")})
@@ -106,12 +104,12 @@ class MVP(object):
                        '--num_epochs={}'.format(self.args.num_epochs),
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--model_dir={}'.format(self.args.model_dir),
+                       '--device=cpu',
                        '--phase={}'.format(phase_idx),
                        '--num_mult={}'.format(self.args.num_mult),
                        '--train_inner_iter={}'.format(self.args.train_inner_iter),
                        '--num_allreduce={}'.format(self.args.num_allreduce),
                        '--sim_rank={}'.format(self.args.sim_rank),
-                       '--device=gpu',
                        '--preprocess_time={}'.format(self.args.train_preprocess_time),
                        '--mat_size={}'.format(self.args.mat_size),
                        '--read_size={}'.format(self.args.train_read_size)]
@@ -119,7 +117,7 @@ class MVP(object):
         t.cpu_reqs = {
             'cpu_processes'     : self.args.train_rank,
             'cpu_process_type'  : None,
-            'cpu_threads'       : 8,
+            'cpu_threads'       : 2,
             'cpu_thread_type'   : rp.OpenMP
                 }
         t.gpu_reqs = {
@@ -127,18 +125,30 @@ class MVP(object):
             'gpu_process_type'  : rp.CUDA
                 }
 
-        s = entk.Stage()
-        s.add_tasks(t)
-        return s
+        return t
 
     def generate_pipeline(self):
 
         p = entk.Pipeline()
-        for phase in range(int(self.args.num_phases)):
-            s1 = self.run_mpi_sweep_hdf5_py(phase)
-            p.add_stages(s1)
-            s2 = self.run_mtnetwork_training_horovod_py(phase)
-            p.add_stages(s2)
+
+        s0 = entk.Stage()
+        t0 = self.run_mpi_sweep_hdf5_py(0)
+        s0.add_tasks(t0)
+        p.add_stages(s0)
+
+        for phase in range(1, int(self.args.num_phases)):
+            s = entk.Stage()
+            ta = self.run_mpi_sweep_hdf5_py(phase)
+            tb = self.run_mtnetwork_training_horovod_py(phase-1)
+            s.add_tasks(ta)
+            s.add_tasks(tb)
+            p.add_stages(s)
+
+        sf = entk.Stage()
+        tf = self.run_mtnetwork_training_horovod_py(int(self.args.num_phases) - 1)
+        sf.add_tasks(tf)
+        p.add_stages(sf)
+
         return p
 
     def run_workflow(self):
@@ -148,14 +158,14 @@ class MVP(object):
 
 
 if __name__ == "__main__":
-
+    
     mvp = MVP()
-    n_nodes = 32
+    n_nodes = 4
     mvp.set_resource(res_desc = {
         'resource': 'anl.polaris',
 #        'queue'   : 'debug',
-#        'queue'   : 'preemptable',
-        'queue'   : 'prod',
+        'queue'   : 'preemptable',
+#        'queue'   : 'default',
         'walltime': 20, #MIN
         'cpus'    : 32 * n_nodes,
         'gpus'    : 4 * n_nodes,

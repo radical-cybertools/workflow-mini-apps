@@ -69,6 +69,11 @@ for exp_id in [3, 4, 5]:
         for task_id, task in enumerate(tasks.get()):
             ts_start = task.timestamps(event=state_exec_start)[0]
             ts_stop = task.timestamps(event=state_exec_stop)[0]
+            if task_id == 0:
+                ts_start_bias = ts_start
+            ts_start = ts_start - ts_start_bias
+            ts_stop = ts_stop - ts_start_bias
+
             task_all_start.append(ts_start)
             task_all_stop.append(ts_stop)
             task_all_dur.append(ts_stop - ts_start)
@@ -93,7 +98,9 @@ for exp_id in [3, 4, 5]:
         print(task_all_stop)
         print(task_all_dur)
         print(task_all_read)
+        print("total read = ", sum(task_all_read))
         print(task_all_write)
+        print("total write = ", sum(task_all_write))
 #        make_plot(setup, task_all_start, task_all_stop, task_all_read, task_all_write, setup+'png')
 
 
