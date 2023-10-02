@@ -31,6 +31,8 @@ def parse_args():
                         help='dim for most heavy dense layer, output')
     parser.add_argument('--mat_size', type=int, default=5000,
                         help='the matrix with have size of mat_size * mat_size, should be the same as it is in simulation')
+    parser.add_argument('--preprocess_time', type=float, default=20.0,
+                        help='time for doing preprocess')
     parser.add_argument('--read_size', type=int, default=0,
                         help='size of bytes read from disk')
     parser.add_argument('--write_size', type=int, default=3500000,
@@ -93,6 +95,8 @@ def main():
     w = np.random.rand(args.dense_dim_in, args.dense_dim_out)
     w = np.float32(w)
     w_d = cp.asarray(w)
+
+    tt = time.time()
 
     if args.device == 'cpu':
         for ii in range(args.train_inner_iter):

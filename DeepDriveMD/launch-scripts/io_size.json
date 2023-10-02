@@ -1,38 +1,56 @@
 {
 	"phase0":{
 		"sim":{
-			"read":		100,
-			"write":	300
+			"read":		5600000,
+			"write":	3500000
 		},
 		"train":{
-			"read":		200,
-			"write":	400
+			"read":		6000000,
+			"write":	7400000
 		},
 		"selection":{
-			"read":		300,
-			"write":	200
+			"read":		100000,
+			"write":	150000
 		},
 		"agent":{
-			"read":		400,
-			"write":	500
+			"read":		12800000,
+			"write":	450000
 		}
 	},
 	"phase1":{
 		"sim":{
-			"read":		500,
-			"write":	300
+			"read":		5600000,
+			"write":	3500000
 		},
 		"train":{
-			"read":		600,
-			"write":	600
+			"read":		18000000,
+			"write":	7400000
 		},
 		"selection":{
-			"read":		700,
-			"write":	900
+			"read":		100000,
+			"write":	150000
 		},
 		"agent":{
-			"read":		800,
-			"write":	700
+			"read":		19000000,
+			"write":	450000
+		}
+	},
+	"phase2":{
+		"sim":{
+			"read":		5600000,
+			"write":	3500000
+		},
+		"train":{
+			"read":		18000000,
+			"write":	7400000
+		},
+		"selection":{
+			"read":		100000,
+			"write":	150000
+		},
+		"agent":{
+			"read":		19000000,
+			"write":	450000
 		}
 	}
 }
