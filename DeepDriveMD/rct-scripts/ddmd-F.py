@@ -42,8 +42,10 @@ class MVP(object):
                         help='dim for most heavy dense layer, input')
         parser.add_argument('--dense_dim_out', type=int, default=128,
                         help='dim for most heavy dense layer, output')
-        parser.add_argument('--preprocess_time', type=float, default=20.0,
+        parser.add_argument('--preprocess_time_train', type=float, default=20.0,
                         help='time for doing preprocess in training')
+        parser.add_argument('--preprocess_time_agent', type=float, default=10.0,
+                        help='time for doing preprocess in agent')
         parser.add_argument('--num_epochs_agent', type=int, default=10,
                         help='number of epochs in agent task')
         parser.add_argument('--num_mult_agent', type=int, default=4000,
@@ -53,6 +55,8 @@ class MVP(object):
 
         parser.add_argument('--project_id', required=True,
                         help='the project ID we used to launch the job')
+        parser.add_argument('--queue', required=True,
+                        help='the queue we used to submit the job')
         parser.add_argument('--work_dir', default=self.env_work_dir,
                         help='working dir, which is the dir of this repo')
         parser.add_argument('--num_sim', type=int, default=12,
@@ -74,7 +78,7 @@ class MVP(object):
     def run_sim(self, phase_idx):
 
         s = entk.Stage()
-        for i in range(self.args.num_sim)
+        for i in range(self.args.num_sim):
             t = entk.Task()
             t.pre_exec = [
                     "module load PrgEnv-gnu",
@@ -88,9 +92,9 @@ class MVP(object):
                            '--task_idx={}'.format(i),
                            '--mat_size={}'.format(self.args.mat_size),
                            '--data_root_dir={}'.format(self.args.data_root_dir),
-                           '--num_step={}'.format(self.args.num_mult),
+                           '--num_step={}'.format(self.args.num_step),
                            '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["sim"]["write"]),
-                           '--read_size={}'.format(io_dict["phase{}".format(phase_idx)]["sim"]["read"])]
+                           '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["sim"]["read"])]
             t.post_exec = []
             t.cpu_reqs = {
                  'cpu_processes'    : 1,
@@ -127,14 +131,14 @@ class MVP(object):
                        '--phase={}'.format(phase_idx),
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--model_dir={}'.format(self.args.model_dir),
-                       '--num_sample={}'.format(self.args.num_sample),
+                       '--num_sample={}'.format(self.args.num_sample * (1 if phase_idx == 0 else 2)),
                        '--num_mult={}'.format(self.args.num_mult_train),
                        '--dense_dim_in={}'.format(self.args.dense_dim_in),
                        '--dense_dim_out={}'.format(self.args.dense_dim_out),
                        '--mat_size={}'.format(self.args.mat_size),
-                       '--preprocess_time={}'.format(self.args.train_preprocess_time),
+                       '--preprocess_time={}'.format(self.args.preprocess_time_train),
                        '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["train"]["write"]),
-                       '--read_size={}'.format(io_dict["phase{}".format(phase_idx)]["train"]["read"])]
+                       '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["train"]["read"])]
         t.post_exec = []
         t.cpu_reqs = {
             'cpu_processes'     : 1,
@@ -168,7 +172,7 @@ class MVP(object):
                        '--mat_size={}'.format(self.args.mat_size),
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["selection"]["write"]),
-                       '--read_size={}'.format(io_dict["phase{}".format(phase_idx)]["selection"]["read"])]
+                       '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["selection"]["read"])]
         t.post_exec = []
         t.cpu_reqs = {
             'cpu_processes'     : 1,
@@ -205,8 +209,9 @@ class MVP(object):
                        '--dense_dim_in={}'.format(self.args.dense_dim_in),
                        '--dense_dim_out={}'.format(self.args.dense_dim_out),
                        '--mat_size={}'.format(self.args.mat_size),
+                       '--preprocess_time={}'.format(self.args.preprocess_time_agent),
                        '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["agent"]["write"]),
-                       '--read_size={}'.format(io_dict["phase{}".format(phase_idx)]["agent"]["read"])]
+                       '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["agent"]["read"])]
         t.post_exec = []
         t.cpu_reqs = {
             'cpu_processes'     : 1,
@@ -248,7 +253,7 @@ if __name__ == "__main__":
     mvp.set_resource(res_desc = {
         'resource': 'anl.polaris',
 #        'queue'   : 'debug',
-        'queue'   : 'preemptable',
+        'queue'   : mvp.args.queue,
 #        'queue'   : 'default',
         'walltime': 45, #MIN
         'cpus'    : 32 * mvp.args.num_nodes,
