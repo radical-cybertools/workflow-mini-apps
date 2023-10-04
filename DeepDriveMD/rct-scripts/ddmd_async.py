@@ -450,7 +450,7 @@ class DDMD(object):
             if self._mdSim_iter <= self.arg.num_phases:
                 self.run_sim(self.TASK_MD_SIM, n=self.args.num_sim)
         else:
-            self.dump(task, 'completed, aggregation low  - start md sim')
+            self.dump(task, 'completed, but low')
 
 
     # --------------------------------------------------------------------------
@@ -466,7 +466,7 @@ class DDMD(object):
             if self._agent_iter <= self.arg.num_phases:
                 self.run_agent(self.TASK_AGENT, n=1)
         else:
-            self.dump(task, 'completed, Selection incomplete  ')
+            self.dump(task, 'completed, Selection low  ')
 
 
 
@@ -485,14 +485,14 @@ class DDMD(object):
 
         self._trained += 1
         if self._trained >= self._trained_max:
-            self.dump(task, 'completed, training complete - start agent ')
+            self.dump(task, 'completed, training complete - start selection ')
             self._trained = 0
 
             self._selection_iter =+ 1
             if self._selection_iter <= self.arg.num_phases:
                 self.run_selection(self.TASK_SELECTION, n=1)
         else:
-            self.dump(task, 'completed, training incomplete  ')
+            self.dump(task, 'completed, training low  ')
 
 
     # --------------------------------------------------------------------------
@@ -509,13 +509,13 @@ class DDMD(object):
 
         if self._agent >= self._agent_max:
             self._agent= 0
-            self.dump(task, 'completed,  next Sim')
+            self.dump(task, 'completed, start next Sim')
 
             self._mdSim_iter =+ 1
             if self._mdSim_iter <= self.arg.num_phases:
                 self.run_sim(self.TASK_MD_SIM, n=self.args.num_sim)
         else:
-            self.dump(task, 'completed, aggregation low  - start md sim')
+            self.dump(task, 'completed, agent low')
 
 
 
@@ -550,7 +550,7 @@ class DDMD(object):
 
 
     # This is for training, return a stage which has a single training task
-    def run_train(self, n=1):
+    def run_train(self, ttype,  n=1):
 
         with self._lock:
             tds   = list()
@@ -587,7 +587,7 @@ class DDMD(object):
 
 
     # This is for model selection, return a stage which has a single training task
-    def run_selection(self, n=1):
+    def run_selection(self, ttype,  n=1):
 
         with self._lock:
             tds   = list()
@@ -616,7 +616,7 @@ class DDMD(object):
 
 
     # This is for agent, return a stage which has a single training task
-    def run_agent(self, n=1):
+    def run_agent(self, ttype,  n=1):
 
         with self._lock:
             tds   = list()
