@@ -84,8 +84,8 @@ def main():
 
     args = parse_args()
     print(args)
-    if args.device == 'gpu':
-        print("gpu id is {}".format(cp.cuda.runtime.getDeviceProperties(0)['uuid']))
+#    if args.device == 'gpu':
+#        print("gpu id is {}".format(cp.cuda.runtime.getDeviceProperties(0)['uuid']))
 
     preprocess(args.preprocess_time)
     read_tmp_data(args)
