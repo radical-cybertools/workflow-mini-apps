@@ -20,6 +20,8 @@ import time
 import random
 import signal
 import threading as mt
+import argparse, sys
+import json
 
 import radical.pilot as rp
 import radical.utils as ru
@@ -34,8 +36,10 @@ class DDMD(object):
     TASK_ML_TRAIN  = 'ml_train'
     TASK_SELECTION = 'selection'
     TASK_AGENT     = 'agent'
+#    DEFAULT        = 'task'
 
     TASK_TYPES     = [TASK_MD_SIM, TASK_ML_TRAIN,TASK_SELECTION, TASK_AGENT]
+#    TASK_TYPES      = [DEFAULT]
 
     # keep track of core usage
     cores_used     = 0
@@ -100,10 +104,11 @@ class DDMD(object):
 #           'queue'   : 'debug',
             'queue'   : self.args.queue,
 #           'queue'   : 'default',
-            'walltime': 45, #MIN
-            'cpus'    : 32 * self.args.num_nodes,
+            'runtime': 30, #MIN
+            'cores'    : 32 * self.args.num_nodes,
             'gpus'    : 4 * self.args.num_nodes,
             'project' : self.args.project_id})
+        print(pdesc)
 
         self._pilot = self._pmgr.submit_pilots(pdesc)
 
@@ -199,7 +204,7 @@ class DDMD(object):
         idle -= n
         self._rep.ok('%s' % self._glyphs[self.TASK_MD_SIM] * n)
 
-        n     = len(self._tasks[self.TASK_AGGREGATE])
+        n     = len(self._tasks[self.TASK_SELECTION])
         idle -= n
         self._rep.warn('%s' % self._glyphs[self.TASK_SELECTION] * n)
 
@@ -505,9 +510,9 @@ class DDMD(object):
 
         with self._lock:
             tds   = list()
-            for _ in range(n):
+            for i in range(n):
                 tds.append(rp.TaskDescription({
-                         'pre_exec'     : ["module load PrgEnv-gnu","module load conda","conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris","export HDF5_USE_FILE_LOCKING=FALSE"]
+                         'pre_exec'     : ["module load PrgEnv-gnu","module load conda","conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris","export HDF5_USE_FILE_LOCKING=FALSE"],
                          'uid'          : ru.generate_id(ttype),
                          'cpu_processes': 1,
                          'cpu_process_type' : None,
@@ -517,13 +522,13 @@ class DDMD(object):
                          'gpu_process_type'  : rp.CUDA,
                          'executable'   : 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python',
                          'arguments'    : ['{}/Executables/simulation.py'.format(self.args.work_dir),
-                               '--phase={}'.format(phase_idx),
+                               '--phase={}'.format(self._iteration-1),
                                '--task_idx={}'.format(i),
                                '--mat_size={}'.format(self.args.mat_size),
                                '--data_root_dir={}'.format(self.args.data_root_dir),
                                '--num_step={}'.format(self.args.num_step),
-                               '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["sim"]["write"]),
-                               '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["sim"]["read"])]}))
+                               '--write_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["sim"]["write"]),
+                               '--read_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["sim"]["read"])]}))
 
             tasks  = self._tmgr.submit_tasks(tds)
 
@@ -532,13 +537,13 @@ class DDMD(object):
 
 
     # This is for training, return a stage which has a single training task
-    def run_train(self, phase_idx):
+    def run_train(self, n=1):
 
         with self._lock:
             tds   = list()
             for _ in range(n):
                 tds.append(rp.TaskDescription({
-                         'pre_exec'     : ["module load PrgEnv-gnu","module load conda","conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris","export HDF5_USE_FILE_LOCKING=FALSE"]
+                         'pre_exec'     : ["module load PrgEnv-gnu","module load conda","conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris","export HDF5_USE_FILE_LOCKING=FALSE"],
                          'uid'          : ru.generate_id(ttype),
                          'cpu_processes': 1,
                          'cpu_process_type' : None,
@@ -550,17 +555,17 @@ class DDMD(object):
                          'arguments'    : [ '{}/Executables/training.py'.format(self.args.work_dir),
                                '--num_epochs={}'.format(self.args.num_epochs_train),
                                '--device=gpu',
-                               '--phase={}'.format(phase_idx),
+                               '--phase={}'.format(self._iteration-1),
                                '--data_root_dir={}'.format(self.args.data_root_dir),
                                '--model_dir={}'.format(self.args.model_dir),
-                               '--num_sample={}'.format(self.args.num_sample * (1 if phase_idx == 0 else 2)),
+                               '--num_sample={}'.format(self.args.num_sample * (1 if (self._iteration - 1) == 0 else 2)),
                                '--num_mult={}'.format(self.args.num_mult_train),
                                '--dense_dim_in={}'.format(self.args.dense_dim_in),
                                '--dense_dim_out={}'.format(self.args.dense_dim_out),
                                '--mat_size={}'.format(self.args.mat_size),
                                '--preprocess_time={}'.format(self.args.preprocess_time_train),
-                               '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["train"]["write"]),
-                               '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["train"]["read"])]}))
+                               '--write_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["train"]["write"]),
+                               '--read_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["train"]["read"])]}))
 
             tasks  = self._tmgr.submit_tasks(tds)
 
@@ -569,13 +574,13 @@ class DDMD(object):
 
 
     # This is for model selection, return a stage which has a single training task
-    def run_selection(self, phase_idx):
+    def run_selection(self, n=1):
 
         with self._lock:
             tds   = list()
             for _ in range(n):
                 tds.append(rp.TaskDescription({
-                         'pre_exec'     : ["module load PrgEnv-gnu","module load conda","conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris","export HDF5_USE_FILE_LOCKING=FALSE"]
+                         'pre_exec'     : ["module load PrgEnv-gnu","module load conda","conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris","export HDF5_USE_FILE_LOCKING=FALSE"],
                          'uid'          : ru.generate_id(ttype),
                          'cpu_processes': 1,
                          'cpu_process_type' : None,
@@ -585,11 +590,11 @@ class DDMD(object):
                          'gpu_process_type'  : None,
                          'executable'   : 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python',
                          'arguments'    : [ '{}/Executables/selection.py'.format(self.args.work_dir),
-                       '--phase={}'.format(phase_idx),
+                       '--phase={}'.format(self._iteration-1),
                        '--mat_size={}'.format(self.args.mat_size),
                        '--data_root_dir={}'.format(self.args.data_root_dir),
-                       '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["selection"]["write"]),
-                       '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["selection"]["read"])]}))
+                       '--write_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["selection"]["write"]),
+                       '--read_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["selection"]["read"])]}))
 
             tasks  = self._tmgr.submit_tasks(tds)
 
@@ -598,13 +603,13 @@ class DDMD(object):
 
 
     # This is for agent, return a stage which has a single training task
-    def run_agent(self, phase_idx):
+    def run_agent(self, n=1):
 
         with self._lock:
             tds   = list()
             for _ in range(n):
                 tds.append(rp.TaskDescription({
-                         'pre_exec'     : ["module load PrgEnv-gnu","module load conda","conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris","export HDF5_USE_FILE_LOCKING=FALSE"]
+                         'pre_exec'     : ["module load PrgEnv-gnu","module load conda","conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris","export HDF5_USE_FILE_LOCKING=FALSE"],
                          'uid'          : ru.generate_id(ttype),
                          'cpu_processes': 1,
                          'cpu_process_type' : None,
@@ -616,7 +621,7 @@ class DDMD(object):
                          'arguments'    : [ '{}/Executables/agent.py'.format(self.args.work_dir),
                        '--num_epochs={}'.format(self.args.num_epochs_agent),
                        '--device=gpu',
-                       '--phase={}'.format(phase_idx),
+                       '--phase={}'.format(self._iteration-1),
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--model_dir={}'.format(self.args.model_dir),
                        '--num_sample={}'.format(self.args.num_sample),
@@ -626,8 +631,8 @@ class DDMD(object):
                        '--dense_dim_out={}'.format(self.args.dense_dim_out),
                        '--mat_size={}'.format(self.args.mat_size),
                        '--preprocess_time={}'.format(self.args.preprocess_time_agent),
-                       '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["agent"]["write"]),
-                       '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["agent"]["read"])]}))
+                       '--write_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["agent"]["write"]),
+                       '--read_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["agent"]["read"])]}))
 
             tasks  = self._tmgr.submit_tasks(tds)
 
@@ -654,4 +659,3 @@ if __name__ == '__main__':
 
 
 # ------------------------------------------------------------------------------
-
