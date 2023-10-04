@@ -69,15 +69,19 @@ class DDMD(object):
         # bookkeeping
         self._selection     =  0
         self._selection_max =  1  # aggregation threshold
+        self._selection_iter = 0
 
         self._trained        =  0
         self._trained_max    =  1  # training threshold
+        self._trained_iter   = 0
 
         self._mdSim         = 0
         self._mdSim_max     = self.args.num_sim
+        self._mdSim_iter    = 0
 
         self._agent         = 0
         self._agent_max     = 1
+        self._agent_iter    = 0
 
         self._cores          = 32 * self.args.num_nodes  # available resources
         self._cores_used     =  0
@@ -88,6 +92,8 @@ class DDMD(object):
         self._lock           = mt.RLock()
         self._tasks          = {ttype: dict() for ttype in self.TASK_TYPES}
         self._final_tasks    = list()
+
+
 
         # silence RP reporter, use own
         os.environ['RADICAL_REPORT'] = 'false'
@@ -240,7 +246,6 @@ class DDMD(object):
         self.dump('submit MD simulations')
 
         # reset bookkeeping
-        self._iteration = 0
         self._selection = 0
         self._trained   = 0
         self._mdSim     = 0
@@ -249,7 +254,7 @@ class DDMD(object):
         self._tasks      = {ttype: dict() for ttype in self._protocol}
 
 
-        self._iteration = 1
+        self._mdSim_iter = 1
         self.run_sim(self.TASK_MD_SIM, n=self.args.num_sim)
 
 
@@ -438,9 +443,11 @@ class DDMD(object):
         if self._mdSim >= self._mdSim_max:
             self._mdSim = 0
             self.dump(task, 'completed, start ML and next Sim')
+            self._trained_iter =+ 1
             self.run_train(self.TASK_ML_TRAIN, 1)
-            if iteration < self.arg.num_phases:
-                iteration += 1
+
+            self._mdSim += 1
+            if self._mdSim_iter <= self.arg.num_phases:
                 self.run_sim(self.TASK_MD_SIM, n=self.args.num_sim)
         else:
             self.dump(task, 'completed, aggregation low  - start md sim')
@@ -455,7 +462,9 @@ class DDMD(object):
         if self._selection >= self._selection_max:
             self.dump(task, 'completed, Selection - start agent ')
             self._selection= 0
-            self.run_agent(self.TASK_AGENT, n=1)
+            self._agent_iter =+ 1
+            if self._agent_iter <= self.arg.num_phases:
+                self.run_agent(self.TASK_AGENT, n=1)
         else:
             self.dump(task, 'completed, Selection incomplete  ')
 
@@ -478,7 +487,10 @@ class DDMD(object):
         if self._trained >= self._trained_max:
             self.dump(task, 'completed, training complete - start agent ')
             self._trained = 0
-            self.run_selection(self.TASK_SELECTION, n=1)
+
+            self._selection_iter =+ 1
+            if self._selection_iter <= self.arg.num_phases:
+                self.run_selection(self.TASK_SELECTION, n=1)
         else:
             self.dump(task, 'completed, training incomplete  ')
 
@@ -498,8 +510,9 @@ class DDMD(object):
         if self._agent >= self._agent_max:
             self._agent= 0
             self.dump(task, 'completed,  next Sim')
-            if iteration < self.arg.num_phases:
-                iteration += 1
+
+            self._mdSim_iter =+ 1
+            if self._mdSim_iter <= self.arg.num_phases:
                 self.run_sim(self.TASK_MD_SIM, n=self.args.num_sim)
         else:
             self.dump(task, 'completed, aggregation low  - start md sim')
@@ -522,13 +535,13 @@ class DDMD(object):
                          'gpu_process_type'  : rp.CUDA,
                          'executable'   : 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python',
                          'arguments'    : ['{}/Executables/simulation.py'.format(self.args.work_dir),
-                               '--phase={}'.format(self._iteration-1),
+                               '--phase={}'.format(self._mdSim_iter-1),
                                '--task_idx={}'.format(i),
                                '--mat_size={}'.format(self.args.mat_size),
                                '--data_root_dir={}'.format(self.args.data_root_dir),
                                '--num_step={}'.format(self.args.num_step),
-                               '--write_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["sim"]["write"]),
-                               '--read_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["sim"]["read"])]}))
+                               '--write_size={}'.format(self.io_dict["phase{}".format(self._mdSim_iter-1)]["sim"]["write"]),
+                               '--read_size={}'.format(self.io_dict["phase{}".format(self._mdSim_iter-1)]["sim"]["read"])]}))
 
             tasks  = self._tmgr.submit_tasks(tds)
 
@@ -555,17 +568,17 @@ class DDMD(object):
                          'arguments'    : [ '{}/Executables/training.py'.format(self.args.work_dir),
                                '--num_epochs={}'.format(self.args.num_epochs_train),
                                '--device=gpu',
-                               '--phase={}'.format(self._iteration-1),
+                               '--phase={}'.format(self._trained_iter-1),
                                '--data_root_dir={}'.format(self.args.data_root_dir),
                                '--model_dir={}'.format(self.args.model_dir),
-                               '--num_sample={}'.format(self.args.num_sample * (1 if (self._iteration - 1) == 0 else 2)),
+                               '--num_sample={}'.format(self.args.num_sample * (1 if (self._trained_iter - 1) == 0 else 2)),
                                '--num_mult={}'.format(self.args.num_mult_train),
                                '--dense_dim_in={}'.format(self.args.dense_dim_in),
                                '--dense_dim_out={}'.format(self.args.dense_dim_out),
                                '--mat_size={}'.format(self.args.mat_size),
                                '--preprocess_time={}'.format(self.args.preprocess_time_train),
-                               '--write_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["train"]["write"]),
-                               '--read_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["train"]["read"])]}))
+                               '--write_size={}'.format(self.io_dict["phase{}".format(self._trained_iter-1)]["train"]["write"]),
+                               '--read_size={}'.format(self.io_dict["phase{}".format(self._trained_iter-1)]["train"]["read"])]}))
 
             tasks  = self._tmgr.submit_tasks(tds)
 
@@ -590,11 +603,11 @@ class DDMD(object):
                          'gpu_process_type'  : None,
                          'executable'   : 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python',
                          'arguments'    : [ '{}/Executables/selection.py'.format(self.args.work_dir),
-                       '--phase={}'.format(self._iteration-1),
+                       '--phase={}'.format(self._selection_iter-1),
                        '--mat_size={}'.format(self.args.mat_size),
                        '--data_root_dir={}'.format(self.args.data_root_dir),
-                       '--write_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["selection"]["write"]),
-                       '--read_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["selection"]["read"])]}))
+                       '--write_size={}'.format(self.io_dict["phase{}".format(self._selection_iter-1)]["selection"]["write"]),
+                       '--read_size={}'.format(self.io_dict["phase{}".format(self._selection_iter-1)]["selection"]["read"])]}))
 
             tasks  = self._tmgr.submit_tasks(tds)
 
@@ -621,7 +634,7 @@ class DDMD(object):
                          'arguments'    : [ '{}/Executables/agent.py'.format(self.args.work_dir),
                        '--num_epochs={}'.format(self.args.num_epochs_agent),
                        '--device=gpu',
-                       '--phase={}'.format(self._iteration-1),
+                       '--phase={}'.format(self._agent_iter-1),
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--model_dir={}'.format(self.args.model_dir),
                        '--num_sample={}'.format(self.args.num_sample),
@@ -631,8 +644,8 @@ class DDMD(object):
                        '--dense_dim_out={}'.format(self.args.dense_dim_out),
                        '--mat_size={}'.format(self.args.mat_size),
                        '--preprocess_time={}'.format(self.args.preprocess_time_agent),
-                       '--write_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["agent"]["write"]),
-                       '--read_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["agent"]["read"])]}))
+                       '--write_size={}'.format(self.io_dict["phase{}".format(self._agent_iter-1)]["agent"]["write"]),
+                       '--read_size={}'.format(self.io_dict["phase{}".format(self._agent_iter-1)]["agent"]["read"])]}))
 
             tasks  = self._tmgr.submit_tasks(tds)
 
