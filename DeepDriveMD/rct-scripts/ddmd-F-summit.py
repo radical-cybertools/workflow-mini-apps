@@ -261,12 +261,12 @@ if __name__ == "__main__":
 
     mvp = MVP()
     mvp.set_resource(res_desc = {
-        'resource': 'ornl.frontier',
+        'resource': 'ornl.summit_jsrun',
 #        'queue'   : 'debug',
         'queue'   : mvp.args.queue,
 #        'queue'   : 'default',
         'walltime': 120, #MIN
-        'cpus'    : 22 * mvp.args.num_nodes,
+        'cpus'    : 42 * mvp.args.num_nodes,
         'gpus'    : 6 * mvp.args.num_nodes,
         'project' : mvp.args.project_id
         })
