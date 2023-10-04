@@ -103,7 +103,7 @@ class MVP(object):
             t.cpu_reqs = {
                  'cpu_processes'    : 1,
                  'cpu_process_type' : None,
-                 'cpu_threads'      : 3,
+                 'cpu_threads'      : 7,
                  'cpu_thread_type'  : rp.OpenMP
                  }
             t.gpu_reqs = {
@@ -149,7 +149,7 @@ class MVP(object):
         t.cpu_reqs = {
             'cpu_processes'     : 1,
             'cpu_process_type'  : None,
-            'cpu_threads'       : 3,
+            'cpu_threads'       : 7,
             'cpu_thread_type'   : rp.OpenMP
                 }
         t.gpu_reqs = {
@@ -185,7 +185,7 @@ class MVP(object):
         t.cpu_reqs = {
             'cpu_processes'     : 1,
             'cpu_process_type'  : None,
-            'cpu_threads'       : 3,
+            'cpu_threads'       : 7,
             'cpu_thread_type'   : rp.OpenMP
                 }
         s.add_tasks(t)
