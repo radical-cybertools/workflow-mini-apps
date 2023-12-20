@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
+import numpy as np
+import cupy as cp
 import io, os, sys, socket
 import time
 import argparse
-import kernal as wf
+import h5py
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Exalearn_miniapp_training')
@@ -39,6 +41,39 @@ def parse_args():
 
     return args
 
+def read_tmp_data(args):
+    root_path = args.data_root_dir + '/phase{}'.format(args.phase) + '/'
+    msz = args.mat_size
+    if args.read_size == -1:
+        read_time = 1
+    else:
+        read_time = int(args.read_size // (msz * 8))
+    print("read_time = ", read_time)
+
+    fname = root_path + 'all_tmp_data_0.hdf5'
+    for i in range(read_time):
+        with h5py.File(fname, 'r') as f:
+            dataset_len = len(f.keys())
+            D = f['tmp_{}'.format(i % dataset_len)][:]
+
+def write_tmp_data(args):
+    root_path = args.data_root_dir + '/phase{}'.format(args.phase) + '/'
+    msz = args.mat_size
+    if args.write_size == -1:
+        write_time = 1
+    else:
+        write_time = int(args.write_size // (msz * 8))
+    print("write_time = ", write_time)
+
+    fname = root_path + 'all_tmp_data.hdf5'
+    D = np.random.rand(msz)
+    with h5py.File(fname, 'w') as f:
+        for i in range(write_time):
+            f.create_dataset("tmp_{}".format(i), data = D)
+
+def preprocess(seconds):
+    time.sleep(seconds)
+
 
 def main():
 
@@ -47,32 +82,40 @@ def main():
 
     args = parse_args()
     print(args)
-    device = args.device
-    if device == 'gpu':
+    if args.device == 'gpu':
         print("gpu id is {}".format(cp.cuda.runtime.getDeviceProperties(0)['uuid']))
 
-    wf.readNonMPI(args.read_size)
-    wf.sleep(args.preprocess_time)
-    wf.generateRandomNumber(device, args.num_sample * args.dense_dim_in)
-    wf.generateRandomNumber(device, args.dense_dim_in * args.dense_dim_out)
-    if device == 'gpu':
-        wf.dataCopyH2D(args.dense_dim_in * args.dense_dim_out)
+    preprocess(args.preprocess_time)
+    read_tmp_data(args)
 
+    X = np.random.rand(args.num_sample, args.dense_dim_in)
+    X = np.float32(X)
+    w = np.random.rand(args.dense_dim_in, args.dense_dim_out)
+    w = np.float32(w)
+    w_d = cp.asarray(w)
 
     for epoch in range(args.num_epochs):
         tt = time.time()
-        wf.dataCopyH2D(args.num_sample * args.dense_dim_in)
-        print("epoch is {}, data movementi (CPU->GPU) takes {}".format(epoch, time.time() - tt))
-        tt = time.time()
-        for ii in range(args.num_mult):
-            wf.matMulGeneral(device, [args.num_sample, args.dense_dim_in], [args.dense_dim_in, args.dense_dim_out], ([1], [0]))
-            wf.axpy(device, args.dense_dim_in * args.dense_dim_out)
-        print("epoch is {}, mult takes {}".format(epoch, time.time() - tt))
-        tt = time.time()
 
-    if device == 'gpu':
-        wf.dataCopyD2H(args.dense_dim_in * args.dense_dim_out)
-    wf.writeNonMPI(args.write_size)
+        if args.device == 'cpu':
+            for ii in range(args.train_inner_iter):
+                for index, mi in enumerate(range(args.num_mult)):
+                    R_temp = np.matmul(X[index], y[index])
+            print("Epoch is {}, mult takes {}".format(epoch, time.time() - tt))
+            tt = time.time()
+
+        elif args.device == 'gpu':
+            X_d = cp.asarray(X)
+            print("epoch is {}, data movementi (CPU->GPU) takes {}".format(epoch, time.time() - tt))
+            tt = time.time()
+            for ii in range(args.num_mult):
+                z_d = cp.dot(X_d, w_d)
+                w_d = w_d + 0.1
+            print("epoch is {}, mult takes {}".format(epoch, time.time() - tt))
+            tt = time.time()
+
+    w_temp = cp.asnumpy(w_d)
+    write_tmp_data(args)
 
     end_time = time.time()
     print("Total running time is {}) seconds".format(end_time - start_time))

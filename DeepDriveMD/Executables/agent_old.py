@@ -1,9 +1,11 @@
 #!/usr/bin/env python
 
+import numpy as np
+import cupy as cp
 import io, os, sys, socket
 import time
 import argparse
-import kernal as wf
+import h5py
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Exalearn_miniapp_training')
@@ -41,45 +43,99 @@ def parse_args():
 
     return args
 
+def read_tmp_data(args):
+    root_path = args.data_root_dir + '/phase{}'.format(args.phase) + '/'
+    msz = args.mat_size
+    if args.read_size == -1:
+        read_time = 1
+    else:
+        read_time = int(args.read_size // (msz * 8))
+    print("read_time = ", read_time)
+
+    fname = root_path + 'all_tmp_data.hdf5'
+    for i in range(read_time):
+        with h5py.File(fname, 'r') as f:
+            dataset_len = len(f.keys())
+            D = f['tmp_{}'.format(i % dataset_len)][:]
+
+def write_tmp_data(args):
+    root_path = args.data_root_dir + '/phase{}'.format(args.phase) + '/'
+    msz = args.mat_size
+    if args.write_size == -1:
+        write_time = 1
+    else:
+        write_time = int(args.write_size // (msz * 8))
+    print("write_time = ", write_time)
+
+    fname = root_path + 'all_tmp_data.hdf5'
+    D = np.random.rand(msz)
+    with h5py.File(fname, 'w') as f:
+        for i in range(write_time):
+            f.create_dataset("tmp_{}".format(i), data = D)
+
+def preprocess(seconds):
+    time.sleep(seconds)
+
+
+def main():
 
     print("Temp for Darshan, ml, PID = {}, hostname = {}".format(os.getpid(), socket.gethostname()))
     start_time = time.time()
 
     args = parse_args()
     print(args)
-    device = args.device
-    if device == 'gpu':
+    if args.device == 'gpu':
         print("gpu id is {}".format(cp.cuda.runtime.getDeviceProperties(0)['uuid']))
 
-    wf.sleep(args.preprocess_time)
-    wf.readNonMPI(args.read_size)
-    wf.generateRandomNumber(device, args.num_sample * args.dense_dim_in)
-    wf.generateRandomNumber(device, args.dense_dim_in * args.dense_dim_out)
-    wf.dataCopyH2D(args.dense_dim_in * args.dense_dim_out)
+    preprocess(args.preprocess_time)
+    read_tmp_data(args)
+
+    X = np.random.rand(args.num_sample, args.dense_dim_in)
+    X = np.float32(X)
+    w = np.random.rand(args.dense_dim_in, args.dense_dim_out)
+    w = np.float32(w)
+    w_d = cp.asarray(w)
 
     tt = time.time()
 
-    wf.dataCopyH2D(args.num_sample * args.dense_dim_in)
-    print("data movement (CPU->GPU) takes {}".format(time.time() - tt))
-    tt = time.time()
-    for ii in range(args.num_mult):
-        wf.matMulGeneral(device, [args.num_sample, args.dense_dim_in], [args.dense_dim_in, args.dense_dim_out], ([1], [0]))
-        wf.axpy(device, args.dense_dim_in * args.dense_dim_out)
-    print("mult takes {}".format(time.time() - tt))
-    tt = time.time()
+    if args.device == 'cpu':
+        for ii in range(args.train_inner_iter):
+            for index, mi in enumerate(range(args.num_mult)):
+                R_temp = np.matmul(X[index], y[index])
+        print("mult takes {}".format(time.time() - tt))
+        tt = time.time()
+
+    elif args.device == 'gpu':
+        X_d = cp.asarray(X)
+        print("data movement (CPU->GPU) takes {}".format(time.time() - tt))
+        tt = time.time()
+        for ii in range(args.num_mult):
+            z_d = cp.dot(X_d, w_d)
+            w_d = w_d + 0.1
+        print("mult takes {}".format(time.time() - tt))
+        tt = time.time()
 
     for epoch in range(args.num_epochs):
         tt = time.time()
-        wf.dataCopyH2D(args.num_sample * args.dense_dim_in)
-        print("data movement (CPU->GPU) takes {}".format(time.time() - tt))
-        tt = time.time()
-        for ii in range(args.num_mult_outlier):
-            wf.matMulGeneral(device, [args.num_sample, args.dense_dim_in], [args.dense_dim_in, args.num_sample], ([1], [0]))
-            wf.axpy(device, args.dense_dim_in * args.dense_dim_out)
+        if args.device == 'cpu':
+            for ii in range(args.train_inner_iter):
+                for index, mi in enumerate(range(args.num_mult)):
+                    R_temp = np.matmul(X[index], y[index])
             print("mult takes {}".format(time.time() - tt))
-        tt = time.time()
+            tt = time.time()
+    
+        elif args.device == 'gpu':
+            X_d = cp.asarray(X)
+            print("data movement (CPU->GPU) takes {}".format(time.time() - tt))
+            tt = time.time()
+            for ii in range(args.num_mult_outlier):
+                z_d = cp.dot(X_d, cp.transpose(X_d))
+                w_d = w_d + 0.1
+            print("mult takes {}".format(time.time() - tt))
+            tt = time.time()
 
-    wf.writeNonMPI(args.write_size)
+
+    write_tmp_data(args)
 
     end_time = time.time()
     print("Total running time is {} seconds".format(end_time - start_time))

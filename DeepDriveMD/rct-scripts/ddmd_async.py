@@ -69,15 +69,19 @@ class DDMD(object):
         # bookkeeping
         self._selection     =  0
         self._selection_max =  1  # aggregation threshold
+        self._selection_iter = 0
 
         self._trained        =  0
         self._trained_max    =  1  # training threshold
+        self._trained_iter   = 0
 
         self._mdSim         = 0
         self._mdSim_max     = self.args.num_sim
+        self._mdSim_iter    = 0
 
         self._agent         = 0
         self._agent_max     = 1
+        self._agent_iter    = 0
 
         self._cores          = 32 * self.args.num_nodes  # available resources
         self._cores_used     =  0
@@ -88,6 +92,8 @@ class DDMD(object):
         self._lock           = mt.RLock()
         self._tasks          = {ttype: dict() for ttype in self.TASK_TYPES}
         self._final_tasks    = list()
+
+
 
         # silence RP reporter, use own
         os.environ['RADICAL_REPORT'] = 'false'
@@ -240,17 +246,19 @@ class DDMD(object):
         self.dump('submit MD simulations')
 
         # reset bookkeeping
-        self._iteration = 0
         self._selection = 0
         self._trained   = 0
         self._mdSim     = 0
         self._agent     = 0
         self._cores_used = 0
         self._tasks      = {ttype: dict() for ttype in self._protocol}
+        print("TW: DEBUG: self._tasks = ", self._tasks)
 
 
-        self._iteration = 1
+        self._mdSim_iter = 1
+        print("TW: DEBUG: start 001")
         self.run_sim(self.TASK_MD_SIM, n=self.args.num_sim)
+        print("TW: DEBUG: start 002")
 
 
 #        # run initial batch of MD_SIM tasks (assume one core per task)
@@ -435,14 +443,22 @@ class DDMD(object):
         #     - dont do anything
         self._mdSim += 1
 
+        print("TW: DEBUG: _control_md_sim, 000")
         if self._mdSim >= self._mdSim_max:
             self._mdSim = 0
             self.dump(task, 'completed, start ML and next Sim')
+            self._trained_iter =+ 1
+            print("TW: DEBUG: _control_md_sim, 001")
             self.run_train(self.TASK_ML_TRAIN, 1)
-            if iteration < self.arg.num_phases:
-                iteration += 1
+            print("TW: DEBUG: _control_md_sim, 002")
+
+            self._mdSim += 1
+            if self._mdSim_iter <= self.arg.num_phases:
+                print("TW: DEBUG: _control_md_sim, 003")
                 self.run_sim(self.TASK_MD_SIM, n=self.args.num_sim)
+                print("TW: DEBUG: _control_md_sim, 004")
         else:
+            print("TW: DEBUG: _control_md_sim, 005")
             self.dump(task, 'completed, aggregation low  - start md sim')
 
 
@@ -452,10 +468,16 @@ class DDMD(object):
 
 
         self._selection += 1
+        print("TW: DEBUG: _control_selection, 001")
         if self._selection >= self._selection_max:
             self.dump(task, 'completed, Selection - start agent ')
             self._selection= 0
-            self.run_agent(self.TASK_AGENT, n=1)
+            self._agent_iter =+ 1
+            print("TW: DEBUG: _control_selection, 002")
+            if self._agent_iter <= self.arg.num_phases:
+                print("TW: DEBUG: _control_selection, 003")
+                self.run_agent(self.TASK_AGENT, n=1)
+                print("TW: DEBUG: _control_selection, 004")
         else:
             self.dump(task, 'completed, Selection incomplete  ')
 
@@ -474,11 +496,18 @@ class DDMD(object):
         #   - else
         #     - launch a sim task
 
+        print("TW: DEBUG: _control_ml_train, 001")
         self._trained += 1
         if self._trained >= self._trained_max:
             self.dump(task, 'completed, training complete - start agent ')
             self._trained = 0
-            self.run_selection(self.TASK_SELECTION, n=1)
+
+            self._selection_iter =+ 1
+            print("TW: DEBUG: _control_ml_train, 002", "self._selection_iter = ", self._selection_iter, "self.arg.num_phases = ", self.arg.num_phases)
+            if self._selection_iter <= self.arg.num_phases:
+                print("TW: DEBUG: _control_ml_train, 003")
+                self.run_selection(self.TASK_SELECTION, n=1)
+                print("TW: DEBUG: _control_ml_train, 004")
         else:
             self.dump(task, 'completed, training incomplete  ')
 
@@ -490,17 +519,25 @@ class DDMD(object):
         react on completed agent task
         '''
         # - Upon termination of an Agent task, kill all the tasks and goto i.
+        print("TW: DEBUG: _control_agent, 001")
         try:
+            print("TW: DEBUG: _control_agent, 002")
             self._agent += 1
         except:
+            print("TW: DEBUG: _control_agent, 003")
             pass
 
         if self._agent >= self._agent_max:
+            print("TW: DEBUG: _control_agent, 004")
             self._agent= 0
             self.dump(task, 'completed,  next Sim')
-            if iteration < self.arg.num_phases:
-                iteration += 1
+
+            self._mdSim_iter =+ 1
+            print("TW: DEBUG: _control_agent, 005")
+            if self._mdSim_iter <= self.arg.num_phases:
+                print("TW: DEBUG: _control_agent, 006")
                 self.run_sim(self.TASK_MD_SIM, n=self.args.num_sim)
+                print("TW: DEBUG: _control_agent, 007")
         else:
             self.dump(task, 'completed, aggregation low  - start md sim')
 
@@ -508,6 +545,7 @@ class DDMD(object):
 
     def run_sim(self, ttype , n=1):
 
+        print("TW: DEBUG: run_sim 001")
         with self._lock:
             tds   = list()
             for i in range(n):
@@ -522,23 +560,27 @@ class DDMD(object):
                          'gpu_process_type'  : rp.CUDA,
                          'executable'   : 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python',
                          'arguments'    : ['{}/Executables/simulation.py'.format(self.args.work_dir),
-                               '--phase={}'.format(self._iteration-1),
+                               '--phase={}'.format(self._mdSim_iter-1),
                                '--task_idx={}'.format(i),
                                '--mat_size={}'.format(self.args.mat_size),
                                '--data_root_dir={}'.format(self.args.data_root_dir),
                                '--num_step={}'.format(self.args.num_step),
-                               '--write_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["sim"]["write"]),
-                               '--read_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["sim"]["read"])]}))
+                               '--write_size={}'.format(self.io_dict["phase{}".format(self._mdSim_iter-1)]["sim"]["write"]),
+                               '--read_size={}'.format(self.io_dict["phase{}".format(self._mdSim_iter-1)]["sim"]["read"])]}))
 
+            print("TW: DEBUG: run_sim 002")
             tasks  = self._tmgr.submit_tasks(tds)
 
+            print("TW: DEBUG: run_sim 003")
             for task in tasks:
                 self._register_task(task)
+        print("TW: DEBUG: run_sim 004")
 
 
     # This is for training, return a stage which has a single training task
-    def run_train(self, n=1):
+    def run_train(self, ttype, n=1):
 
+        print("TW: DEBUG: run_train 001")
         with self._lock:
             tds   = list()
             for _ in range(n):
@@ -555,27 +597,31 @@ class DDMD(object):
                          'arguments'    : [ '{}/Executables/training.py'.format(self.args.work_dir),
                                '--num_epochs={}'.format(self.args.num_epochs_train),
                                '--device=gpu',
-                               '--phase={}'.format(self._iteration-1),
+                               '--phase={}'.format(self._trained_iter-1),
                                '--data_root_dir={}'.format(self.args.data_root_dir),
                                '--model_dir={}'.format(self.args.model_dir),
-                               '--num_sample={}'.format(self.args.num_sample * (1 if (self._iteration - 1) == 0 else 2)),
+                               '--num_sample={}'.format(self.args.num_sample * (1 if (self._trained_iter - 1) == 0 else 2)),
                                '--num_mult={}'.format(self.args.num_mult_train),
                                '--dense_dim_in={}'.format(self.args.dense_dim_in),
                                '--dense_dim_out={}'.format(self.args.dense_dim_out),
                                '--mat_size={}'.format(self.args.mat_size),
                                '--preprocess_time={}'.format(self.args.preprocess_time_train),
-                               '--write_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["train"]["write"]),
-                               '--read_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["train"]["read"])]}))
+                               '--write_size={}'.format(self.io_dict["phase{}".format(self._trained_iter-1)]["train"]["write"]),
+                               '--read_size={}'.format(self.io_dict["phase{}".format(self._trained_iter-1)]["train"]["read"])]}))
 
+            print("TW: DEBUG: run_train 002")
             tasks  = self._tmgr.submit_tasks(tds)
 
+            print("TW: DEBUG: run_train 003")
             for task in tasks:
                 self._register_task(task)
+        print("TW: DEBUG: run_train 004")
 
 
     # This is for model selection, return a stage which has a single training task
-    def run_selection(self, n=1):
+    def run_selection(self, ttype, n=1):
 
+        print("TW: DEBUG: run_selection 001")
         with self._lock:
             tds   = list()
             for _ in range(n):
@@ -590,21 +636,25 @@ class DDMD(object):
                          'gpu_process_type'  : None,
                          'executable'   : 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python',
                          'arguments'    : [ '{}/Executables/selection.py'.format(self.args.work_dir),
-                       '--phase={}'.format(self._iteration-1),
+                       '--phase={}'.format(self._selection_iter-1),
                        '--mat_size={}'.format(self.args.mat_size),
                        '--data_root_dir={}'.format(self.args.data_root_dir),
-                       '--write_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["selection"]["write"]),
-                       '--read_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["selection"]["read"])]}))
+                       '--write_size={}'.format(self.io_dict["phase{}".format(self._selection_iter-1)]["selection"]["write"]),
+                       '--read_size={}'.format(self.io_dict["phase{}".format(self._selection_iter-1)]["selection"]["read"])]}))
 
+            print("TW: DEBUG: run_selection 002")
             tasks  = self._tmgr.submit_tasks(tds)
 
+            print("TW: DEBUG: run_selection 003")
             for task in tasks:
                 self._register_task(task)
+        print("TW: DEBUG: run_selection 004")
 
 
     # This is for agent, return a stage which has a single training task
-    def run_agent(self, n=1):
+    def run_agent(self, ttype, n=1):
 
+        print("TW: DEBUG: run_agent 001")
         with self._lock:
             tds   = list()
             for _ in range(n):
@@ -621,7 +671,7 @@ class DDMD(object):
                          'arguments'    : [ '{}/Executables/agent.py'.format(self.args.work_dir),
                        '--num_epochs={}'.format(self.args.num_epochs_agent),
                        '--device=gpu',
-                       '--phase={}'.format(self._iteration-1),
+                       '--phase={}'.format(self._agent_iter-1),
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--model_dir={}'.format(self.args.model_dir),
                        '--num_sample={}'.format(self.args.num_sample),
@@ -631,13 +681,16 @@ class DDMD(object):
                        '--dense_dim_out={}'.format(self.args.dense_dim_out),
                        '--mat_size={}'.format(self.args.mat_size),
                        '--preprocess_time={}'.format(self.args.preprocess_time_agent),
-                       '--write_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["agent"]["write"]),
-                       '--read_size={}'.format(self.io_dict["phase{}".format(self._iteration-1)]["agent"]["read"])]}))
+                       '--write_size={}'.format(self.io_dict["phase{}".format(self._agent_iter-1)]["agent"]["write"]),
+                       '--read_size={}'.format(self.io_dict["phase{}".format(self._agent_iter-1)]["agent"]["read"])]}))
 
+            print("TW: DEBUG: run_agent 002")
             tasks  = self._tmgr.submit_tasks(tds)
+            print("TW: DEBUG: run_agent 003")
 
             for task in tasks:
                 self._register_task(task)
+        print("TW: DEBUG: run_agent 004")
 
 
 

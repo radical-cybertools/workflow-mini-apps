@@ -2,8 +2,10 @@
 
 import os, sys, socket
 import time
+import numpy as np
+import cupy as cp
 import argparse
-import kernal as wf
+import h5py
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Exalearn_miniapp_simulation')
@@ -33,28 +35,56 @@ def main():
 
     args = parse_args()
     print(args)
-    msz = args.mat_size
-    device = "gpu"
 
-    wf.generateRandomNumber(device, msz)
-    wf.generateRandomNumber(device, msz)
+    root_path = args.data_root_dir + '/phase{}'.format(args.phase) + '/'
+    print("root_path for data = ", root_path)
+
+    seed = 27 + args.task_idx * 100 + args.phase     #Make sure different running has different seed
+    cp.random.seed(seed)  
+
+    msz = args.mat_size
+
+    filename_X = root_path + 'all_X_data.npy'
+    os.makedirs(os.path.dirname(filename_X), exist_ok=True)
+
+    if args.write_size == -1:
+        write_time = 0
+    else:
+        write_time = int(args.write_size // (msz * 8))
+    print("num_write = {}".format(write_time))
+    
+    if args.read_size == -1:
+        read_time = 1
+    else:
+        read_time = int(args.read_size // (msz * 8))
+    print("num_read = {}".format(read_time))
+
+    va_d = cp.random.rand(msz)
+    vb_d = cp.random.rand(msz)
 
     print(time.time() - start_time)
     for mi in range(args.num_step):
         elap = time.time()
-        wf.axpy(device, msz)
-        wf.axpy(device, msz)
-        wf.generateRandomNumber(device, msz * msz)
-        wf.implaceCompute(device, msz * msz, 1)
-        wf.matMulGeneral(device, [msz, msz], [msz], ([1], [0]))
+        va_d = vb_d * 0.1 + va_d
+        vb_d = va_d * 0.1 + vb_d
+        mat_d = cp.random.rand(msz, msz)
+        mat_d = cp.sin(mat_d)
+        va_d = cp.dot(mat_d, vb_d)
     print(time.time() - start_time)
 
-    wf.dataCopyD2H(msz)
-    wf.dataCopyD2H(msz)
+    va = cp.asnumpy(va_d)
+    vb = cp.asnumpy(vb_d)
     print(time.time() - start_time)
 
-    wf.writeNonMPI(args.write_size)
-    wf.readNonMPI(args.read_size)
+    fname = root_path + 'all_tmp_data_{}.hdf5'.format(args.task_idx)
+    D = np.random.rand(msz)
+    with h5py.File(fname, 'w') as f:
+        for i in range(write_time):
+            f.create_dataset("tmp_{}".format(i), data = D)
+    for i in range(read_time):
+        fname = root_path + 'all_tmp_data_{}.hdf5'.format(args.task_idx)
+        with h5py.File(fname, 'r') as f:
+            D = f['tmp_{}'.format(i % write_time)][:]
 
     end_time = time.time()
     print("Total running time is {} seconds".format(end_time - start_time))

@@ -2,8 +2,10 @@
 
 import os, sys, socket
 import time
+import numpy as np
+import cupy as cp
 import argparse
-import kernel as wf
+import h5py
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Exalearn_miniapp_simulation')
@@ -30,8 +32,32 @@ def main():
     args = parse_args()
     print(args)
 
-    wf.readNonMPI(args.read_size)
-    wf.writeNonMPI(args.write_size)
+    root_path = args.data_root_dir + '/phase{}'.format(args.phase) + '/'
+    print("root_path for data = ", root_path)
+
+    msz = args.mat_size
+
+    if args.write_size == -1:
+        write_time = 0
+    else:
+        write_time = int(args.write_size // (msz * 8))
+    print("num_write = {}".format(write_time))
+    
+    if args.read_size == -1:
+        read_time = 1
+    else:
+        read_time = int(args.read_size // (msz * 8))
+    print("num_read = {}".format(read_time))
+
+    fname = root_path + 'all_tmp_data.hdf5'
+    D = np.random.rand(msz)
+    with h5py.File(fname, 'w') as f:
+        for i in range(write_time):
+            f.create_dataset("tmp_{}".format(i), data = D)
+    for i in range(read_time):
+        fname = root_path + 'all_tmp_data.hdf5'
+        with h5py.File(fname, 'r') as f:
+            D = f['tmp_{}'.format(i % write_time)][:]
 
     end_time = time.time()
     print("Total running time is {} seconds".format(end_time - start_time))
