@@ -45,15 +45,6 @@ Milestones:
 
 Current Status:
 
-  - WF1:
-    
-     - Collecting Requirement (Done) : 
-     
-     - Building enTK Template to run (DONE)
-     
-     - Creating Data Generation mini-app (DONE)
-     
-     - Creating ML Mini-app (WIP)
-     
-   - WF2: (TODO)
+  - WF1: (DONE)
+  - WF2: (DONE)
 

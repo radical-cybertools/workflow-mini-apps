@@ -47,9 +47,11 @@ def main():
 
     args = parse_args()
     print(args)
+
     device = args.device
     if device == 'gpu':
         print("gpu id is {}".format(cp.cuda.runtime.getDeviceProperties(0)['uuid']))
+
 
     wf.readNonMPI(args.read_size)
     wf.sleep(args.preprocess_time)

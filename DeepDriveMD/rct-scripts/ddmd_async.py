@@ -256,6 +256,7 @@ class DDMD(object):
 
 
         self._mdSim_iter = 1
+
         print("TW: DEBUG: start 001")
         self.run_sim(self.TASK_MD_SIM, n=self.args.num_sim)
         print("TW: DEBUG: start 002")
@@ -462,6 +463,7 @@ class DDMD(object):
             self.dump(task, 'completed, aggregation low  - start md sim')
 
 
+
     # --------------------------------------------------------------------------
     #
     def _control_selection(self, task):
@@ -479,7 +481,7 @@ class DDMD(object):
                 self.run_agent(self.TASK_AGENT, n=1)
                 print("TW: DEBUG: _control_selection, 004")
         else:
-            self.dump(task, 'completed, Selection incomplete  ')
+            self.dump(task, 'completed, Selection low  ')
 
 
 
@@ -499,7 +501,7 @@ class DDMD(object):
         print("TW: DEBUG: _control_ml_train, 001")
         self._trained += 1
         if self._trained >= self._trained_max:
-            self.dump(task, 'completed, training complete - start agent ')
+            self.dump(task, 'completed, training complete - start selection ')
             self._trained = 0
 
             self._selection_iter =+ 1
@@ -509,7 +511,7 @@ class DDMD(object):
                 self.run_selection(self.TASK_SELECTION, n=1)
                 print("TW: DEBUG: _control_ml_train, 004")
         else:
-            self.dump(task, 'completed, training incomplete  ')
+            self.dump(task, 'completed, training low  ')
 
 
     # --------------------------------------------------------------------------
@@ -539,7 +541,7 @@ class DDMD(object):
                 self.run_sim(self.TASK_MD_SIM, n=self.args.num_sim)
                 print("TW: DEBUG: _control_agent, 007")
         else:
-            self.dump(task, 'completed, aggregation low  - start md sim')
+            self.dump(task, 'completed, agent low')
 
 
 
@@ -653,6 +655,7 @@ class DDMD(object):
 
     # This is for agent, return a stage which has a single training task
     def run_agent(self, ttype, n=1):
+
 
         print("TW: DEBUG: run_agent 001")
         with self._lock:
