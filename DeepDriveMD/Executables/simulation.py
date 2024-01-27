@@ -3,7 +3,7 @@
 import os, sys, socket
 import time
 import argparse
-import kernal as wf
+import kernel as wf
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Exalearn_miniapp_simulation')
@@ -33,6 +33,10 @@ def main():
 
     args = parse_args()
     print(args)
+
+    root_path = args.data_root_dir + '/phase{}'.format(args.phase) + '/'
+    print("root_path for data = ", root_path)
+
     msz = args.mat_size
     device = "gpu"
 
@@ -53,8 +57,8 @@ def main():
     wf.dataCopyD2H(msz)
     print(time.time() - start_time)
 
-    wf.writeNonMPI(args.write_size)
-    wf.readNonMPI(args.read_size)
+    wf.writeNonMPI(args.write_size, root_path)
+    wf.readNonMPI(args.read_size, root_path)
 
     end_time = time.time()
     print("Total running time is {} seconds".format(end_time - start_time))

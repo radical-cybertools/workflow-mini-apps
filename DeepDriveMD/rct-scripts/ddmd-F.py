@@ -34,6 +34,8 @@ class MVP(object):
                         help='number of epochs in training task')
         parser.add_argument('--model_dir', default='./',
                         help='the directory where save and load model')
+        parser.add_argument('--conda_env', default=None,
+                        help='the conda env where numpy/cupy installed, if not specified, no env will be loaded')
         parser.add_argument('--num_sample', type=int, default=500,
                         help='num of samples in matrix mult (training and agent)')
         parser.add_argument('--num_mult_train', type=int, default=4000,
@@ -52,7 +54,8 @@ class MVP(object):
                         help='number of matrix mult to perform in agent task, inference')
         parser.add_argument('--num_mult_outlier', type=int, default=10,
                         help='number of matrix mult to perform in agent task, outlier')
-
+        parser.add_argument('--enable_darshan', action='store_true',
+                        help='enable darshan analyze')
         parser.add_argument('--project_id', required=True,
                         help='the project ID we used to launch the job')
         parser.add_argument('--queue', required=True,
@@ -83,10 +86,14 @@ class MVP(object):
             t.pre_exec = [
                     "module load PrgEnv-gnu",
                     "module load conda",
-                    "conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris",
                     "export HDF5_USE_FILE_LOCKING=FALSE"
                     ]
-            t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
+            if self.args.conda_env is not None:
+                t.pre_exec.append("conda activate {}".format(self.args.conda_env))
+            if self.args.enable_darshan:
+                t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
+            else:
+                t.executable = python
             t.arguments = ['{}/Executables/simulation.py'.format(self.args.work_dir),
                            '--phase={}'.format(phase_idx),
                            '--task_idx={}'.format(i),
@@ -120,11 +127,16 @@ class MVP(object):
         t.pre_exec = [
                 "module load PrgEnv-gnu",
                 'module load conda',
-                "conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris",
                 "export HDF5_USE_FILE_LOCKING=FALSE"
                 ]
+        if self.args.conda_env is not None:
+                t.pre_exec.append("conda activate {}".format(self.args.conda_env))
 
-        t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
+
+        if self.args.enable_darshan:
+            t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
+        else:
+            t.executable = python
         t.arguments = ['{}/Executables/training.py'.format(self.args.work_dir),
                        '--num_epochs={}'.format(self.args.num_epochs_train),
                        '--device=gpu',
@@ -162,11 +174,15 @@ class MVP(object):
         t.pre_exec = [
                 "module load PrgEnv-gnu",
                 'module load conda',
-                "conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris",
                 "export HDF5_USE_FILE_LOCKING=FALSE"
                 ]
+        if self.args.conda_env is not None:
+                t.pre_exec.append("conda activate {}".format(self.args.conda_env))
 
-        t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
+        if self.args.enable_darshan:
+            t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
+        else:
+            t.executable = python
         t.arguments = ['{}/Executables/selection.py'.format(self.args.work_dir),
                        '--phase={}'.format(phase_idx),
                        '--mat_size={}'.format(self.args.mat_size),
@@ -192,11 +208,15 @@ class MVP(object):
         t.pre_exec = [
                 "module load PrgEnv-gnu",
                 'module load conda',
-                "conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris",
                 "export HDF5_USE_FILE_LOCKING=FALSE"
                 ]
+        if self.args.conda_env is not None:
+                t.pre_exec.append("conda activate {}".format(self.args.conda_env))
 
-        t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
+        if self.args.enable_darshan:
+            t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
+        else:
+            t.executable = python
         t.arguments = ['{}/Executables/agent.py'.format(self.args.work_dir),
                        '--num_epochs={}'.format(self.args.num_epochs_agent),
                        '--device=gpu',

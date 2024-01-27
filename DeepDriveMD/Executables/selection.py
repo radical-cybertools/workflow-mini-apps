@@ -30,8 +30,11 @@ def main():
     args = parse_args()
     print(args)
 
-    wf.readNonMPI(args.read_size)
-    wf.writeNonMPI(args.write_size)
+    root_path = args.data_root_dir + '/phase{}'.format(args.phase) + '/'
+    print("root_path for data = ", root_path)
+
+    wf.readNonMPI(args.read_size, root_path)
+    wf.writeNonMPI(args.write_size, root_path)
 
     end_time = time.time()
     print("Total running time is {} seconds".format(end_time - start_time))

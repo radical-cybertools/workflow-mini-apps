@@ -3,7 +3,7 @@
 import io, os, sys, socket
 import time
 import argparse
-import kernal as wf
+import kernel as wf
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Exalearn_miniapp_training')
@@ -41,6 +41,7 @@ def parse_args():
 
     return args
 
+def main():
 
     print("Temp for Darshan, ml, PID = {}, hostname = {}".format(os.getpid(), socket.gethostname()))
     start_time = time.time()
@@ -48,13 +49,16 @@ def parse_args():
     args = parse_args()
     print(args)
 
-    device = args.device
-    if device == 'gpu':
-        print("gpu id is {}".format(cp.cuda.runtime.getDeviceProperties(0)['uuid']))
+    root_path = args.data_root_dir + '/phase{}'.format(args.phase) + '/'
+    print("root_path for data = ", root_path)
 
+    device = args.device
+
+#    if device == 'gpu':
+#        print("gpu id is {}".format(cp.cuda.runtime.getDeviceProperties(0)['uuid']))
 
     wf.sleep(args.preprocess_time)
-    wf.readNonMPI(args.read_size)
+    wf.readNonMPI(args.read_size, root_path)
     wf.generateRandomNumber(device, args.num_sample * args.dense_dim_in)
     wf.generateRandomNumber(device, args.dense_dim_in * args.dense_dim_out)
     wf.dataCopyH2D(args.dense_dim_in * args.dense_dim_out)
@@ -81,7 +85,7 @@ def parse_args():
             print("mult takes {}".format(time.time() - tt))
         tt = time.time()
 
-    wf.writeNonMPI(args.write_size)
+    wf.writeNonMPI(args.write_size, root_path)
 
     end_time = time.time()
     print("Total running time is {} seconds".format(end_time - start_time))
