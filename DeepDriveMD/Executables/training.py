@@ -3,7 +3,7 @@
 import io, os, sys, socket
 import time
 import argparse
-import kernal as wf
+import kernel as wf
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Exalearn_miniapp_training')
@@ -48,12 +48,17 @@ def main():
     args = parse_args()
     print(args)
 
+    root_path = args.data_root_dir + '/phase{}'.format(args.phase) + '/'
+    print("root_path for data = ", root_path)
+
     device = args.device
-    if device == 'gpu':
-        print("gpu id is {}".format(cp.cuda.runtime.getDeviceProperties(0)['uuid']))
+
+#FIXME: Commented out since it can not load cupy... Weird!    
+#    if device == 'gpu':
+#        print("gpu id is {}".format(cupy.cuda.runtime.getDeviceProperties(0)['uuid']))
 
 
-    wf.readNonMPI(args.read_size)
+    wf.readNonMPI(args.read_size, root_path)
     wf.sleep(args.preprocess_time)
     wf.generateRandomNumber(device, args.num_sample * args.dense_dim_in)
     wf.generateRandomNumber(device, args.dense_dim_in * args.dense_dim_out)
@@ -74,7 +79,7 @@ def main():
 
     if device == 'gpu':
         wf.dataCopyD2H(args.dense_dim_in * args.dense_dim_out)
-    wf.writeNonMPI(args.write_size)
+    wf.writeNonMPI(args.write_size, root_path)
 
     end_time = time.time()
     print("Total running time is {}) seconds".format(end_time - start_time))

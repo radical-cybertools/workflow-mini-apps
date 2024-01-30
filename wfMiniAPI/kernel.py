@@ -1,5 +1,6 @@
 import numpy as np
 import time
+import os
 
 try:
     import cupy as cp
@@ -24,7 +25,7 @@ except ImportError:
 def sleep(seconds):
     time.sleep(seconds)
 
-def writeSingleRank(num_bytes):
+def writeSingleRank(num_bytes, data_root_dir):
     if not MPI4PY_AVAILABLE:
         raise ImportError("mpi4py is not installed. Install mpi4py to use multi-process read/write.")
     elif not H5PY_AVAILABLE:
@@ -34,7 +35,7 @@ def writeSingleRank(num_bytes):
         rank = comm.Get_rank()
 
         if rank == 0:
-            filename = "data.h5"
+            filename = os.path.join(data_root_dir, "data.h5")
             
             num_elem = num_bytes // 4
             data = np.empty(num_elem, dtype=np.float32)
@@ -43,7 +44,7 @@ def writeSingleRank(num_bytes):
                 dset = f.create_dataset("data", data = data)
 
 
-def writeNonMPI(num_bytes):
+def writeNonMPI(num_bytes, data_root_dir):
     if not MPI4PY_AVAILABLE:
         raise ImportError("mpi4py is not installed. Install mpi4py to use multi-process read/write.")
     elif not H5PY_AVAILABLE:
@@ -52,7 +53,7 @@ def writeNonMPI(num_bytes):
         comm = MPI.COMM_WORLD
         rank = comm.Get_rank()
 
-        filename = "data_{}.h5".format(rank)
+        filename = os.path.join(data_root_dir, "data_{}.h5".format(rank))
         
         num_elem = num_bytes // 4
         data = np.empty(num_elem, dtype=np.float32)
@@ -60,7 +61,7 @@ def writeNonMPI(num_bytes):
         with h5py.File(filename, 'w') as f:
             dset = f.create_dataset("data", data = data)
 
-def writeWithMPI(num_bytes):
+def writeWithMPI(num_bytes, data_root_dir):
     if not MPI4PY_AVAILABLE:
         raise ImportError("mpi4py is not installed. Install mpi4py to use multi-process read/write.")
     elif not H5PY_AVAILABLE:
@@ -74,12 +75,13 @@ def writeWithMPI(num_bytes):
         num_elem_tot = num_elem * size
         data = np.empty(num_elem, dtype=np.float32)
 
-        with h5py.File('data.h5', 'w', driver='mpio', comm=comm) as f:
+        filename = os.path.join(data_root_dir, 'data.h5')
+        with h5py.File(filename, 'w', driver='mpio', comm=comm) as f:
             dset = f.create_dataset("data", (num_elem_tot, ), dtype=np.float32)
             offset = rank * num_elem
             dset[offset:offset+num_elem] = data
-#try to raise the error if file is ready
-def readNonMPI(num_bytes):
+
+def readNonMPI(num_bytes, data_root_dir):
     if not MPI4PY_AVAILABLE:
         raise ImportError("mpi4py is not installed. Install mpi4py to use multi-process read/write.")
     elif not H5PY_AVAILABLE:
@@ -88,14 +90,14 @@ def readNonMPI(num_bytes):
         comm = MPI.COMM_WORLD
         rank = comm.Get_rank()
 
-        filename = "data_{}.h5".format(rank)
+        filename = os.path.join(data_root_dir, "data_{}.h5".format(rank))
         
         num_elem = num_bytes // 4
 
         with h5py.File(filename, 'r') as f:
             data = f['data'][0:num_elem] 
 
-def readWithMPI(num_bytes):
+def readWithMPI(num_bytes, data_root_dir):
     if not MPI4PY_AVAILABLE:
         raise ImportError("mpi4py is not installed. Install mpi4py to use multi-process read/write.")
     elif not H5PY_AVAILABLE:
@@ -109,7 +111,8 @@ def readWithMPI(num_bytes):
         num_elem_tot = num_elem * size
         data = np.empty(num_elem, dtype=np.float32)
 
-        with h5py.File('data.h5', 'r', driver='mpio', comm=comm) as f:
+        filename = os.path.join(data_root_dir, 'data.h5')
+        with h5py.File(filename, 'r', driver='mpio', comm=comm) as f:
             dset = f['data']
             offset = rank * num_elem
             dset.read_direct(data, np.s_[offset:offset+num_elem])
