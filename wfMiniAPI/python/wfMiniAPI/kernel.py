@@ -22,8 +22,25 @@ except ImportError:
     H5PY_AVAILABLE = False
 
 
+#################
+#misc 
+#################
+
 def sleep(seconds):
     time.sleep(seconds)
+
+def get_device_module(device):
+    if device == "gpu":
+        if not CUPY_AVAILABLE:
+            raise ImportError("CuPy is not installed. Install CuPy to use GPU capabilities.")
+        return cp
+    else:
+        return np
+
+
+#################
+#io
+#################
 
 def writeSingleRank(num_bytes, data_root_dir):
     if not MPI4PY_AVAILABLE:
@@ -118,15 +135,11 @@ def readWithMPI(num_bytes, data_root_dir):
             dset.read_direct(data, np.s_[offset:offset+num_elem])
 
 
-def get_device_module(device):
-    if device == "gpu":
-        if not CUPY_AVAILABLE:
-            raise ImportError("CuPy is not installed. Install CuPy to use GPU capabilities.")
-        return cp
-    else:
-        return np
+#################
+#comm 
+#################
 
-def allReduce(device, data_size):
+def MPIallReduce(device, data_size):
     xp = get_device_module(device)
     if not MPI4PY_AVAILABLE:
         raise ImportError("mpi4py is not installed. Install mpi4py to perform allreduce.")
@@ -147,7 +160,7 @@ def allReduce(device, data_size):
             comm_nccl.allReduce(sendbuf.data.ptr, recvbuf.data.ptr, data_size, nccl.NCCL_FLOAT32, nccl.NCCL_SUM, cp.cuda.Stream.null)
             cp.cuda.Stream.null.synchronize()
     
-def allGather(device, data_size):
+def MPIallGather(device, data_size):
     xp = get_device_module(device)
     if not MPI4PY_AVAILABLE:
         raise ImportError("mpi4py is not installed. Install mpi4py to perform allreduce.")
@@ -169,6 +182,10 @@ def allGather(device, data_size):
             cp.cuda.Stream.null.synchronize()
 
 
+#################
+#data movement
+#################
+
 def dataCopyH2D(data_size):
     if not CUPY_AVAILABLE:
         raise ImportError("CuPy is not installed. Install CuPy to use GPU capabilities.")
@@ -184,6 +201,10 @@ def dataCopyD2H(data_size):
         data_h = cp.asnumpy(data_d)
 
 
+#################
+#computation
+#################
+
 def matMulSimple2D(device, size):
     xp = get_device_module(device)
     matrix_a = xp.empty((size, size), dtype=xp.float32)
@@ -196,6 +217,22 @@ def matMulGeneral(device, size_a, size_b, axis):
     matrix_b = xp.empty(tuple(size_b), dtype=xp.float32)
     matrix_c = xp.tensordot(matrix_a, matrix_b, axis)
 
+def fft(device, data_size, type_in, transform_dim):
+    xp = get_device_module(device)
+    if type_in == "float":
+        data_in = xp.empty(tuple(data_size), dtype=xp.float32)
+    elif type_in == "double":
+        data_in = xp.empty(tuple(data_size), dtype=xp.float64)
+    elif type_in == "complexF":
+        data_in = xp.empty(tuple(data_size), dtype=xp.complex64)
+    elif type_in == "complexD":
+        data_in = xp.empty(tuple(data_size), dtype=xp.complex128)
+    else:
+        raise TypeError("In fft call, type_in must be one of the following: [float, double, complexF, complexD]")
+
+    out = xp.fft.fft(data_in, axis=transform_dim)
+
+    
 def axpy(device, size):
     xp = get_device_module(device)
     x = xp.empty(size, dtype=xp.float32)
@@ -208,10 +245,29 @@ def implaceCompute(device, size, num_op):
     for i in range(num_op):
         x = xp.sin(x)
 
-def generateRandomNumber(device, size):
+def RNG(device, size):
     xp = get_device_module(device)
     x = xp.random.rand(size)
 
+def scatterAdd(device, x_size, y_size):
+    xp = get_device_module(device)
+    y = xp.empty(y_size, dtype=xp.float32)
+    x = xp.empty(x_size, dtype=xp.float32)
+    idx = xp.empty(y_size, dtype=xp.int)
+    if xp == np:
+        y += x[idx]
+    elif xp == cp:
+        scatter_add_kernel = cp.RawKernel(r'''
+        extern "C" __global__
+        void my_scatter_add_kernel(const float *x, const float *y, const int *idx)
+        {
+            int tid = blockDim.x * blockIdx.x + threadIdx.x;
+
+            }
+        ''', 'my_scatter_add_kernel')
+
+
+    
 #for the tutorial, three things:
 #exalearn (CPU + GPU v1), ddmd v1, how to build wk-miniapp
 #show installation script + run script, in installation script, show how to install assuming we are working in a brand new env (container for example)
