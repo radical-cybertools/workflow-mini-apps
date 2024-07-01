@@ -17,6 +17,9 @@ def parse_args():
                         help='size of bytes written to disk, -1 means write data to disk once')
     parser.add_argument('--read_size', type=int, default=6000000,
                         help='size of bytes read from disk')
+    parser.add_argument('--instance_index', type=int, required=True,
+                        help='use to distinguish different selection task. Should be from 0~n-1')
+
 
     args = parser.parse_args()
 
@@ -33,8 +36,8 @@ def main():
     root_path = args.data_root_dir + '/phase{}'.format(args.phase) + '/'
     print("root_path for data = ", root_path)
 
-    wf.readNonMPI(args.read_size, root_path)
-    wf.writeNonMPI(args.write_size, root_path)
+    wf.readNonMPI(args.read_size, root_path, args.instance_index)
+    wf.writeNonMPI(args.write_size, root_path, args.instance_index)
 
     end_time = time.time()
     print("Total running time is {} seconds".format(end_time - start_time))

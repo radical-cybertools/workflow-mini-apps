@@ -193,7 +193,7 @@ class MVP(object):
             ru.print_exception_trace()
             self.stop()
 
-    def _checked_state_cb(self, task, state):
+    def _check_state_cb(self, task, state):
   
         # this cb will react on task state changes.  Specifically it will watch
         # out for task completion notification and react on them, depending on
@@ -350,7 +350,8 @@ class MVP(object):
                            '--data_root_dir={}'.format(self.args.data_root_dir),
                            '--num_step={}'.format(self.args.num_step),
                            '--write_size={}'.format(self.io_dict["phase{}".format(self.stage_idx)]["sim"]["write"]),
-                           '--read_size={}'.format(self.io_dict["phase{}".format(self.stage_idx)]["sim"]["read"])]
+                           '--read_size={}'.format(self.io_dict["phase{}".format(self.stage_idx)]["sim"]["read"]),
+                           '--instance_index={}'.format(i)]
             td.post_exec = []
             td.ranks = 1
             td.cores_per_rank = 8
@@ -386,7 +387,8 @@ class MVP(object):
                        '--mat_size={}'.format(self.args.mat_size),
                        '--preprocess_time={}'.format(self.args.preprocess_time_train),
                        '--write_size={}'.format(self.io_dict["phase{}".format(self.stage_idx)]["train"]["write"]),
-                       '--read_size={}'.format(self.io_dict["phase{}".format(self.stage_idx)]["train"]["read"])]
+                       '--read_size={}'.format(self.io_dict["phase{}".format(self.stage_idx)]["train"]["read"]),
+                       '--instance_index={}'.format(0)]
         td.post_exec = []
         td.ranks = 1
         td.cores_per_rank = 8
@@ -414,7 +416,8 @@ class MVP(object):
                        '--mat_size={}'.format(self.args.mat_size),
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--write_size={}'.format(self.io_dict["phase{}".format(self.stage_idx)]["selection"]["write"]),
-                       '--read_size={}'.format(self.io_dict["phase{}".format(self.stage_idx)]["selection"]["read"])]
+                       '--read_size={}'.format(self.io_dict["phase{}".format(self.stage_idx)]["selection"]["read"]),
+                       '--instance_index={}'.format(0)]
         td.post_exec = []
         td.ranks = 1
         td.cores_per_rank = 8
@@ -449,7 +452,8 @@ class MVP(object):
                        '--mat_size={}'.format(self.args.mat_size),
                        '--preprocess_time={}'.format(self.args.preprocess_time_agent),
                        '--write_size={}'.format(self.io_dict["phase{}".format(self.stage_idx)]["agent"]["write"]),
-                       '--read_size={}'.format(self.io_dict["phase{}".format(self.stage_idx)]["agent"]["read"])]
+                       '--read_size={}'.format(self.io_dict["phase{}".format(self.stage_idx)]["agent"]["read"]),
+                       '--instance_index={}'.format(0)]
         td.post_exec = []
         td.ranks = 1
         td.cores_per_rank = self.args.num_sim

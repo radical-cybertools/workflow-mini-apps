@@ -85,7 +85,8 @@ class MVP(object):
             t = entk.Task()
             t.pre_exec = [
                     "module load PrgEnv-gnu",
-                    "module load conda",
+                    "module use /soft/modulefiles",
+                    "module load conda/2024-04-29",
                     "export HDF5_USE_FILE_LOCKING=FALSE"
                     ]
             if self.args.conda_env is not None:
@@ -101,7 +102,8 @@ class MVP(object):
                            '--data_root_dir={}'.format(self.args.data_root_dir),
                            '--num_step={}'.format(self.args.num_step),
                            '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["sim"]["write"]),
-                           '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["sim"]["read"])]
+                           '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["sim"]["read"]),
+                           '--instance_index={}'.format(i)]
             t.post_exec = []
             t.cpu_reqs = {
                  'cpu_processes'    : 1,
@@ -126,7 +128,8 @@ class MVP(object):
         t = entk.Task()
         t.pre_exec = [
                 "module load PrgEnv-gnu",
-                'module load conda',
+                "module use /soft/modulefiles",
+                'module load conda/2024-04-29',
                 "export HDF5_USE_FILE_LOCKING=FALSE"
                 ]
         if self.args.conda_env is not None:
@@ -150,7 +153,8 @@ class MVP(object):
                        '--mat_size={}'.format(self.args.mat_size),
                        '--preprocess_time={}'.format(self.args.preprocess_time_train),
                        '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["train"]["write"]),
-                       '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["train"]["read"])]
+                       '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["train"]["read"]),
+                       '--instance_index={}'.format(0)]
         t.post_exec = []
         t.cpu_reqs = {
             'cpu_processes'     : 1,
@@ -173,7 +177,8 @@ class MVP(object):
         t = entk.Task()
         t.pre_exec = [
                 "module load PrgEnv-gnu",
-                'module load conda',
+                "module use /soft/modulefiles",
+                'module load conda/2024-04-29',
                 "export HDF5_USE_FILE_LOCKING=FALSE"
                 ]
         if self.args.conda_env is not None:
@@ -188,7 +193,8 @@ class MVP(object):
                        '--mat_size={}'.format(self.args.mat_size),
                        '--data_root_dir={}'.format(self.args.data_root_dir),
                        '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["selection"]["write"]),
-                       '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["selection"]["read"])]
+                       '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["selection"]["read"]),
+                       '--instance_index={}'.format(0)]
         t.post_exec = []
         t.cpu_reqs = {
             'cpu_processes'     : 1,
@@ -207,7 +213,8 @@ class MVP(object):
         t = entk.Task()
         t.pre_exec = [
                 "module load PrgEnv-gnu",
-                'module load conda',
+                "module use /soft/modulefiles",
+                'module load conda/2024-04-29',
                 "export HDF5_USE_FILE_LOCKING=FALSE"
                 ]
         if self.args.conda_env is not None:
@@ -231,7 +238,8 @@ class MVP(object):
                        '--mat_size={}'.format(self.args.mat_size),
                        '--preprocess_time={}'.format(self.args.preprocess_time_agent),
                        '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["agent"]["write"]),
-                       '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["agent"]["read"])]
+                       '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["agent"]["read"]),
+                       '--instance_index={}'.format(0)]
         t.post_exec = []
         t.cpu_reqs = {
             'cpu_processes'     : 1,
