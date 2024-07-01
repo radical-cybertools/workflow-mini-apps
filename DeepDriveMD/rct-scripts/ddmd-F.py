@@ -79,7 +79,7 @@ class MVP(object):
 
     # This is for simulation, return a stage which has many sim task
     def run_sim(self, phase_idx):
-
+        
         s = entk.Stage()
         for i in range(self.args.num_sim):
             t = entk.Task()
@@ -93,7 +93,7 @@ class MVP(object):
             if self.args.enable_darshan:
                 t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
             else:
-                t.executable = python
+                t.executable = 'python'
             t.arguments = ['{}/Executables/simulation.py'.format(self.args.work_dir),
                            '--phase={}'.format(phase_idx),
                            '--task_idx={}'.format(i),
@@ -136,7 +136,7 @@ class MVP(object):
         if self.args.enable_darshan:
             t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
         else:
-            t.executable = python
+            t.executable = 'python'
         t.arguments = ['{}/Executables/training.py'.format(self.args.work_dir),
                        '--num_epochs={}'.format(self.args.num_epochs_train),
                        '--device=gpu',
@@ -182,7 +182,7 @@ class MVP(object):
         if self.args.enable_darshan:
             t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
         else:
-            t.executable = python
+            t.executable = 'python'
         t.arguments = ['{}/Executables/selection.py'.format(self.args.work_dir),
                        '--phase={}'.format(phase_idx),
                        '--mat_size={}'.format(self.args.mat_size),
@@ -216,7 +216,7 @@ class MVP(object):
         if self.args.enable_darshan:
             t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
         else:
-            t.executable = python
+            t.executable = 'python'
         t.arguments = ['{}/Executables/agent.py'.format(self.args.work_dir),
                        '--num_epochs={}'.format(self.args.num_epochs_agent),
                        '--device=gpu',

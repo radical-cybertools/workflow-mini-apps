@@ -1,6 +1,11 @@
 import numpy as np
 import time
 import os
+import sys
+
+print("Python executable location:", sys.executable)
+print("NumPy version:", np.__version__)
+print("NumPy location:", np.__file__)
 
 try:
     import cupy as cp
@@ -71,6 +76,7 @@ def writeNonMPI(num_bytes, data_root_dir):
         rank = comm.Get_rank()
 
         filename = os.path.join(data_root_dir, "data_{}.h5".format(rank))
+        print("rank = ", rank, " filename = ", filename)
         
         num_elem = num_bytes // 4
         data = np.empty(num_elem, dtype=np.float32)
@@ -245,7 +251,7 @@ def implaceCompute(device, size, num_op):
     for i in range(num_op):
         x = xp.sin(x)
 
-def RNG(device, size):
+def generateRandomNumber(device, size):
     xp = get_device_module(device)
     x = xp.random.rand(size)
 

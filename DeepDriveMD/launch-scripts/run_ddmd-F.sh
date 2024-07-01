@@ -38,6 +38,6 @@ python ../rct-scripts/ddmd-F.py	\
 	--project_id		RECUP		\
 	--queue			"debug"		\
 	--enable_darshan			\
-	--num_sim		4		\
+	--num_sim		12		\
 	--num_nodes		1		\
 	--io_json_file		"io_size.json"
