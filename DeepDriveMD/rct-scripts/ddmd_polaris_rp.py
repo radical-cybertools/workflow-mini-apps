@@ -247,11 +247,13 @@ class MVP(object):
         self.generate_agent_stage()
 
     def _control_agent(self, task):
-        if len(self._tasks[self.TASK_DDMD_AGENT]) > 1:
+        if len(self._tasks[self.TASK_AGENT]) > 1:
             return
         self.dump(task, 'completed Agent')
+        print(f"Stage {self.stage_idx} is finished, now should start the next stage or terminate!")
+        self.stage_idx += 1
+
         if self.stage_idx < self.args.num_phases:
-            self.stage_idx += 1
             self.generate_molecular_dynamics_stage()
         else:
             self.dump("DONE!!!")
