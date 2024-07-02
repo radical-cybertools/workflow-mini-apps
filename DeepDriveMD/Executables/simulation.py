@@ -9,8 +9,6 @@ def parse_args():
     parser = argparse.ArgumentParser(description='Exalearn_miniapp_simulation')
     parser.add_argument('--phase', type=int, default=0,
                         help='the current phase of workflow, in miniapp all phases do the same thing except rng')
-    parser.add_argument('--task_idx', type=int, default=0,
-                        help='the task index of this simulation task in this stage')
     parser.add_argument('--mat_size', type=int, default=5000,
                         help='the matrix with have size of mat_size * mat_size')
     parser.add_argument('--data_root_dir', default='./',
