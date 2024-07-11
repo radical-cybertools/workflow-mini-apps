@@ -1,0 +1,3 @@
+wfMiniAPI is a library which provides a variaty of toy but representable portable functions, including IO, computation, communication, host/device data transfer. Those functions facilitate the building of emulated tasks in workflow mini-app. Those functions should be able to run on different architectures, including CPU, NVIDIA GPU, AMD GPU and Intel GPU.
+
+This library has two backends: The Python backend and the C++ backend. The python backend is implemented based on cupy, and can be installed directly. The C++ backend is implemented with OpenMP target offloading, and is a header only library, and can be used directly without installation.

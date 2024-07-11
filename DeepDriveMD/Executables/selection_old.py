@@ -2,8 +2,10 @@
 
 import os, sys, socket
 import time
+import numpy as np
+import cupy as cp
 import argparse
-import kernel as wf
+import h5py
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Exalearn_miniapp_simulation')
@@ -17,9 +19,6 @@ def parse_args():
                         help='size of bytes written to disk, -1 means write data to disk once')
     parser.add_argument('--read_size', type=int, default=6000000,
                         help='size of bytes read from disk')
-    parser.add_argument('--instance_index', type=int, required=True,
-                        help='use to distinguish different selection task. Should be from 0~n-1')
-
 
     args = parser.parse_args()
 
@@ -36,8 +35,29 @@ def main():
     root_path = args.data_root_dir + '/phase{}'.format(args.phase) + '/'
     print("root_path for data = ", root_path)
 
-    wf.readNonMPI(args.read_size, root_path, args.instance_index)
-    wf.writeNonMPI(args.write_size, root_path, args.instance_index)
+    msz = args.mat_size
+
+    if args.write_size == -1:
+        write_time = 0
+    else:
+        write_time = int(args.write_size // (msz * 8))
+    print("num_write = {}".format(write_time))
+    
+    if args.read_size == -1:
+        read_time = 1
+    else:
+        read_time = int(args.read_size // (msz * 8))
+    print("num_read = {}".format(read_time))
+
+    fname = root_path + 'all_tmp_data.hdf5'
+    D = np.random.rand(msz)
+    with h5py.File(fname, 'w') as f:
+        for i in range(write_time):
+            f.create_dataset("tmp_{}".format(i), data = D)
+    for i in range(read_time):
+        fname = root_path + 'all_tmp_data.hdf5'
+        with h5py.File(fname, 'r') as f:
+            D = f['tmp_{}'.format(i % write_time)][:]
 
     end_time = time.time()
     print("Total running time is {} seconds".format(end_time - start_time))

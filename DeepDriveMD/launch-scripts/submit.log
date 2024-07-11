@@ -1,0 +1,32 @@
+for i in {0..9}; do cp run_ddmd-F.sh run_ddmd-F-$i.sh; sed -i "s/PLACEHOLDER/$i/g" run_ddmd-F-$i.sh; done
+
+for i in {0..9}; do ./run_ddmd-F-$i.sh > reprod-log-$i 2>&1 & done
+
+[1] 258617
+[2] 258618
+[3] 258619
+[4] 258620
+[5] 258621
+[6] 258622
+[7] 258623
+[8] 258624
+[9] 258625
+[10] 258626
+
+[/grand/CSC249ADCD08/twang/env/rct-recup-polaris] twang3@polaris-login-01:/eagle/RECUP/twang/miniapp/rct-workflow-mini-apps/DeepDriveMD/launch-scripts> qs
+
+polaris-pbs-01.hsn.cm.polaris.alcf.anl.gov: 
+                                                            Req'd  Req'd   Elap
+Job ID          Username Queue    Jobname    SessID NDS TSK Memory Time  S Time
+--------------- -------- -------- ---------- ------ --- --- ------ ----- - -----
+1121127.polari* twang3   preempt* pilot.0000  27492   3  96    --  00:45 R 00:00	re.session.polaris-login-01.twang3.019632.0003
+1121128.polari* twang3   preempt* pilot.0000  40526   3  96    --  00:45 R 00:00	re.session.polaris-login-01.twang3.019632.0000
+1121129.polari* twang3   preempt* pilot.0000  34935   3  96    --  00:45 R 00:00	re.session.polaris-login-01.twang3.019632.0001
+1121130.polari* twang3   preempt* pilot.0000  23834   3  96    --  00:45 R 00:00	re.session.polaris-login-01.twang3.019632.0008
+1121131.polari* twang3   preempt* pilot.0000  27566   3  96    --  00:45 R 00:00	re.session.polaris-login-01.twang3.019632.0006
+1121132.polari* twang3   preempt* pilot.0000  29394   3  96    --  00:45 R 00:00	re.session.polaris-login-01.twang3.019632.0009
+1121133.polari* twang3   preempt* pilot.0000  54755   3  96    --  00:45 R 00:00	re.session.polaris-login-01.twang3.019632.0004
+1121134.polari* twang3   preempt* pilot.0000    --    3  96    --  00:45 Q   -- 	re.session.polaris-login-01.twang3.019632.0007
+1121135.polari* twang3   preempt* pilot.0000    --    3  96    --  00:45 Q   -- 	re.session.polaris-login-01.twang3.019632.0005
+1121136.polari* twang3   preempt* pilot.0000    --    3  96    --  00:45 Q   -- 	re.session.polaris-login-01.twang3.019632.0002
+
