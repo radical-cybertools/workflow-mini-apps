@@ -5,14 +5,14 @@ WF Mini-apps can be scaled and configured without application specific deploymen
 
 WF Mini-app facilitate experimentation, understand workflow (distinct from application) performance​
 
-We will develop 2 WF mini-apps:
+We develop 2 WF mini-apps:
  
  - WF1: Scalable Adaptive Learning Learning (ExaLearn)​
  
  - WF2: DeepDriveMD​
 
 
-ExaLearn mini-app implementation will use Radical enTK and two mini tasks.
+ExaLearn mini-app implementation:
 
 - Task1: Data Generation
     - Does a random matrix multiplication and prints the result to a file
@@ -34,17 +34,4 @@ ExaLearn mini-app implementation will use Radical enTK and two mini tasks.
     - Data generated and read in the same node. No multi-node data sharing
     - Systems: Currently Theta, will move to Polaris
 
-Milestones:
-
-- [x] Add configuration reading to Data Generation mini-app
-- [x] Print the matrix multiplication product in a format to be read by ML mini-app
-- [x] Add reading functionality for ML mini-app
-- [x] Run both mini-apps as stand-alone apps
-- [x] Test ExaLearn mini-apps workflow using Theta 1 and 2 nodes.
-
-
-Current Status:
-
-  - WF1: (DONE)
-  - WF2: (DONE)
 
