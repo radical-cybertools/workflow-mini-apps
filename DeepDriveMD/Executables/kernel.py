@@ -1,1 +1,1 @@
-../../wfMiniAPI/kernel.py
+../../wfMiniAPI/python/wfMiniAPI/kernel.py

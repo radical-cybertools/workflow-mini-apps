@@ -33,7 +33,8 @@ def parse_args():
                         help='size of bytes read from disk')
     parser.add_argument('--write_size', type=int, default=3500000,
                         help='size of bytes written to disk, -1 means write data to disk once')
-
+    parser.add_argument('--instance_index', type=int, required=True,
+                        help='use to distinguish different training task. Should be from 0~n-1')
 
     args = parser.parse_args()
 
@@ -58,7 +59,7 @@ def main():
 #        print("gpu id is {}".format(cupy.cuda.runtime.getDeviceProperties(0)['uuid']))
 
 
-    wf.readNonMPI(args.read_size, root_path)
+    wf.readNonMPI(args.read_size, root_path, args.instance_index)
     wf.sleep(args.preprocess_time)
     wf.generateRandomNumber(device, args.num_sample * args.dense_dim_in)
     wf.generateRandomNumber(device, args.dense_dim_in * args.dense_dim_out)
@@ -79,7 +80,7 @@ def main():
 
     if device == 'gpu':
         wf.dataCopyD2H(args.dense_dim_in * args.dense_dim_out)
-    wf.writeNonMPI(args.write_size, root_path)
+    wf.writeNonMPI(args.write_size, root_path, args.instance_index)
 
     end_time = time.time()
     print("Total running time is {}) seconds".format(end_time - start_time))

@@ -20,24 +20,24 @@ done
 
 python ../rct-scripts/ddmd-F.py	\
 	--num_phases		${num_phase}	\
-	--mat_size 		10000		\
+	--mat_size 		1000		\
 	--data_root_dir		"${exp_dir}/data"	\
-	--num_step		48000		\
-	--num_epochs_train	100		\
+	--num_step		4800		\
+	--num_epochs_train	10		\
 	--model_dir		"${exp_dir}/model"	\
-	--conda_env		"/grand/CSC249ADCD08/twang/env/rct-recup-polaris"	\
+	--conda_env		"/eagle/RECUP/twang/env/rose-task-base-clone"	\
 	--num_sample		500		\
-	--num_mult_train	4000		\
+	--num_mult_train	400		\
 	--dense_dim_in		12544		\
 	--dense_dim_out		128		\
-	--preprocess_time_train	30		\
+	--preprocess_time_train	3		\
 	--preprocess_time_agent	5		\
-	--num_epochs_agent	100		\
-	--num_mult_agent	1000		\
-	--num_mult_outlier	100		\
+	--num_epochs_agent	10		\
+	--num_mult_agent	100		\
+	--num_mult_outlier	10		\
 	--project_id		RECUP		\
 	--queue			"debug"		\
-	--enable_darshan			\
 	--num_sim		12		\
 	--num_nodes		1		\
-	--io_json_file		"io_size.json"
+	--io_json_file		"io_size.json"  
+#	--enable_darshan			\
