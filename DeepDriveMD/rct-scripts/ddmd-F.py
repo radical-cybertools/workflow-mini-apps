@@ -5,6 +5,12 @@ import radical.pilot as rp
 import radical.utils as ru
 import json
 import math
+from radical.entk.tools import (cache_darshan_env,
+                                with_darshan,
+                                enable_darshan,
+                                get_provenance_graph)
+
+
 
 class MVP(object):
 
@@ -84,20 +90,15 @@ class MVP(object):
         for i in range(self.args.num_sim):
             t = entk.Task()
             t.pre_exec = [
-                    "module load PrgEnv-gnu",
                     "module use /soft/modulefiles",
                     "module load conda/2024-04-29",
                     "export HDF5_USE_FILE_LOCKING=FALSE"
                     ]
             if self.args.conda_env is not None:
                 t.pre_exec.append("conda activate {}".format(self.args.conda_env))
-            if self.args.enable_darshan:
-                t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
-            else:
-                t.executable = 'python'
+            t.executable = 'python'
             t.arguments = ['{}/Executables/simulation.py'.format(self.args.work_dir),
                            '--phase={}'.format(phase_idx),
-                           '--task_idx={}'.format(i),
                            '--mat_size={}'.format(self.args.mat_size),
                            '--data_root_dir={}'.format(self.args.data_root_dir),
                            '--num_step={}'.format(self.args.num_step),
@@ -116,7 +117,10 @@ class MVP(object):
                  'gpu_process_type'  : rp.CUDA
                  }
 
-            s.add_tasks(t)
+            if self.args.enable_darshan:
+                s.add_tasks(enable_darshan(t))
+            else:
+                s.add_tasks(t)
 
         return s
 
@@ -127,19 +131,14 @@ class MVP(object):
         s = entk.Stage()
         t = entk.Task()
         t.pre_exec = [
-                "module load PrgEnv-gnu",
                 "module use /soft/modulefiles",
                 'module load conda/2024-04-29',
                 "export HDF5_USE_FILE_LOCKING=FALSE"
                 ]
         if self.args.conda_env is not None:
-                t.pre_exec.append("conda activate {}".format(self.args.conda_env))
+            t.pre_exec.append("conda activate {}".format(self.args.conda_env))
 
-
-        if self.args.enable_darshan:
-            t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
-        else:
-            t.executable = 'python'
+        t.executable = 'python'
         t.arguments = ['{}/Executables/training.py'.format(self.args.work_dir),
                        '--num_epochs={}'.format(self.args.num_epochs_train),
                        '--device=gpu',
@@ -166,7 +165,11 @@ class MVP(object):
             'gpu_processes'     : 1,
             'gpu_process_type'  : rp.CUDA
                 }
-        s.add_tasks(t)
+
+        if self.args.enable_darshan:
+            s.add_tasks(enable_darshan(t))
+        else:
+            s.add_tasks(t)
 
         return s
 
@@ -176,18 +179,14 @@ class MVP(object):
         s = entk.Stage()
         t = entk.Task()
         t.pre_exec = [
-                "module load PrgEnv-gnu",
                 "module use /soft/modulefiles",
                 'module load conda/2024-04-29',
                 "export HDF5_USE_FILE_LOCKING=FALSE"
                 ]
         if self.args.conda_env is not None:
-                t.pre_exec.append("conda activate {}".format(self.args.conda_env))
+            t.pre_exec.append("conda activate {}".format(self.args.conda_env))
 
-        if self.args.enable_darshan:
-            t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
-        else:
-            t.executable = 'python'
+        t.executable = 'python'
         t.arguments = ['{}/Executables/selection.py'.format(self.args.work_dir),
                        '--phase={}'.format(phase_idx),
                        '--mat_size={}'.format(self.args.mat_size),
@@ -202,7 +201,11 @@ class MVP(object):
             'cpu_threads'       : 8,
             'cpu_thread_type'   : rp.OpenMP
                 }
-        s.add_tasks(t)
+
+        if self.args.enable_darshan:
+            s.add_tasks(enable_darshan(t))
+        else:
+            s.add_tasks(t)
 
         return s
 
@@ -212,18 +215,14 @@ class MVP(object):
         s = entk.Stage()
         t = entk.Task()
         t.pre_exec = [
-                "module load PrgEnv-gnu",
                 "module use /soft/modulefiles",
                 'module load conda/2024-04-29',
                 "export HDF5_USE_FILE_LOCKING=FALSE"
                 ]
         if self.args.conda_env is not None:
-                t.pre_exec.append("conda activate {}".format(self.args.conda_env))
+            t.pre_exec.append("conda activate {}".format(self.args.conda_env))
 
-        if self.args.enable_darshan:
-            t.executable = 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python'
-        else:
-            t.executable = 'python'
+        t.executable = 'python'
         t.arguments = ['{}/Executables/agent.py'.format(self.args.work_dir),
                        '--num_epochs={}'.format(self.args.num_epochs_agent),
                        '--device=gpu',
@@ -251,7 +250,11 @@ class MVP(object):
             'gpu_processes'     : 1,
             'gpu_process_type'  : rp.CUDA
                 }
-        s.add_tasks(t)
+
+        if self.args.enable_darshan:
+            s.add_tasks(enable_darshan(t))
+        else:
+            s.add_tasks(t)
 
         return s
 
@@ -276,6 +279,12 @@ class MVP(object):
 
 
 if __name__ == "__main__":
+
+    if self.args.enable_darshan:
+        cache_darshan_env(
+            darshan_runtime_root='/home/twang3/libraries/darshan/',
+            env={'PATH': "/home/twang3/libraries/darshan/bin:$PATH"}
+            )
 
     mvp = MVP()
     mvp.set_resource(res_desc = {
