@@ -22,7 +22,7 @@ python ../rct-scripts/ddmd_async.py	\
 	--num_phases        ${num_phase}	\
 	--mat_size 		10000		\
 	--data_root_dir		"${exp_dir}/data"	\
-	--num_step		50000		\
+	--num_step		20000		\
 	--num_epochs_train	100		\
 	--model_dir		"${exp_dir}/model"	\
 	--conda_env		        "/eagle/RECUP/twang/env/rose-task-base-clone"	\

@@ -11,7 +11,7 @@ fi
 mkdir -p ${exp_dir}/model
 mkdir -p ${exp_dir}/data
 
-num_phase=2
+num_phase=3
 for((i=0; i<num_phase; i++))
 do
 	mkdir -p ${exp_dir}/data/phase${i}
@@ -19,13 +19,13 @@ done
 
 
 python ../rct-scripts/ddmd-F.py	\
-	--num_phases		${num_phase}	\
+	--num_phases        ${num_phase}	\
 	--mat_size 		10000		\
 	--data_root_dir		"${exp_dir}/data"	\
-	--num_step		48000		\
+	--num_step		20000		\
 	--num_epochs_train	100		\
 	--model_dir		"${exp_dir}/model"	\
-	--conda_env		"/grand/CSC249ADCD08/twang/env/rct-recup-polaris"	\
+	--conda_env		        "/eagle/RECUP/twang/env/rose-task-base-clone"	\
 	--num_sample		500		\
 	--num_mult_train	4000		\
 	--dense_dim_in		12544		\
@@ -37,7 +37,6 @@ python ../rct-scripts/ddmd-F.py	\
 	--num_mult_outlier	100		\
 	--project_id		RECUP		\
 	--queue			"debug"		\
-	--enable_darshan			\
-	--num_sim		12		\
-	--num_nodes		1		\
-	--io_json_file		"io_size.json"
+	--num_sim		8		\
+	--num_nodes		2		\
+	--io_json_file		"io_size.json" 
