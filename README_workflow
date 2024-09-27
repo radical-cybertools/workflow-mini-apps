@@ -34,3 +34,82 @@ Here "/grand/CSC249ADCD08/twang/env/rct-recup-polaris" is the conda env where I 
 5). Go to launch-scripts to run the experiment. Before starting, make sure the parameters have been set up
 
 6). Analyze the results. Some useful tools can be found in Analyze/
+
+
+
+
+
+###############################################################################
+Step by step way of running it on Polaris:
+
+git clone https://github.com/GKNB/workflow-mini-apps.git
+cd workflow-mini-apps
+git checkout tianle_develop
+
+module use /soft/modulefiles
+module load conda/2024-04-29
+conda activate base
+conda create --prefix /eagle/RECUP/twang/env/base-clone-rct-09262024 --clone base
+conda activate /eagle/RECUP/twang/env/base-clone-rct-09262024
+conda install -c conda-forge radical.pilot
+conda install -c conda-forge radical.entk
+
+radical-stack
+# Shall see following
+#
+#  python               : /eagle/RECUP/twang/env/base-clone-rct-09262024/bin/python3
+#  pythonpath           : /soft/xalt/3.0.2-202408282050/site_packages
+#  version              : 3.11.8
+#  virtualenv           : /eagle/RECUP/twang/env/base-clone-rct-09262024
+#
+#  radical.entk         : 1.80.0-6b0333d@detached
+#  radical.gtod         : 1.61.0-0b65d74@detached
+#  radical.pilot        : 1.63.0-d2a05e6@detached
+#  radical.utils        : 1.81.0-9a5523b@detached
+#
+
+export RADICAL_LOG_LVL=DEBUG
+export RADICAL_PROFILE=TRUE
+export RADICAL_REPORT=TRUE
+export RADICAL_SMT=1
+
+cd DeepDriveMD
+source source_me.sh
+cd launch-scripts
+
+#There are three script you can use, explained below:
+#
+#run_ddmd-F.sh
+#   The initial script we use, try to mimic what happens in DDMD workflow
+#run_ddmd-F-ddp.sh:
+#   A new script we recently added, used for improving the performance of DDMD workflow by mimic DDP support for ML task to use multiple GPU
+#run_ddmd-F-multiple-training.sh:
+#   A new script we recently added, used for general-DDMD workflow, where there are multiple training tasks running at the same time
+#
+#If you want to make sure that miniapp reflect the real, current physical workflow, then use run_ddmd-F.sh, otherwise you can choose the latter two as they are slightly more complicated. 
+#Here I am using run_ddmd-F-ddp.sh as an example:
+
+mkdir /eagle/RECUP/twang/miniapp-exp/
+!!!Modify run_ddmd-F-ddp.sh, make sure exp_dir does not exists before executing run_ddmd-F-ddp.sh (or replace line 5-9 by rm ${exp_dir} -r)
+!!!If see "Error! Directory <dir_name> exists", just run "rm -r <dir_name>" then execute the script again
+!!!Do not forget to modify conda_env
+
+
+In case you want to restart a terminal to run the experiment, here is the script you might want to load before you run run_ddmd-F-ddp.sh (please use your own conda env):
+
+#/bin/bash
+
+module use /soft/modulefiles
+module load conda/2024-04-29
+conda activate /eagle/RECUP/twang/env/base-clone-rct-09262024
+
+which python
+python -V
+radical-stack
+
+export RADICAL_LOG_LVL=DEBUG
+export RADICAL_PROFILE=TRUE
+export RADICAL_REPORT=TRUE
+export RADICAL_SMT=1
+
+export PS1="[$CONDA_PREFIX] \u@\H:\w> "
