@@ -53,7 +53,8 @@ class DDMD(object):
         if self.env_work_dir is None:
             print("Warning: Did not set up work_dir using env var, need to set it up in parser manually!")
         self.set_argparse()
-        self.get_json()
+
+        self.io_dict = ru.read_json(self.args.io_json_file)
 
         # control flow table
         self._protocol = {self.TASK_MD_SIM   : self._control_md_sim,
@@ -83,12 +84,6 @@ class DDMD(object):
         self._agent_max     = 1
         self._agent_iter    = 0
 
-        self._cores          = 32 * self.args.num_nodes  # available resources
-        self._cores_used     =  0
-
-        self._gpus           = 4 * self.args.num_nodes  #available Gpu resources
-        self._gpus_used      = 0
-
         self._lock           = mt.RLock()
         self._tasks          = {ttype: dict() for ttype in self.TASK_TYPES}
         self._final_tasks    = list()
@@ -96,7 +91,7 @@ class DDMD(object):
 
 
         # silence RP reporter, use own
-        os.environ['RADICAL_REPORT'] = 'false'
+      # os.environ['RADICAL_REPORT'] = 'false'
         self._rep = ru.Reporter('ddmd')
         self._rep.title('DDMD')
 
@@ -105,18 +100,23 @@ class DDMD(object):
         self._pmgr    = rp.PilotManager(session=self._session)
         self._tmgr    = rp.TaskManager(session=self._session)
 
-        pdesc = rp.PilotDescription({
-           'resource': 'anl.polaris',
-#           'queue'   : 'debug',
-            'queue'   : self.args.queue,
-#           'queue'   : 'default',
-            'runtime': 30, #MIN
-            'cores'    : 32 * self.args.num_nodes,
-            'gpus'    : 4 * self.args.num_nodes,
-            'project' : self.args.project_id})
-        print(pdesc)
+        pd = ru.read_json(self.args.pilot_description)
+        pdesc = rp.PilotDescription(pd)
 
         self._pilot = self._pmgr.submit_pilots(pdesc)
+        self._pmgr.wait_pilots(state=[rp.PMGR_ACTIVE])
+
+        nodelist  = self._pilot.nodelist
+        num_nodes = len(nodelist.nodes)
+
+
+        # available CPU resources
+        self._cores      = num_nodes * nodelist.cores_per_node
+        self._cores_used =  0
+
+        # available GPU resources
+        self._gpus       = num_nodes * nodelist.gpus_per_node
+        self._gpus_used  = 0
 
         self._tmgr.add_pilots(self._pilot)
         self._tmgr.register_callback(self._checked_state_cb)
@@ -156,26 +156,18 @@ class DDMD(object):
         parser.add_argument('--num_mult_outlier', type=int, default=10,
                         help='number of matrix mult to perform in agent task, outlier')
 
-        parser.add_argument('--project_id', required=True,
-                        help='the project ID we used to launch the job')
-        parser.add_argument('--queue', required=True,
-                        help='the queue we used to submit the job')
         parser.add_argument('--work_dir', default=self.env_work_dir,
                         help='working dir, which is the dir of this repo')
         parser.add_argument('--num_sim', type=int, default=12,
                         help='number of tasks used for simulation')
-        parser.add_argument('--num_nodes', type=int, default=3,
-                        help='number of nodes used for simulation')
         parser.add_argument('--io_json_file', default="io_size.json",
                         help='the filename of json file for io size')
+        parser.add_argument('--pilot_description', default="pd_local.json",
+                        help='the filename of json file for the pilot description')
 
         args = parser.parse_args()
         self.args = args
 
-    def get_json(self):
-        json_file = "{}/launch-scripts/{}".format(self.args.work_dir, self.args.io_json_file)
-        with open(json_file) as f:
-            self.io_dict = json.load(f)
 
     # --------------------------------------------------------------------------
     #
@@ -552,13 +544,13 @@ class DDMD(object):
             tds   = list()
             for i in range(n):
                 tds.append(rp.TaskDescription({
-                         'pre_exec'     : ["module load PrgEnv-gnu","module load conda","conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris","export HDF5_USE_FILE_LOCKING=FALSE"],
+                       # 'pre_exec'     : ["module load PrgEnv-gnu","module load conda","conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris","export HDF5_USE_FILE_LOCKING=FALSE"],
                          'uid'          : ru.generate_id(ttype),
                          'cpu_processes': 1,
                          'cpu_process_type' : None,
                          'cpu_threads'      : 8,
                          'cpu_thread_type'  : rp.OpenMP,
-                         'gpu_processes'     : 1,
+                         'gpu_processes'     : 0,
                          'gpu_process_type'  : rp.CUDA,
                          'executable'   : 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python',
                          'arguments'    : ['{}/Executables/simulation.py'.format(self.args.work_dir),
@@ -587,7 +579,7 @@ class DDMD(object):
             tds   = list()
             for _ in range(n):
                 tds.append(rp.TaskDescription({
-                         'pre_exec'     : ["module load PrgEnv-gnu","module load conda","conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris","export HDF5_USE_FILE_LOCKING=FALSE"],
+                       # 'pre_exec'     : ["module load PrgEnv-gnu","module load conda","conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris","export HDF5_USE_FILE_LOCKING=FALSE"],
                          'uid'          : ru.generate_id(ttype),
                          'cpu_processes': 1,
                          'cpu_process_type' : None,
@@ -628,7 +620,7 @@ class DDMD(object):
             tds   = list()
             for _ in range(n):
                 tds.append(rp.TaskDescription({
-                         'pre_exec'     : ["module load PrgEnv-gnu","module load conda","conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris","export HDF5_USE_FILE_LOCKING=FALSE"],
+                       # 'pre_exec'     : ["module load PrgEnv-gnu","module load conda","conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris","export HDF5_USE_FILE_LOCKING=FALSE"],
                          'uid'          : ru.generate_id(ttype),
                          'cpu_processes': 1,
                          'cpu_process_type' : None,
@@ -662,13 +654,13 @@ class DDMD(object):
             tds   = list()
             for _ in range(n):
                 tds.append(rp.TaskDescription({
-                         'pre_exec'     : ["module load PrgEnv-gnu","module load conda","conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris","export HDF5_USE_FILE_LOCKING=FALSE"],
+                       # 'pre_exec'     : ["module load PrgEnv-gnu","module load conda","conda activate /grand/CSC249ADCD08/twang/env/rct-recup-polaris","export HDF5_USE_FILE_LOCKING=FALSE"],
                          'uid'          : ru.generate_id(ttype),
                          'cpu_processes': 1,
                          'cpu_process_type' : None,
                          'cpu_threads'      : self.args.num_sim,
                          'cpu_thread_type'  : rp.OpenMP,
-                         'gpu_processes'     : 1,
+                         'gpu_processes'     : 0,
                          'gpu_process_type'  : rp.CUDA,
                          'executable'   : 'DARSHAN_EXCLUDE_DIRS=/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lus/grand/projects/CSC249ADCD08/twang/env/rct-recup-polaris/,/grand/CSC249ADCD08/twang/env/rct-recup-polaris/,/tmp LD_PRELOAD=/home/twang3/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python',
                          'arguments'    : [ '{}/Executables/agent.py'.format(self.args.work_dir),

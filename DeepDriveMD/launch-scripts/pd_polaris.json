@@ -1,0 +1,10 @@
+
+{
+    "resource" : "anl.polaris",
+    "project"  : "CSC249ADCD08",
+    "queue"    : "debug",
+  # "queue"    : "default",
+    "runtime"  : 30,
+    "nodes"    : 1
+}
+

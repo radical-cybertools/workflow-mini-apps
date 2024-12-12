@@ -1,0 +1,7 @@
+
+{
+    "resource": "local.localhost",
+    "runtime" : 60,
+    "nodes"   : 3
+}
+
