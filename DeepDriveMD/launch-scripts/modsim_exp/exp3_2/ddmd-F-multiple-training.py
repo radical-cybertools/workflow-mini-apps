@@ -18,7 +18,6 @@ class MVP(object):
         self.env_work_dir = os.getenv("MINI_APP_DeepDriveMD_DIR")
         if self.env_work_dir is None:
             print("Warning: Did not set up work_dir using env var, need to set it up in parser manually!")
-            self.stop()
         self.set_argparse()
         self.get_json()
         self.am = entk.AppManager()
@@ -28,10 +27,6 @@ class MVP(object):
                 darshan_runtime_root='/home/twang3/libraries/darshan/',
                 env={'PATH': "/home/twang3/libraries/darshan/bin:$PATH"}
                 )
-
-    def stop(self):
-        os.kill(os.getpid(), signal.SIGKILL)
-        os.kill(os.getpid(), signal.SIGTERM)
 
 
     def set_resource(self, res_desc):
@@ -141,47 +136,48 @@ class MVP(object):
     def run_train(self, phase_idx):
 
         s = entk.Stage()
-        t = entk.Task()
-        t.pre_exec = [
-                "module use /soft/modulefiles",
-                'module load conda/2024-04-29',
-                "export HDF5_USE_FILE_LOCKING=FALSE"
-                ]
-        if self.args.conda_env is not None:
-            t.pre_exec.append("conda activate {}".format(self.args.conda_env))
-
-        t.executable = 'python'
-        t.arguments = ['{}/Executables/training.py'.format(self.args.work_dir),
-                       '--num_epochs={}'.format(self.args.num_epochs_train),
-                       '--device=gpu',
-                       '--phase={}'.format(phase_idx),
-                       '--data_root_dir={}'.format(self.args.data_root_dir),
-                       '--model_dir={}'.format(self.args.model_dir),
-                       '--num_sample={}'.format(self.args.num_sample * (1 if phase_idx == 0 else 2)),
-                       '--num_mult={}'.format(self.args.num_mult_train),
-                       '--dense_dim_in={}'.format(self.args.dense_dim_in),
-                       '--dense_dim_out={}'.format(self.args.dense_dim_out),
-                       '--mat_size={}'.format(self.args.mat_size),
-                       '--preprocess_time={}'.format(self.args.preprocess_time_train),
-                       '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["train"]["write"]),
-                       '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["train"]["read"]),
-                       '--instance_index={}'.format(0)]
-        t.post_exec = []
-        t.cpu_reqs = {
-            'cpu_processes'     : 1,
-            'cpu_process_type'  : None,
-            'cpu_threads'       : 8,
-            'cpu_thread_type'   : rp.OpenMP
-                }
-        t.gpu_reqs = {
-            'gpu_processes'     : 1,
-            'gpu_process_type'  : rp.CUDA
-                }
-
-        if self.args.enable_darshan:
-            s.add_tasks(enable_darshan(t))
-        else:
-            s.add_tasks(t)
+        for i in range(4):
+            t = entk.Task()
+            t.pre_exec = [
+                    "module use /soft/modulefiles",
+                    'module load conda/2024-04-29',
+                    "export HDF5_USE_FILE_LOCKING=FALSE"
+                    ]
+            if self.args.conda_env is not None:
+                t.pre_exec.append("conda activate {}".format(self.args.conda_env))
+    
+            t.executable = 'python'
+            t.arguments = ['{}/Executables/training.py'.format(self.args.work_dir),
+                           '--num_epochs={}'.format(self.args.num_epochs_train),
+                           '--device=gpu',
+                           '--phase={}'.format(phase_idx),
+                           '--data_root_dir={}'.format(self.args.data_root_dir),
+                           '--model_dir={}'.format(self.args.model_dir),
+                           '--num_sample={}'.format(self.args.num_sample * (1 if phase_idx == 0 else 2)),
+                           '--num_mult={}'.format(self.args.num_mult_train),
+                           '--dense_dim_in={}'.format(int(self.args.dense_dim_in * (int(i%2 + 1)))),
+                           '--dense_dim_out={}'.format(int(self.args.dense_dim_out * (int(i//2 + 1)))),
+                           '--mat_size={}'.format(self.args.mat_size),
+                           '--preprocess_time={}'.format(self.args.preprocess_time_train),
+                           '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["train"]["write"]),
+                           '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["train"]["read"]),
+                           '--instance_index={}'.format(0)]
+            t.post_exec = []
+            t.cpu_reqs = {
+                'cpu_processes'     : 1,
+                'cpu_process_type'  : None,
+                'cpu_threads'       : 8,
+                'cpu_thread_type'   : rp.OpenMP
+                    }
+            t.gpu_reqs = {
+                'gpu_processes'     : 1,
+                'gpu_process_type'  : rp.CUDA
+                    }
+    
+            if self.args.enable_darshan:
+                s.add_tasks(enable_darshan(t))
+            else:
+                s.add_tasks(t)
 
         return s
 

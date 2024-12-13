@@ -18,8 +18,8 @@ do
 done
 
 
-python ../rct-scripts/ddmd_async.py	\
-	--num_phases        ${num_phase}	\
+python ../rct-scripts/ddmd-F.py	\
+	--num_phases		${num_phase}	\
 	--mat_size 		10000		\
 	--data_root_dir		"${exp_dir}/data"	\
 	--num_step		50000		\
@@ -37,6 +37,6 @@ python ../rct-scripts/ddmd_async.py	\
 	--num_mult_outlier	100		\
 	--project_id		RECUP		\
 	--queue			"debug"		\
-	--num_sim		7		\
+	--num_sim		8		\
 	--num_nodes		2		\
 	--io_json_file		"io_size.json" 

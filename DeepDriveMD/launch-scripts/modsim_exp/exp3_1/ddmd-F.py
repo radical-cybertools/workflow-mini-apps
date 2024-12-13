@@ -18,7 +18,6 @@ class MVP(object):
         self.env_work_dir = os.getenv("MINI_APP_DeepDriveMD_DIR")
         if self.env_work_dir is None:
             print("Warning: Did not set up work_dir using env var, need to set it up in parser manually!")
-            self.stop()
         self.set_argparse()
         self.get_json()
         self.am = entk.AppManager()
@@ -28,10 +27,6 @@ class MVP(object):
                 darshan_runtime_root='/home/twang3/libraries/darshan/',
                 env={'PATH': "/home/twang3/libraries/darshan/bin:$PATH"}
                 )
-
-    def stop(self):
-        os.kill(os.getpid(), signal.SIGKILL)
-        os.kill(os.getpid(), signal.SIGTERM)
 
 
     def set_resource(self, res_desc):

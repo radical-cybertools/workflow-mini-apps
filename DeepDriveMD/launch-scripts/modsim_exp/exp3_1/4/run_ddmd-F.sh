@@ -18,7 +18,7 @@ do
 done
 
 
-python ../rct-scripts/ddmd_async.py	\
+python ../rct-scripts/ddmd-F.py	\
 	--num_phases        ${num_phase}	\
 	--mat_size 		10000		\
 	--data_root_dir		"${exp_dir}/data"	\

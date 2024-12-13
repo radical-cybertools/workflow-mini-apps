@@ -18,7 +18,6 @@ class MVP(object):
         self.env_work_dir = os.getenv("MINI_APP_DeepDriveMD_DIR")
         if self.env_work_dir is None:
             print("Warning: Did not set up work_dir using env var, need to set it up in parser manually!")
-            self.stop()
         self.set_argparse()
         self.get_json()
         self.am = entk.AppManager()
@@ -28,10 +27,6 @@ class MVP(object):
                 darshan_runtime_root='/home/twang3/libraries/darshan/',
                 env={'PATH': "/home/twang3/libraries/darshan/bin:$PATH"}
                 )
-
-    def stop(self):
-        os.kill(os.getpid(), signal.SIGKILL)
-        os.kill(os.getpid(), signal.SIGTERM)
 
 
     def set_resource(self, res_desc):
@@ -83,7 +78,9 @@ class MVP(object):
         parser.add_argument('--num_sim', type=int, default=12,
                         help='number of tasks used for simulation')
         parser.add_argument('--num_nodes', type=int, default=2,
-                        help='number of nodes used for simulation')
+                       help='number of nodes used for simulation')
+        parser.add_argument('--allreduce_size', type=int, default=0,
+                       help='number of nodes used for simulation')
         parser.add_argument('--io_json_file', default="io_size.json",
                         help='the filename of json file for io size')
 
@@ -151,7 +148,7 @@ class MVP(object):
             t.pre_exec.append("conda activate {}".format(self.args.conda_env))
 
         t.executable = 'python'
-        t.arguments = ['{}/Executables/training.py'.format(self.args.work_dir),
+        t.arguments = ['{}/Executables/training_ddp.py'.format(self.args.work_dir),
                        '--num_epochs={}'.format(self.args.num_epochs_train),
                        '--device=gpu',
                        '--phase={}'.format(phase_idx),
@@ -163,12 +160,13 @@ class MVP(object):
                        '--dense_dim_out={}'.format(self.args.dense_dim_out),
                        '--mat_size={}'.format(self.args.mat_size),
                        '--preprocess_time={}'.format(self.args.preprocess_time_train),
+                       '--allreduce_size={}'.format(self.args.allreduce_size),
                        '--write_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["train"]["write"]),
                        '--read_size={}'.format(self.io_dict["phase{}".format(phase_idx)]["train"]["read"]),
                        '--instance_index={}'.format(0)]
         t.post_exec = []
         t.cpu_reqs = {
-            'cpu_processes'     : 1,
+            'cpu_processes'     : int(self.args.num_nodes * 4),
             'cpu_process_type'  : None,
             'cpu_threads'       : 8,
             'cpu_thread_type'   : rp.OpenMP

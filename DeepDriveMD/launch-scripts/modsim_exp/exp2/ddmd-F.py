@@ -18,7 +18,6 @@ class MVP(object):
         self.env_work_dir = os.getenv("MINI_APP_DeepDriveMD_DIR")
         if self.env_work_dir is None:
             print("Warning: Did not set up work_dir using env var, need to set it up in parser manually!")
-            self.stop()
         self.set_argparse()
         self.get_json()
         self.am = entk.AppManager()
@@ -28,10 +27,6 @@ class MVP(object):
                 darshan_runtime_root='/home/twang3/libraries/darshan/',
                 env={'PATH': "/home/twang3/libraries/darshan/bin:$PATH"}
                 )
-
-    def stop(self):
-        os.kill(os.getpid(), signal.SIGKILL)
-        os.kill(os.getpid(), signal.SIGTERM)
 
 
     def set_resource(self, res_desc):
@@ -82,7 +77,7 @@ class MVP(object):
                         help='working dir, which is the dir of this repo')
         parser.add_argument('--num_sim', type=int, default=12,
                         help='number of tasks used for simulation')
-        parser.add_argument('--num_nodes', type=int, default=2,
+        parser.add_argument('--num_nodes', type=int, default=3,
                         help='number of nodes used for simulation')
         parser.add_argument('--io_json_file', default="io_size.json",
                         help='the filename of json file for io size')
@@ -97,7 +92,7 @@ class MVP(object):
 
     # This is for simulation, return a stage which has many sim task
     def run_sim(self, phase_idx):
-
+        
         s = entk.Stage()
         for i in range(self.args.num_sim):
             t = entk.Task()
@@ -291,7 +286,7 @@ class MVP(object):
 
 
 if __name__ == "__main__":
-
+ 
     mvp = MVP()
     mvp.set_resource(res_desc = {
         'resource': 'anl.polaris',

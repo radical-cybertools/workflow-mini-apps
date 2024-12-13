@@ -18,11 +18,11 @@ do
 done
 
 
-python ../rct-scripts/ddmd_async.py	\
+python ../rct-scripts/ddmd-F-ddp.py	\
 	--num_phases        ${num_phase}	\
 	--mat_size 		10000		\
 	--data_root_dir		"${exp_dir}/data"	\
-	--num_step		50000		\
+	--num_step		20000		\
 	--num_epochs_train	100		\
 	--model_dir		"${exp_dir}/model"	\
 	--conda_env		        "/eagle/RECUP/twang/env/rose-task-base-clone"	\
@@ -35,8 +35,9 @@ python ../rct-scripts/ddmd_async.py	\
 	--num_epochs_agent	100		\
 	--num_mult_agent	1000		\
 	--num_mult_outlier	100		\
+    --allreduce_size    64225280 \
 	--project_id		RECUP		\
 	--queue			"debug"		\
-	--num_sim		7		\
+	--num_sim		8		\
 	--num_nodes		2		\
 	--io_json_file		"io_size.json" 

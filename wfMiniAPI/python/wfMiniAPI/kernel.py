@@ -112,7 +112,7 @@ def writeWithMPI(num_bytes, data_root_dir, filename_suffix=None):
             offset = rank * num_elem
             dset[offset:offset+num_elem] = data
 
-def readNonMPI(num_bytes, data_root_dir, filename_suffix=None):
+def readNonMPI(num_bytes, data_root_dir, filename_suffix=None, filename=None):
     if not MPI4PY_AVAILABLE:
         raise ImportError("mpi4py is not installed. Install mpi4py to use multi-process read/write.")
     elif not H5PY_AVAILABLE:
@@ -121,10 +121,13 @@ def readNonMPI(num_bytes, data_root_dir, filename_suffix=None):
         comm = MPI.COMM_WORLD
         rank = comm.Get_rank()
 
-        if filename_suffix == None:
-            filename = os.path.join(data_root_dir, "data_{}.h5".format(rank))
+        if filename == None:
+            if filename_suffix == None:
+                filename = os.path.join(data_root_dir, "data_{}.h5".format(rank))
+            else:
+                filename = os.path.join(data_root_dir, "data_{}_{}.h5".format(rank, filename_suffix))
         else:
-            filename = os.path.join(data_root_dir, "data_{}_{}.h5".format(rank, filename_suffix))
+            filename = os.path.join(data_root_dir, filename)
         print("In readNonMPI, rank = ", rank, " filename = ", filename)
         
         num_elem = num_bytes // 4
