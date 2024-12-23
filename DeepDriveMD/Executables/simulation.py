@@ -21,6 +21,8 @@ def parse_args():
                         help='size of bytes read from disk')
     parser.add_argument('--instance_index', type=int, required=True,
                         help='use to distinguish different sim task. Should be from 0~n-1')
+    parser.add_argument('--device', default='gpu',
+                        help='select device to run the simulation, gpu or cpu')
 
     args = parser.parse_args()
 
@@ -38,7 +40,7 @@ def main():
     print("root_path for data = ", root_path)
 
     msz = args.mat_size
-    device = "gpu"
+    device = args.device
 
     wf.generateRandomNumber(device, msz)
     wf.generateRandomNumber(device, msz)

@@ -1,0 +1,8 @@
+{
+    "resource": "anl.polaris",
+    "queue": "default",
+    "runtime": 30,
+    "cores_per_node": 32,
+    "gpus_per_node": 4,
+    "project_id": "your_project_id"
+}

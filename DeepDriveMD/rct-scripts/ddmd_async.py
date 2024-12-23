@@ -52,8 +52,11 @@ class DDMD(object):
         self.env_work_dir = os.getenv("MINI_APP_DeepDriveMD_DIR")
         if self.env_work_dir is None:
             print("Warning: Did not set up work_dir using env var, need to set it up in parser manually!")
+            self.env_work_dir = os.getcwd() # default to current dir (TODO: make sure this is correct)
         self.set_argparse()
         self.get_json()
+        self.load_config()
+
 
         # control flow table
         self._protocol = {self.TASK_MD_SIM   : self._control_md_sim,
@@ -105,23 +108,21 @@ class DDMD(object):
         self._pmgr    = rp.PilotManager(session=self._session)
         self._tmgr    = rp.TaskManager(session=self._session)
 
-        pdesc = rp.PilotDescription({
-           'resource': 'anl.polaris',
-#           'queue'   : 'debug',
-            'queue'   : self.args.queue,
-#           'queue'   : 'default',
-            'runtime': 30, #MIN
-            'cores'    : 32 * self.args.num_nodes,
-            'gpus'    : 4 * self.args.num_nodes,
-            'project' : self.args.project_id})
+       pdesc = rp.PilotDescription({
+            'resource': self.args.resource,
+            'queue': self.args.queue,
+            'runtime': self.args.runtime,
+            'cores': self.args.cores_per_node * self.args.num_nodes,
+            'gpus': self.args.gpus_per_node * self.args.num_nodes,
+            'project': self.args.project_id
+        })
         print(pdesc)
 
         self._pilot = self._pmgr.submit_pilots(pdesc)
-
         self._tmgr.add_pilots(self._pilot)
         self._tmgr.register_callback(self._checked_state_cb)
 
-
+    
     def set_argparse(self):
         parser = argparse.ArgumentParser(description="DeepDriveMD_miniapp_EnTK_async")
 
@@ -155,7 +156,7 @@ class DDMD(object):
                         help='number of matrix mult to perform in agent task, inference')
         parser.add_argument('--num_mult_outlier', type=int, default=10,
                         help='number of matrix mult to perform in agent task, outlier')
-
+        
         parser.add_argument('--project_id', required=True,
                         help='the project ID we used to launch the job')
         parser.add_argument('--queue', required=True,
@@ -168,9 +169,30 @@ class DDMD(object):
                         help='number of nodes used for simulation')
         parser.add_argument('--io_json_file', default="io_size.json",
                         help='the filename of json file for io size')
+        parser.add_argument('--resource', default='local.localhost',
+                        help='resource to use for the pilot')
+        parser.add_argument('--runtime', type=int, default=30,
+                        help='runtime for the pilot in minutes')
+        parser.add_argument('--cores_per_node', type=int, default=32,
+                        help='number of cores per node')
+        parser.add_argument('--gpus_per_node', type=int, default=4,
+                        help='number of GPUs per node')
+        parser.add_argument('--project_id', default=None,
+                        help='project ID for the pilot')
+        parser.add_argument('--queue', default=None,
+                        help='queue to use for the pilot')
+        parser.add_argument('--config_file', default=None,
+                        help='path to JSON configuration file')
 
         args = parser.parse_args()
         self.args = args
+
+    def load_config(self):
+        if self.args.config_file:
+            with open(self.args.config_file, 'r') as f:
+                config = json.load(f)
+                for key, value in config.items():
+                    setattr(self.args, key, value)
 
     def get_json(self):
         json_file = "{}/launch-scripts/{}".format(self.args.work_dir, self.args.io_json_file)
@@ -543,6 +565,47 @@ class DDMD(object):
         else:
             self.dump(task, 'completed, agent low')
 
+
+    # --------------------------------------------------------------------------
+
+    def load_task_config(self, config_file):
+            with open(config_file, 'r') as f:
+                return json.load(f)
+
+        def run_task(self, task_type, n=1):
+            config = self.load_task_config('config_task.json')
+
+            if task_type not in config:
+                raise ValueError(f"Task type '{task_type}' not found in configuration")
+
+            task_config = config[task_type]
+
+            for i in range(n):
+                t = rp.TaskDescription()
+                t.pre_exec = task_config['pre_exec']
+                t.executable = task_config['executable']
+                t.arguments = task_config['arguments']
+                t.cpu_processes = task_config['cpu_processes']
+                t.cpu_threads = task_config['cpu_threads']
+                t.gpu_processes = task_config['gpu_processes']
+                t.gpu_threads = task_config['gpu_threads']
+                t.input_staging = task_config['input_staging']
+                t.output_staging = task_config['output_staging']
+
+                self._tmgr.submit_tasks(t)
+
+        def run_sim(self, n=1):
+            self.run_task('simulation', n)
+
+        def run_train(self, n=1):
+            self.run_task('training', n)
+
+        def run_agent(self, n=1):
+            self.run_task('agent', n)
+
+        def run_selection(self, n=1):
+            self.run_task('selection', n)
+    
 
 
     def run_sim(self, ttype , n=1):
