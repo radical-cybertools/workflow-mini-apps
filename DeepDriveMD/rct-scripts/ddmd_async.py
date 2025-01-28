@@ -86,10 +86,10 @@ class DDMD(object):
         self._agent_max     = 1
         self._agent_iter    = 0
 
-        self._cores          = 32 * self.args.num_nodes  # available resources
+        self._cores          = self.args.cores_per_node * self.args.num_nodes  # available resources
         self._cores_used     =  0
 
-        self._gpus           = 4 * self.args.num_nodes  #available Gpu resources
+        self._gpus           = self.args.gpus_per_node * self.args.num_nodes  #available Gpu resources
         self._gpus_used      = 0
 
         self._lock           = mt.RLock()
@@ -173,9 +173,9 @@ class DDMD(object):
                         help='resource to use for the pilot')
         parser.add_argument('--runtime', type=int, default=30,
                         help='runtime for the pilot in minutes')
-        parser.add_argument('--cores_per_node', type=int, default=32,
+        parser.add_argument('--cores_per_node', type=int, default=1,
                         help='number of cores per node')
-        parser.add_argument('--gpus_per_node', type=int, default=4,
+        parser.add_argument('--gpus_per_node', type=int, default=0,
                         help='number of GPUs per node')
         parser.add_argument('--project_id', default=None,
                         help='project ID for the pilot')
