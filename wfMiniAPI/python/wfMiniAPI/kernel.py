@@ -262,11 +262,20 @@ def axpy(device, size):
     y = xp.empty(size, dtype=xp.float32)
     y += 1.01 * x
 
-def implaceCompute(device, size, num_op):
+def implaceCompute(device, size, num_op, op):
     xp = get_device_module(device)
     x = xp.empty(size, dtype=xp.float32)
-    for i in range(num_op):
-        x = xp.sin(x)
+    if isinstance(op, str):
+        try:
+            func = getattr(xp, op)
+        except AttributeError:
+            raise ValueError(f"The operator '{op}' is not available in the module {xp.__name__}.")
+    elif callable(op):
+        func = op
+    else:
+        raise ValueError("Operator must be either a string or a callable function.")
+    for _ in range(num_op):
+        x = func(x)
 
 def generateRandomNumber(device, size):
     xp = get_device_module(device)
