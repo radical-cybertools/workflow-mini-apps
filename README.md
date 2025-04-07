@@ -1,5 +1,6 @@
 # RADICAL Workflow Mini-Apps
-Workflow Mini-Apps is blah blah blah
+Workflow Mini-Apps provides [small, self-contained representations of scientific workflows (or mini-apps)](https://arxiv.org/abs/2403.18073) for developing workflows.
+Each mini-app is a simplified version of a complex scientific workflow, capturing its key tasks, data flow, and performance characteristics without the deployment challenges of the full application.
 
 
 ### Installation
@@ -31,7 +32,7 @@ export PATH=/home/$USER/libraries/darshan/bin:$PATH
 ```
 ########################################################################################
 
-Here "env/rct-recup-polaris" is the conda env with rct, and "/home/$USER/libraries/darshan/bin" is where darshan is installed. "RADICAL_PILOT_DBURL" is not necessary anymore with the latest rct
+Here "env/rct-recup-polaris" is the conda env with rct, and "/home/$USER/libraries/darshan/bin" is where darshan is installed. "RADICAL_PILOT_DBURL" is not necessary anymore with the latest rct.
 
 4). Go to the specific mini-app sub-dir, then do source source_me.sh 
 
