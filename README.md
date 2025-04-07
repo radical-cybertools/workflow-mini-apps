@@ -18,7 +18,6 @@ There are 2 example Workflow Mini-apps:
 
 3). Set the environment, a sample script is shown below:
 
-########################################################################################
 ```
 #/bin/bash
 
@@ -38,7 +37,6 @@ export RADICAL_SMT=1
 
 export PATH=/home/$USER/libraries/darshan/bin:$PATH
 ```
-########################################################################################
 
 Here "env/rct-recup-polaris" is the conda env with rct, and "/home/$USER/libraries/darshan/bin" is where darshan is installed. "RADICAL_PILOT_DBURL" is not necessary anymore with the latest rct.
 
