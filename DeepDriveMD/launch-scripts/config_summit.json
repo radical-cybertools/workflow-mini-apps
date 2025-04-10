@@ -1,0 +1,78 @@
+{
+  "resource": {
+    "resource": "ornl.summit_jsrun",
+    "walltime": 120,
+    "cpus_per_node": 42,
+    "gpus_per_node": 6
+  },
+  "stages": {
+    "sim": {
+      "pre_exec": [
+        "module load PrgEnv-gnu",
+        "module load amd-mixed/5.3.0",
+        "module load craype-accel-amd-gfx90a",
+        "export ROCM_HOME=/opt/rocm-5.3.0",
+        "export HCC_AMDGPU_TARGET=gfx90a",
+        "export PATH='/ccs/home/tianle/miniconda_frontier/bin/:$PATH'",
+        "source activate rct-miniapp",
+        "module unload darshan-runtime"
+      ],
+      "executable": "python",
+      "executable_with_darshan": "/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lustre/orion/lgt104/proj-shared/tianle/conda/envs/frontier/rct-miniapp,/tmp LD_PRELOAD=/ccs/home/tianle/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python",
+      "cpu_threads": 7,
+      "cpu_processes": 1,
+      "gpu_processes": 1
+    },
+    "train": {
+      "pre_exec": [
+        "module load PrgEnv-gnu",
+        "module load amd-mixed/5.3.0",
+        "module load craype-accel-amd-gfx90a",
+        "export ROCM_HOME=/opt/rocm-5.3.0",
+        "export HCC_AMDGPU_TARGET=gfx90a",
+        "export PATH='/ccs/home/tianle/miniconda_frontier/bin/:$PATH'",
+        "source activate rct-miniapp",
+        "module unload darshan-runtime"
+      ],
+      "executable": "python",
+      "executable_with_darshan": "/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lustre/orion/lgt104/proj-shared/tianle/conda/envs/frontier/rct-miniapp,/tmp LD_PRELOAD=/ccs/home/tianle/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python",
+      "cpu_threads": 7,
+      "cpu_processes": 1,
+      "gpu_processes": 1
+    },
+    "selection": {
+      "pre_exec": [
+        "module load PrgEnv-gnu",
+        "module load amd-mixed/5.3.0",
+        "module load craype-accel-amd-gfx90a",
+        "export ROCM_HOME=/opt/rocm-5.3.0",
+        "export HCC_AMDGPU_TARGET=gfx90a",
+        "export PATH='/ccs/home/tianle/miniconda_frontier/bin/:$PATH'",
+        "source activate rct-miniapp",
+        "module unload darshan-runtime"
+      ],
+      "executable": "python",
+      "executable_with_darshan": "/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lustre/orion/lgt104/proj-shared/tianle/conda/envs/frontier/rct-miniapp,/tmp LD_PRELOAD=/ccs/home/tianle/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python",
+      "cpu_threads": 7,
+      "cpu_processes": 1,
+      "gpu_processes": 1
+    },
+    "agent": {
+      "pre_exec": [
+        "module load PrgEnv-gnu",
+        "module load amd-mixed/5.3.0",
+        "module load craype-accel-amd-gfx90a",
+        "export ROCM_HOME=/opt/rocm-5.3.0",
+        "export HCC_AMDGPU_TARGET=gfx90a",
+        "export PATH='/ccs/home/tianle/miniconda_frontier/bin/:$PATH'",
+        "source activate rct-miniapp",
+        "module unload darshan-runtime"
+      ],
+      "executable": "python",
+      "executable_with_darshan": "/proc,/etc,/dev,/sys,/snap,/run,/user,/lib,/bin,/lustre/orion/lgt104/proj-shared/tianle/conda/envs/frontier/rct-miniapp,/tmp LD_PRELOAD=/ccs/home/tianle/libraries/darshan/lib/libdarshan.so DARSHAN_ENABLE_NONMPI=1 python",
+      "cpu_threads": 12,
+      "cpu_processes": 1,
+      "gpu_processes": 1
+    }
+  }
+}
