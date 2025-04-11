@@ -157,6 +157,38 @@ def readWithMPI(num_bytes, data_root_dir, filename_suffix=None):
             offset = rank * num_elem
             dset.read_direct(data, np.s_[offset:offset+num_elem])
 
+def readFile(filename, ratio=1.0):
+    """
+    Read a file from the given filename and print the total bytes read.
+    
+    Parameters:
+    -----------
+    filename : str
+        Path to the file to be read
+    
+    Returns:
+    --------
+    bytes_read : int
+        Total number of bytes read from the file
+    """
+    try:
+        with open(filename, 'rb') as f:
+            # Get file size without reading the whole file
+            file_size = os.path.getsize(filename)
+            print(f"File size of {filename}: {file_size} bytes")
+            # Continue with reading if needed
+            # Calculate how many bytes to read based on the ratio
+            bytes_to_read = int(file_size * ratio)
+            content = f.read(bytes_to_read)
+            bytes_read = len(content)
+            print(f"Successfully read {bytes_read} bytes from {filename}")
+            return bytes_read
+    except FileNotFoundError:
+        print(f"Error: File {filename} not found")
+        return 0
+    except IOError as e:
+        print(f"Error reading file {filename}: {e}")
+        return 0
 
 #################
 #comm 
