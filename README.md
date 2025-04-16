@@ -9,7 +9,7 @@ There are 2 example Workflow Mini-apps:
 
 - Scalable Adaptive Learning (ExaLearn)
 
-- DeepDriveMD
+- DL Driven MD Simulation (DeepDriveMD)
 
 ### Installation
 1). Install rct. Please make sure to use conda env approach since we also need an env that has cupy/h5py/mpi4py
