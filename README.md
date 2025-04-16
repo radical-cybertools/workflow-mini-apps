@@ -1,3 +1,6 @@
+Please see the published paper accompanying this work: https://doi.org/10.1109/CCGrid59990.2024.00059 
+or: https://arxiv.org/abs/2403.18073
+
 How to run workflow mini-app on Polaris:
 
 1). Install rct. Please make sure to use conda env approach since we also need an env that has cupy/h5py/mpi4py
