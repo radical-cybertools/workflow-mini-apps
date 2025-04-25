@@ -47,7 +47,7 @@ mpirun -np 4 python Executables/simulation.py
 
 Simulation with dynamic matrix sizing based on input file:
 ```sh
-mpirun -np 4 python Executables/simulation.py --input_file /path/to/your/data.txt --scale_matrix --read_ratio 0.5 --outfile_file  /path/to/your/output.txt
+mpirun -np 4 python Executables/simulation.py --input_file /path/to/your/data.txt --scale_matrix --read_ratio 0.5 
 ```
 
 Customizing matrix size and iterations:
