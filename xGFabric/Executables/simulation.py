@@ -4,6 +4,7 @@ import os, sys, socket
 import time
 import argparse
 import kernel as wf
+from mpi4py import MPI
 
 
 def parse_args():
@@ -59,6 +60,9 @@ def main():
     bytes_read = 0
     reference_size = 50 * 1024 * 1024  # 50MB as reference file size
     
+    # setting output file name
+    output_file = os.path.join(root_path, f"output_{rank}.txt")
+
     if args.input_file:
         if rank == 0:
             print(f"Reading input file: {args.input_file} with ratio: {args.read_ratio}")
@@ -76,6 +80,8 @@ def main():
             if rank == 0:
                 print(f"Scaling matrix size: original={msz}, new={new_msz} (scale factor: {scale_factor:.2f})")
             msz = new_msz
+        # set the output file name based on input file
+        output_file =f"{args.input_file}_output.txt"
 
     for mi in range(rank, args.num_mult, size):
         elap = time.time()
@@ -86,10 +92,10 @@ def main():
         elap = time.time() - elap
         print("Rank is {}, mi is {}, takes {} second".format(rank, mi, elap))
 
-        wf.writeNonMPI(4 * msz * msz)
-        wf.writeNonMPI(4 * msz * msz)
+        wf.writeFile(output_file, args.write_size)
+        wf.writeFile(output_file, args.write_size)
    
-    wf.writeNonMPI(args.write_size)
+    wf.writeFile(output_file, args.write_size)
     if not args.input_file:
         wf.readNonMPI(args.read_size)
     end_time = time.time()

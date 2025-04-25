@@ -190,6 +190,30 @@ def readFile(filename, ratio=1.0):
         print(f"Error reading file {filename}: {e}")
         return 0
 
+def writeFile(filename, size):
+    """
+    Write a file with the specified filename and size (in bytes) filled with zero bytes.
+
+    Parameters:
+    -----------
+    filename : str
+        Path to the file to be written.
+    size : int
+        Desired size of the file in bytes.
+    """
+    try:
+        with open(filename, 'wb') as f:
+            chunk_size = 1024 * 1024  # Write in 1MB chunks
+            total_written = 0
+            while total_written < size:
+                remaining = size - total_written
+                write_size = min(chunk_size, remaining)
+                f.write(b'\0' * write_size)
+                total_written += write_size
+        print(f"Successfully wrote {size} bytes to {filename}")
+    except IOError as e:
+        print(f"Error writing file {filename}: {e}")
+
 #################
 #comm 
 #################
