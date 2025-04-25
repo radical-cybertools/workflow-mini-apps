@@ -35,6 +35,7 @@ The simulation script accepts several arguments:
 - `--read_size`: Bytes to read from disk (default: 0)
 - `--input_file`: Path to an input file to read
 - `--read_ratio`: Ratio of file to read (default: 1.0)
+- `--scale_matrix`: Flag to enable scaling matrix size based on input file size (default: disabled)
 
 ### Example Commands
 
@@ -43,9 +44,10 @@ Basic simulation:
 mpirun -np 4 python Executables/simulation.py
 ```
 
-Simulation with file reading:
+
+Simulation with dynamic matrix sizing based on input file:
 ```sh
-mpirun -np 4 python Executables/simulation.py --input_file /path/to/your/data.txt --read_ratio 0.5
+mpirun -np 4 python Executables/simulation.py --input_file /path/to/your/data.txt --scale_matrix --read_ratio 0.5 --outfile_file  /path/to/your/output.txt
 ```
 
 Customizing matrix size and iterations:
