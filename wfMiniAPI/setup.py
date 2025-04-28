@@ -1,5 +1,7 @@
 from setuptools import setup, find_packages
 
+import os
+
 setup(
     name='wfminiAPI',
     version='0.1',
