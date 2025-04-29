@@ -79,7 +79,7 @@ class MVP(object):
 
     # This is for simulation, return a stage which has many sim task
     def run_sim(self, phase_idx):
-        
+
         s = entk.Stage()
         for i in range(self.args.num_sim):
             t = entk.Task()

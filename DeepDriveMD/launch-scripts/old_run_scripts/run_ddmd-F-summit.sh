@@ -11,8 +11,7 @@ fi
 mkdir -p ${exp_dir}/model
 mkdir -p ${exp_dir}/data
 
-python ../rct-scripts/ddmd-serial.py	\
-    --config config_frontier.json \
+python ../rct-scripts/ddmd-F-summit.py	\
 	--num_phases		3		\
 	--mat_size 		10000		\
 	--data_root_dir		"${exp_dir}/data"	\
@@ -29,7 +28,7 @@ python ../rct-scripts/ddmd-serial.py	\
 	--num_mult_agent	1000		\
 	--num_mult_outlier	100		\
 	--project_id		PHY157-ecpdwf		\
-	--queue			"batch"		\
+	--queue			"debug"		\
 	--num_sim		12		\
 	--num_nodes		2		\
-	--io_json_file		"io_size-frontier.json"
+	--io_json_file		"io_size-summit.json"
