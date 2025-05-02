@@ -1,0 +1,4 @@
+
+include *.py *.json *.md *.sh *.txt
+include MANIFEST.in README.md VERSION
+

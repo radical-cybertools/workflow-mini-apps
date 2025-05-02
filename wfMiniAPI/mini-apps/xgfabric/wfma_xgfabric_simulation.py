@@ -1,10 +1,11 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import os, sys, socket
 import time
 import argparse
-import kernel as wf
 from mpi4py import MPI
+
+from wfMiniAPI import kernel as wf
 
 
 def parse_args():
@@ -52,14 +53,14 @@ def main():
     root_path = args.data_root_dir + '/phase{}'.format(args.phase) + '/'
     if rank == 0:
         print("root_path for data = ", root_path)
-    
+
     # Default matrix size
     msz = args.mat_size
-    
+
     # Read input file if provided and consider scaling matrix size
     bytes_read = 0
     reference_size = 50 * 1024 * 1024  # 50MB as reference file size
-    
+
     # setting output file name
     output_file = os.path.join(root_path, f"output_{rank}.txt")
 
@@ -68,7 +69,7 @@ def main():
             print(f"Reading input file: {args.input_file} with ratio: {args.read_ratio}")
         bytes_read = wf.readFile(args.input_file, args.read_ratio)
         print(f"Rank {rank} read {bytes_read} bytes from input file")
-        
+
         # Scale matrix size based on input file size if requested
         if args.scale_matrix and bytes_read > 0:
             # Calculate scaling factor (square root relationship with file size)
@@ -76,7 +77,7 @@ def main():
             new_msz = int(msz * scale_factor)
             # Ensure new size is at least 100
             new_msz = max(100, new_msz)
-            
+
             if rank == 0:
                 print(f"Scaling matrix size: original={msz}, new={new_msz} (scale factor: {scale_factor:.2f})")
             msz = new_msz
@@ -94,7 +95,7 @@ def main():
 
         wf.writeFile(output_file, args.write_size)
         wf.writeFile(output_file, args.write_size)
-   
+
     wf.writeFile(output_file, args.write_size)
     if not args.input_file:
         wf.readNonMPI(args.read_size)

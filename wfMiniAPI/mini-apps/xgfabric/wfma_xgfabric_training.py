@@ -1,9 +1,10 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 
 import io, os, sys, socket
 import time
 import argparse
-import kernal as wf
+
+from wfMiniAPI import kernel as wf
 
 def parse_args():
     parser = argparse.ArgumentParser(description='Exalearn_miniapp_training')
@@ -47,7 +48,7 @@ def main():
     device = args.device
     if device == 'gpu':
         print("gpu id is {}".format(cp.cuda.runtime.getDeviceProperties(0)['uuid']))
-    
+
     wf.readNonMPI(args.read_size)
     wf.sleep(args.preprocess_time)
 

@@ -1,3 +1,4 @@
+
 import numpy as np
 import time
 import os
@@ -28,7 +29,7 @@ except ImportError:
 
 
 #################
-#misc 
+#misc
 #################
 
 def sleep(seconds):
@@ -58,10 +59,10 @@ def writeSingleRank(num_bytes, data_root_dir):
 
         if rank == 0:
             filename = os.path.join(data_root_dir, "data.h5")
-            
+
             num_elem = num_bytes // 4
             data = np.empty(num_elem, dtype=np.float32)
-    
+
             with h5py.File(filename, 'w') as f:
                 dset = f.create_dataset("data", data = data)
 
@@ -80,7 +81,7 @@ def writeNonMPI(num_bytes, data_root_dir, filename_suffix=None):
         else:
             filename = os.path.join(data_root_dir, "data_{}_{}.h5".format(rank, filename_suffix))
         print("In writeNonMPI, rank = ", rank, " filename = ", filename)
-        
+
         num_elem = num_bytes // 4
         data = np.empty(num_elem, dtype=np.float32)
 
@@ -126,11 +127,11 @@ def readNonMPI(num_bytes, data_root_dir, filename_suffix=None):
         else:
             filename = os.path.join(data_root_dir, "data_{}_{}.h5".format(rank, filename_suffix))
         print("In readNonMPI, rank = ", rank, " filename = ", filename)
-        
+
         num_elem = num_bytes // 4
 
         with h5py.File(filename, 'r') as f:
-            data = f['data'][0:num_elem] 
+            data = f['data'][0:num_elem]
 
 def readWithMPI(num_bytes, data_root_dir, filename_suffix=None):
     if not MPI4PY_AVAILABLE:
@@ -160,12 +161,12 @@ def readWithMPI(num_bytes, data_root_dir, filename_suffix=None):
 def readFile(filename, ratio=1.0):
     """
     Read a file from the given filename and print the total bytes read.
-    
+
     Parameters:
     -----------
     filename : str
         Path to the file to be read
-    
+
     Returns:
     --------
     bytes_read : int
@@ -215,7 +216,7 @@ def writeFile(filename, size):
         print(f"Error writing file {filename}: {e}")
 
 #################
-#comm 
+#comm
 #################
 
 def MPIallReduce(device, data_size):
@@ -229,16 +230,16 @@ def MPIallReduce(device, data_size):
 
         sendbuf = xp.empty(data_size, dtype=xp.float32)
         recvbuf = xp.empty(data_size, dtype=xp.float32)
-        
+
         if device == "cpu":
             comm.Allreduce(sendbuf, recvbuf, op=MPI.SUM)
-    
+
         elif device == "gpu":
             uid = nccl.get_unique_id()
             comm_nccl = nccl.NcclCommunicator(size, uid, rank)
             comm_nccl.allReduce(sendbuf.data.ptr, recvbuf.data.ptr, data_size, nccl.NCCL_FLOAT32, nccl.NCCL_SUM, cp.cuda.Stream.null)
             cp.cuda.Stream.null.synchronize()
-    
+
 def MPIallGather(device, data_size):
     xp = get_device_module(device)
     if not MPI4PY_AVAILABLE:
@@ -311,7 +312,7 @@ def fft(device, data_size, type_in, transform_dim):
 
     out = xp.fft.fft(data_in, axis=transform_dim)
 
-    
+
 def axpy(device, size):
     xp = get_device_module(device)
     x = xp.empty(size, dtype=xp.float32)
@@ -355,7 +356,7 @@ def scatterAdd(device, x_size, y_size):
         ''', 'my_scatter_add_kernel')
 
 
-    
+
 #for the tutorial, three things:
 #exalearn (CPU + GPU v1), ddmd v1, how to build wk-miniapp
 #show installation script + run script, in installation script, show how to install assuming we are working in a brand new env (container for example)
