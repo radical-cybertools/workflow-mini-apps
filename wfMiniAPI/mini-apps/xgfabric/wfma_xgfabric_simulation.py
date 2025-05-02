@@ -5,6 +5,8 @@ import time
 import argparse
 from mpi4py import MPI
 
+import radical.utils as ru
+
 from wfMiniAPI import kernel as wf
 
 
@@ -62,6 +64,7 @@ def main():
     reference_size = 50 * 1024 * 1024  # 50MB as reference file size
 
     # setting output file name
+    ru.rec_makedir(root_path)
     output_file = os.path.join(root_path, f"output_{rank}.txt")
 
     if args.input_file:
