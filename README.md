@@ -24,22 +24,20 @@ There are 2 example Workflow Mini-apps:
 
 module load cray-hdf5/1.12.1.3
 module load conda
-conda activate env/rct-recup-polaris
+conda activate <your rct environment>
 
 which python
 python -V
 
-export RADICAL_PILOT_DBURL=$(cat useful_script/rp_dburl_polaris)
-echo $RADICAL_PILOT_DBURL
 
 export RADICAL_LOG_LVL=DEBUG
 export RADICAL_PROFILE=TRUE
 export RADICAL_SMT=1
 
-export PATH=/home/$USER/libraries/darshan/bin:$PATH
+export PATH=<path to darshan binary>:$PATH
 ```
 
-Here "env/rct-recup-polaris" is the conda env with rct, and "/home/$USER/libraries/darshan/bin" is where darshan is installed. "RADICAL_PILOT_DBURL" is not necessary anymore with the latest rct.
+Here "<your rct environment>" is the conda env with rct, and "<path to darshan binary>" is where darshan is installed.
 
 4). Go to the specific mini-app sub-dir, then do source `source_me.sh` 
 
