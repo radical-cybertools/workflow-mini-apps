@@ -8,7 +8,7 @@ Workflow Mini-app facilitate experimentation and helps understand workflow (dist
 
 There are 2 example Workflow Mini-apps:
 
-- Scalable Adaptive Learning (ExaLearn)
+- Neurton Diffraction Experiment (InverseProblem)
 
 - DL Driven MD Simulation (DeepDriveMD)
 
