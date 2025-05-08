@@ -44,3 +44,5 @@ Here "<your rct environment>" is the conda env with rct, and "<path to darshan b
 5). Go to launch-scripts to run the experiment. Before starting, make sure the parameters have been set up
 
 6). Analyze the results. Some useful tools can be found in Analyze/
+
+This Work has been supported by [RECUP Project](https://github.com/RECUP-DOE/workflow-miniapps)
