@@ -3,6 +3,7 @@ Workflow Mini-Apps provides [small, self-contained representations of scientific
 Each mini-app is a simplified version of a complex scientific workflow, capturing its key tasks, data flow, and performance characteristics without the deployment challenges of the full application.
 Workflow Mini-apps can be scaled and configured without application specific deployment challenges and constraints​.
 
+
 Workflow Mini-app facilitate experimentation and helps understand workflow (distinct from application) performance.
 
 There are 2 example Workflow Mini-apps:
