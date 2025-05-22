@@ -1,0 +1,38 @@
+{
+	"phase0":{
+		"sim":{
+			"read":		5600000,
+			"write":	2800000
+		},
+		"train":{
+			"read":		4800000,
+			"write":	7400000
+		},
+		"selection":{
+			"read":		100000,
+			"write":	150000
+		},
+		"agent":{
+			"read":		11500000,
+			"write":	450000
+		}
+	},
+	"phase1":{
+		"sim":{
+			"read":		5600000,
+			"write":	2800000
+		},
+		"train":{
+			"read":		15400000,
+			"write":	7400000
+		},
+		"selection":{
+			"read":		100000,
+			"write":	150000
+		},
+		"agent":{
+			"read":		17100000,
+			"write":	450000
+		}
+	}
+}
