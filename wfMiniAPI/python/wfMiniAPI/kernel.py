@@ -3,6 +3,9 @@ import time
 import os
 import sys
 
+from registry import annotate_kernel, list_kernels, kernel_params, run_kernel
+
+
 print("Python executable location:", sys.executable)
 print("NumPy version:", np.__version__)
 print("NumPy location:", np.__file__)
@@ -31,9 +34,11 @@ except ImportError:
 #misc 
 #################
 
+@annotate_kernel
 def sleep(seconds):
     time.sleep(seconds)
 
+@annotate_kernel
 def get_device_module(device):
     if device == "gpu":
         if not CUPY_AVAILABLE:
@@ -47,6 +52,7 @@ def get_device_module(device):
 #io
 #################
 
+@annotate_kernel
 def writeSingleRank(num_bytes, data_root_dir):
     if not MPI4PY_AVAILABLE:
         raise ImportError("mpi4py is not installed. Install mpi4py to use multi-process read/write.")
@@ -65,7 +71,7 @@ def writeSingleRank(num_bytes, data_root_dir):
             with h5py.File(filename, 'w') as f:
                 dset = f.create_dataset("data", data = data)
 
-
+@annotate_kernel
 def writeNonMPI(num_bytes, data_root_dir, filename_suffix=None):
     if not MPI4PY_AVAILABLE:
         raise ImportError("mpi4py is not installed. Install mpi4py to use multi-process read/write.")
@@ -87,6 +93,7 @@ def writeNonMPI(num_bytes, data_root_dir, filename_suffix=None):
         with h5py.File(filename, 'w') as f:
             dset = f.create_dataset("data", data = data)
 
+@annotate_kernel
 def writeWithMPI(num_bytes, data_root_dir, filename_suffix=None):
     if not MPI4PY_AVAILABLE:
         raise ImportError("mpi4py is not installed. Install mpi4py to use multi-process read/write.")
@@ -112,6 +119,7 @@ def writeWithMPI(num_bytes, data_root_dir, filename_suffix=None):
             offset = rank * num_elem
             dset[offset:offset+num_elem] = data
 
+@annotate_kernel
 def readNonMPI(num_bytes, data_root_dir, filename_suffix=None):
     if not MPI4PY_AVAILABLE:
         raise ImportError("mpi4py is not installed. Install mpi4py to use multi-process read/write.")
@@ -132,6 +140,7 @@ def readNonMPI(num_bytes, data_root_dir, filename_suffix=None):
         with h5py.File(filename, 'r') as f:
             data = f['data'][0:num_elem] 
 
+@annotate_kernel
 def readWithMPI(num_bytes, data_root_dir, filename_suffix=None):
     if not MPI4PY_AVAILABLE:
         raise ImportError("mpi4py is not installed. Install mpi4py to use multi-process read/write.")
@@ -162,6 +171,7 @@ def readWithMPI(num_bytes, data_root_dir, filename_suffix=None):
 #comm 
 #################
 
+@annotate_kernel
 def MPIallReduce(device, data_size):
     xp = get_device_module(device)
     if not MPI4PY_AVAILABLE:
@@ -183,6 +193,7 @@ def MPIallReduce(device, data_size):
             comm_nccl.allReduce(sendbuf.data.ptr, recvbuf.data.ptr, data_size, nccl.NCCL_FLOAT32, nccl.NCCL_SUM, cp.cuda.Stream.null)
             cp.cuda.Stream.null.synchronize()
     
+@annotate_kernel
 def MPIallGather(device, data_size):
     xp = get_device_module(device)
     if not MPI4PY_AVAILABLE:
@@ -209,6 +220,7 @@ def MPIallGather(device, data_size):
 #data movement
 #################
 
+@annotate_kernel
 def dataCopyH2D(data_size):
     if not CUPY_AVAILABLE:
         raise ImportError("CuPy is not installed. Install CuPy to use GPU capabilities.")
@@ -216,6 +228,7 @@ def dataCopyH2D(data_size):
         data_h = np.empty(data_size, dtype=np.float32)
         data_d = cp.asarray(data_h)
 
+@annotate_kernel
 def dataCopyD2H(data_size):
     if not CUPY_AVAILABLE:
         raise ImportError("CuPy is not installed. Install CuPy to use GPU capabilities.")
@@ -228,18 +241,21 @@ def dataCopyD2H(data_size):
 #computation
 #################
 
+@annotate_kernel
 def matMulSimple2D(device, size):
     xp = get_device_module(device)
     matrix_a = xp.empty((size, size), dtype=xp.float32)
     matrix_b = xp.empty((size, size), dtype=xp.float32)
     matrix_c = xp.matmul(matrix_a, matrix_b)
 
+@annotate_kernel
 def matMulGeneral(device, size_a, size_b, axis):
     xp = get_device_module(device)
     matrix_a = xp.empty(tuple(size_a), dtype=xp.float32)
     matrix_b = xp.empty(tuple(size_b), dtype=xp.float32)
     matrix_c = xp.tensordot(matrix_a, matrix_b, axis)
 
+@annotate_kernel
 def fft(device, data_size, type_in, transform_dim):
     xp = get_device_module(device)
     if type_in == "float":
@@ -255,13 +271,14 @@ def fft(device, data_size, type_in, transform_dim):
 
     out = xp.fft.fft(data_in, axis=transform_dim)
 
-    
+@annotate_kernel
 def axpy(device, size):
     xp = get_device_module(device)
     x = xp.empty(size, dtype=xp.float32)
     y = xp.empty(size, dtype=xp.float32)
     y += 1.01 * x
 
+@annotate_kernel
 def implaceCompute(device, size, num_op, op):
     xp = get_device_module(device)
     x = xp.empty(size, dtype=xp.float32)
@@ -277,10 +294,12 @@ def implaceCompute(device, size, num_op, op):
     for _ in range(num_op):
         x = func(x)
 
+@annotate_kernel
 def generateRandomNumber(device, size):
     xp = get_device_module(device)
     x = xp.random.rand(size)
 
+@annotate_kernel
 def scatterAdd(device, x_size, y_size):
     xp = get_device_module(device)
     y = xp.empty(y_size, dtype=xp.float32)
