@@ -3,7 +3,7 @@ import time
 import os
 import sys
 
-from registry import annotate_kernel, list_kernels, kernel_params, run_kernel
+from .registry import annotate_kernel, list_kernels, kernel_params, run_kernel
 
 
 print("Python executable location:", sys.executable)
@@ -308,18 +308,4 @@ def scatterAdd(device, x_size, y_size):
     if xp == np:
         y += x[idx]
     elif xp == cp:
-        scatter_add_kernel = cp.RawKernel(r'''
-        extern "C" __global__
-        void my_scatter_add_kernel(const float *x, const float *y, const int *idx)
-        {
-            int tid = blockDim.x * blockIdx.x + threadIdx.x;
-
-            }
-        ''', 'my_scatter_add_kernel')
-
-
-    
-#for the tutorial, three things:
-#exalearn (CPU + GPU v1), ddmd v1, how to build wk-miniapp
-#show installation script + run script, in installation script, show how to install assuming we are working in a brand new env (container for example)
-
+        cp.add.at(y, idx, x)

@@ -3,4 +3,4 @@ h5py
 mpi4py
 cupy
 radical-pilot
-git+https://github.com/radical-cybertools/ROSE.git
+ROSE @ git+https://github.com/radical-cybertools/ROSE.git
