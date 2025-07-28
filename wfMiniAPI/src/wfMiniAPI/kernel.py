@@ -3,7 +3,7 @@ import time
 import os
 import sys
 
-from .registry import annotate_kernel, list_kernels, kernel_params, run_kernel
+from .registry import annotate_kernel, list_kernels, kernel_params, run_kernel, time_kernel
 
 
 print("Python executable location:", sys.executable)
