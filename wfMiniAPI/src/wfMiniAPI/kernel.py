@@ -272,6 +272,22 @@ def fft(device, data_size, type_in, transform_dim):
     out = xp.fft.fft(data_in, axis=transform_dim)
 
 @annotate_kernel
+def fftn(device, data_size, type_in, transform_dim):
+    xp = get_device_module(device)
+    if type_in == "float":
+        data_in = xp.empty(tuple(data_size), dtype=xp.float32)
+    elif type_in == "double":
+        data_in = xp.empty(tuple(data_size), dtype=xp.float64)
+    elif type_in == "complexF":
+        data_in = xp.empty(tuple(data_size), dtype=xp.complex64)
+    elif type_in == "complexD":
+        data_in = xp.empty(tuple(data_size), dtype=xp.complex128)
+    else:
+        raise TypeError("In fftn call, type_in must be one of the following: [float, double, complexF, complexD]")
+
+    out = xp.fft.fftn(data_in, axis=transform_dim)
+
+@annotate_kernel
 def axpy(device, size):
     xp = get_device_module(device)
     x = xp.empty(size, dtype=xp.float32)
