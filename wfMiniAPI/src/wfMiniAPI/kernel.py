@@ -278,12 +278,12 @@ def axpy_slow(device, size):
     y = xp.empty(size, dtype=xp.float32)
     y += 1.01 * x
 
-
-_axpy = cp.ElementwiseKernel(
-    'float32 alpha, float32 x, float32 y', 
-    'float32 y',                            
-    'y += alpha * x',                       
-    'axpy_kernel'
+_axpy_inplace = cp.ElementwiseKernel(
+    'float32 alpha, float32 x, raw float32 y',
+    '',                                       
+    'y += alpha * x',                      
+    'axpy_inplace_kernel',
+    no_return=True                            
 )
 
 @annotate_kernel
@@ -294,7 +294,7 @@ def axpy(device, size):
     if xp == np:
         y += 1.01 * x
     elif xp == cp:
-        _axpy(1.01, x, y, out=y)    
+        _axpy_inplace(1.01, x, y)
 
 @annotate_kernel
 def implaceCompute(device, size, num_op, op):
