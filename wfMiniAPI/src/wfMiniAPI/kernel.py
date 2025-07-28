@@ -294,7 +294,7 @@ def axpy(device, size):
     if xp == np:
         y += 1.01 * x
     elif xp == cp:
-        _axpy_inplace(1.01, x, y)
+        _axpy_inplace(1.01, x, y, size=size)
 
 @annotate_kernel
 def implaceCompute(device, size, num_op, op):
