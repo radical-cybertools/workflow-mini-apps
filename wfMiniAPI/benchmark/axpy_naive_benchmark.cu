@@ -1,7 +1,6 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cuda_runtime.h>
-#include <cublas_v2.h>
 
 #define CHECK_CUDA(call)                                                      \
     do {                                                                      \
@@ -13,14 +12,12 @@
         }                                                                     \
     } while (0)
 
-#define CHECK_CUBLAS(call)                                                    \
-    do {                                                                      \
-        cublasStatus_t st = call;                                             \
-        if (st != CUBLAS_STATUS_SUCCESS) {                                    \
-            fprintf(stderr, "cuBLAS Error %s:%d: %d\n", __FILE__, __LINE__, st); \
-            std::exit(EXIT_FAILURE);                                          \
-        }                                                                     \
-    } while (0)
+__global__ void axpy_kernel(int N, float alpha, const float* x, float* y) {
+    int idx = blockIdx.x * blockDim.x + threadIdx.x;
+    if (idx < N) {
+        y[idx] += alpha * x[idx];
+    }
+}
 
 int main() {
     const int N = 1024 * 1024 * 32;
@@ -42,22 +39,22 @@ int main() {
     CHECK_CUDA(cudaMemcpy(d_x, h_x, N * sizeof(float), cudaMemcpyHostToDevice));
     CHECK_CUDA(cudaMemcpy(d_y, h_y, N * sizeof(float), cudaMemcpyHostToDevice));
 
-    cublasHandle_t handle;
-    CHECK_CUBLAS(cublasCreate(&handle));
+    const int TPB = 256;
+    int blocks = (N + TPB - 1) / TPB;
 
     cudaEvent_t start, stop;
     CHECK_CUDA(cudaEventCreate(&start));
     CHECK_CUDA(cudaEventCreate(&stop));
 
     for (int i = 0; i < n_warmup; ++i) {
-        CHECK_CUBLAS(cublasSaxpy(handle, N, &alpha, d_x, 1, d_y, 1));
+        axpy_kernel<<<blocks, TPB>>>(N, alpha, d_x, d_y);
     }
     CHECK_CUDA(cudaDeviceSynchronize());
 
     float total_ms = 0.0f;
     for (int i = 0; i < n_repeat; ++i) {
         CHECK_CUDA(cudaEventRecord(start, 0));
-        CHECK_CUBLAS(cublasSaxpy(handle, N, &alpha, d_x, 1, d_y, 1));
+        axpy_kernel<<<blocks, TPB>>>(N, alpha, d_x, d_y);
         CHECK_CUDA(cudaEventRecord(stop, 0));
         CHECK_CUDA(cudaEventSynchronize(stop));
         float iter_ms = 0.0f;
@@ -66,12 +63,13 @@ int main() {
     }
 
     float avg_ms = total_ms / n_repeat;
-    printf("AXPY (N=%d) average over %d runs: %f ms\n",
+    printf("AXPY kernel (N=%d) average over %d runs: %f ms\n",
            N, n_repeat, avg_ms);
 
-    cublasDestroy(handle);
-    cudaFree(d_x);
-    cudaFree(d_y);
+    CHECK_CUDA(cudaEventDestroy(start));
+    CHECK_CUDA(cudaEventDestroy(stop));
+    CHECK_CUDA(cudaFree(d_x));
+    CHECK_CUDA(cudaFree(d_y));
     free(h_x);
     free(h_y);
 

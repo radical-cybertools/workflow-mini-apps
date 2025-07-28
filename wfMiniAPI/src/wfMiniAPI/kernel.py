@@ -272,11 +272,29 @@ def fft(device, data_size, type_in, transform_dim):
     out = xp.fft.fft(data_in, axis=transform_dim)
 
 @annotate_kernel
-def axpy(device, size):
+def axpy_slow(device, size):
     xp = get_device_module(device)
     x = xp.empty(size, dtype=xp.float32)
     y = xp.empty(size, dtype=xp.float32)
     y += 1.01 * x
+
+
+_axpy = cp.ElementwiseKernel(
+    'float32 alpha, float32 x, float32 y', 
+    'float32 y',                            
+    'y += alpha * x',                       
+    'axpy_kernel'
+)
+
+@annotate_kernel
+def axpy(device, size):
+    xp = get_device_module(device)
+    x = xp.empty(size, dtype=xp.float32)
+    y = xp.empty(size, dtype=xp.float32)
+    if xp == np:
+        y += 1.01 * x
+    elif xp == cp:
+        _axpy(1.01, x, y, out=y)    
 
 @annotate_kernel
 def implaceCompute(device, size, num_op, op):
