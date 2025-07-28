@@ -37,7 +37,7 @@ def run_kernel(name, **kwargs):
     out = func(**kwargs)
     return out
 
-def time_kernel(name, device, n_warmup=1, n_repeat=20, **kwargs):
+def time_kernel(name, device, n_warmup=3, n_repeat=20, **kwargs):
     # CPU timing
     if device.lower() == "cpu":
         for _ in range(n_warmup):
