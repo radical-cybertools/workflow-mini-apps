@@ -285,7 +285,7 @@ def fftn(device, data_size, type_in, transform_dim):
     else:
         raise TypeError("In fftn call, type_in must be one of the following: [float, double, complexF, complexD]")
 
-    out = xp.fft.fftn(data_in, axis=transform_dim)
+    out = xp.fft.fftn(data_in, axes=transform_dim)
 
 @annotate_kernel
 def axpy(device, size):
