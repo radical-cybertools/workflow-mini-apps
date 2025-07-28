@@ -8,9 +8,9 @@ Workflow Mini-app facilitate experimentation and helps understand workflow (dist
 
 There are 2 example Workflow Mini-apps:
 
-- Neurton Diffraction Experiment (InverseProblem)
+- Neutron Diffraction Experiment (InverseProblem)
 
-- DL Driven MD Simulation (DeepDriveMD)
+- AI Steered Simulations (DeepDriveMD)
 
 ### Installation
 1). Install rct. Please make sure to use conda env approach since we also need an env that has cupy/h5py/mpi4py
