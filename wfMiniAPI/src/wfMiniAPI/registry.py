@@ -1,5 +1,6 @@
 import inspect
 from collections import OrderedDict
+import time
 
 _KERNELS = OrderedDict()
 
