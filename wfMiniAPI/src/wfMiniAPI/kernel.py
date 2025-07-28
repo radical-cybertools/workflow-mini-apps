@@ -272,29 +272,29 @@ def fft(device, data_size, type_in, transform_dim):
     out = xp.fft.fft(data_in, axis=transform_dim)
 
 @annotate_kernel
-def axpy_slow(device, size):
+def axpy(device, size):
     xp = get_device_module(device)
     x = xp.empty(size, dtype=xp.float32)
     y = xp.empty(size, dtype=xp.float32)
     y += 1.01 * x
 
-_axpy_inplace = cp.ElementwiseKernel(
-    'float32 alpha, raw float32 x',
-    'raw float32 y',               
-    'y[i] += alpha * x[i]',        
-    'axpy_inplace_kernel',
-    no_return=True                 
-)
-
-@annotate_kernel
-def axpy(device, size):
-    xp = get_device_module(device)
-    x = xp.empty(size, dtype=xp.float32)
-    y = xp.empty(size, dtype=xp.float32)
-    if xp == np:
-        y += 1.01 * x
-    elif xp == cp:
-        _axpy_inplace(1.01, x, y, size=size)
+#_axpy_inplace = cp.ElementwiseKernel(
+#    'float32 alpha, raw float32 x',
+#    'raw float32 y',               
+#    'y[i] += alpha * x[i]',        
+#    'axpy_inplace_kernel',
+#    no_return=True                 
+#)
+#
+#@annotate_kernel
+#def axpy(device, size):
+#    xp = get_device_module(device)
+#    x = xp.empty(size, dtype=xp.float32)
+#    y = xp.empty(size, dtype=xp.float32)
+#    if xp == np:
+#        y += 1.01 * x
+#    elif xp == cp:
+#        _axpy_inplace(1.01, x, y, size=size)
 
 @annotate_kernel
 def implaceCompute(device, size, num_op, op):
