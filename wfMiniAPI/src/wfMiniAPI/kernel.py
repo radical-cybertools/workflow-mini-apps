@@ -279,9 +279,9 @@ def axpy_slow(device, size):
     y += 1.01 * x
 
 _axpy_inplace = cp.ElementwiseKernel(
-    'float32 alpha, float32 x, raw float32 y',
+    'float32 alpha, raw float32 x, raw float32 y',
     '',                                       
-    'y += alpha * x',                      
+    'y[i] += alpha * x[i]',                      
     'axpy_inplace_kernel',
     no_return=True                            
 )
