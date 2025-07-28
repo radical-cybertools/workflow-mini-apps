@@ -55,6 +55,7 @@ def time_kernel(name, device, n_warmup=1, n_repeat=20, **kwargs):
 
     # GPU timing
     elif device.lower() == "gpu":
+        import cupy as cp
         # warmup + sync
         for _ in range(n_warmup):
             run_kernel(name, device=device, **kwargs)
