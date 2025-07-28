@@ -1,6 +1,7 @@
 import inspect
 from collections import OrderedDict
 import time
+import numpy as np
 
 _KERNELS = OrderedDict()
 
@@ -42,35 +43,40 @@ def time_kernel(name, device, n_warmup=3, n_repeat=20, **kwargs):
     if device.lower() == "cpu":
         for _ in range(n_warmup):
             run_kernel(name, device=device, **kwargs)
-        t0 = time.time()
+        run_times = []
         for _ in range(n_repeat):
+            t0 = time.time()
             run_kernel(name, device=device, **kwargs)
-        t1 = time.time()
+            t1 = time.time()
+            run_times.append((t1 - t0) * 1000)
 
-        total_ms = (t1 - t0) * 1000
+        total_ms = sum(run_times)
         avg_ms   = total_ms / n_repeat
+        std_ms   = np.std(run_times)
         print(f"CPU: Total {n_repeat} runs: {total_ms:.2f} ms")
-        print(f"CPU: Avg per run: {avg_ms:.2f} ms")
-        return total_ms, avg_ms
+        print(f"CPU: Avg per run: {avg_ms:.2f} \u00B1 {std_ms:.4f} ms")
+        return total_ms, avg_ms, std_ms
 
     # GPU timing
     elif device.lower() == "gpu":
         import cupy as cp
-        # warmup + sync
         for _ in range(n_warmup):
             run_kernel(name, device=device, **kwargs)
         cp.cuda.Stream.null.synchronize()
 
-        start = cp.cuda.Event()
-        end   = cp.cuda.Event()
-        start.record()
+        run_times = []
         for _ in range(n_repeat):
+            start = cp.cuda.Event()
+            end   = cp.cuda.Event()
+            start.record()
             run_kernel(name, device=device, **kwargs)
-        end.record()
-        end.synchronize()
-
-        total_ms = cp.cuda.get_elapsed_time(start, end)
-        avg_ms   = total_ms / n_repeat
+            end.record()
+            end.synchronize()
+            elapsed_time = cp.cuda.get_elapsed_time(start, end)  # in ms
+            run_times.append(elapsed_time)
+        total_ms = sum(run_times)
+        avg_ms = total_ms / n_repeat
+        std_ms = np.std(run_times)
         print(f"GPU: Total {n_repeat} runs: {total_ms:.2f} ms")
-        print(f"GPU: Avg per run: {avg_ms:.2f} ms")
-        return total_ms, avg_ms
+        print(f"GPU: Avg per run: {avg_ms:.2f} \u00B1 {std_ms:.4f} ms")
+        return total_ms, avg_ms, std_ms
