@@ -64,6 +64,14 @@ def time_kernel(name, device, n_warmup=3, n_repeat=20, **kwargs):
             run_kernel(name, device=device, **kwargs)
         cp.cuda.Stream.null.synchronize()
 
+        for _ in range(n_warmup):
+            start = cp.cuda.Event()
+            end   = cp.cuda.Event()
+            start.record()
+            run_kernel(name, device=device, **kwargs)
+            end.record()
+            end.synchronize()
+
         run_times = []
         for _ in range(n_repeat):
             start = cp.cuda.Event()

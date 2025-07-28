@@ -24,12 +24,14 @@
     } while (0)
 
 int main() {
-    const int N         = 1024;            
-    const int batch     = 1024;            
-    const int n_warmup  = 3;
-    const int n_repeat  = 50;
+    const int Nx         = 256;
+    const int Ny         = 256;
+    const int Nz         = 256;
+    const int n_warmup   = 3;
+    const int n_repeat   = 50;
 
-    size_t real_elems = size_t(N) * batch;
+    size_t real_elems = size_t(Nx) * Ny * Nz;
+
     float *h_real = (float*)malloc(real_elems * sizeof(float));
     for (size_t i = 0; i < real_elems; ++i) {
         h_real[i] = 1.0f;  
@@ -50,7 +52,7 @@ int main() {
     free(h_real);
 
     cufftHandle plan;
-    CHECK_CUFFT(cufftPlan1d(&plan, N, CUFFT_C2C, batch));
+    CHECK_CUFFT(cufftPlan3d(&plan, Nx, Ny, Nz, CUFFT_C2C));
 
     cudaEvent_t start, stop;
     CHECK_CUDA(cudaEventCreate(&start));
@@ -75,7 +77,7 @@ int main() {
 
     float avg_ms = total_ms / n_repeat;
 
-    printf("cuFFT C2C 1D FFT (N=%d, batch=%d)", N, batch);
+    printf("cuFFT C2C 3D FFT (Nx=%d, Ny=%d, Nz=%d)", Nx, Ny, Nz);
     printf("  Average over %d runs: %f ms\n", n_repeat, avg_ms);
 
     CHECK_CUFFT(cufftDestroy(plan));
