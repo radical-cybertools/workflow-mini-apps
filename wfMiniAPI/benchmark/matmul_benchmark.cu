@@ -23,7 +23,7 @@
     } while (0)
 
 int main() {
-    const int N = 1024;
+    const int N = 4096;
     const size_t bytes = size_t(N) * N * sizeof(float);
     const float alpha = 1.0f;
     const float beta  = 0.0f;
