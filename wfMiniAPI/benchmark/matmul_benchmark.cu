@@ -30,7 +30,6 @@ int main() {
     const int n_warmup = 3;
     const int n_repeat = 50;
 
-    // Host allocations & initialize
     float *h_A = (float*)malloc(bytes);
     float *h_B = (float*)malloc(bytes);
     float *h_C = (float*)malloc(bytes);
@@ -40,27 +39,22 @@ int main() {
         h_C[i] = 0.0f;
     }
 
-    // Device allocations
     float *d_A, *d_B, *d_C;
     CHECK_CUDA(cudaMalloc(&d_A, bytes));
     CHECK_CUDA(cudaMalloc(&d_B, bytes));
     CHECK_CUDA(cudaMalloc(&d_C, bytes));
 
-    // Copy data to device
     CHECK_CUDA(cudaMemcpy(d_A, h_A, bytes, cudaMemcpyHostToDevice));
     CHECK_CUDA(cudaMemcpy(d_B, h_B, bytes, cudaMemcpyHostToDevice));
     CHECK_CUDA(cudaMemcpy(d_C, h_C, bytes, cudaMemcpyHostToDevice));
 
-    // cuBLAS handle
     cublasHandle_t handle;
     CHECK_CUBLAS(cublasCreate(&handle));
 
-    // Create CUDA events for timing
     cudaEvent_t start, stop;
     CHECK_CUDA(cudaEventCreate(&start));
     CHECK_CUDA(cudaEventCreate(&stop));
 
-    // Warm‑up SGEMM calls (not timed)
     for (int i = 0; i < n_warmup; ++i) {
         CHECK_CUBLAS(cublasSgemm(
             handle,
@@ -75,7 +69,6 @@ int main() {
     }
     CHECK_CUDA(cudaDeviceSynchronize());
 
-    // Timed repeats
     float total_ms = 0.0f;
     for (int i = 0; i < n_repeat; ++i) {
         CHECK_CUDA(cudaEventRecord(start, 0));
@@ -98,13 +91,10 @@ int main() {
     }
 
     float avg_ms = total_ms / n_repeat;
-    double flops = 2.0 * double(N) * N * N;  // 2·N³ operations for SGEMM
-    double gflops = (flops / (avg_ms / 1e3)) / 1e9;
 
-    printf("cuBLAS SGEMM (N=%d) average over %d runs: %f ms → %f GFLOPS\n",
-           N, n_repeat, avg_ms, gflops);
+    printf("cuBLAS SGEMM (N=%d) average over %d runs: %f ms\n",
+           N, n_repeat, avg_ms);
 
-    // Cleanup
     CHECK_CUBLAS(cublasDestroy(handle));
     CHECK_CUDA(cudaFree(d_A));
     CHECK_CUDA(cudaFree(d_B));
@@ -117,4 +107,3 @@ int main() {
 
     return 0;
 }
-

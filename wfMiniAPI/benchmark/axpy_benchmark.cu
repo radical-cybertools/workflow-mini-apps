@@ -24,43 +24,36 @@
 
 int main() {
     const int N = 1024 * 1024;
-    const float alpha = 2.5f;
+    const float alpha = 1.1f;
     const int n_warmup = 3;
     const int n_repeat = 50;
 
-    // Host allocations
     float *h_x = (float*)malloc(N * sizeof(float));
     float *h_y = (float*)malloc(N * sizeof(float));
     for (int i = 0; i < N; ++i) {
-        h_x[i] = 1.0f;      // or whatever initialization
+        h_x[i] = 1.0f;
         h_y[i] = 0.0f;
     }
 
-    // Device allocations
     float *d_x, *d_y;
     CHECK_CUDA(cudaMalloc((void**)&d_x, N * sizeof(float)));
     CHECK_CUDA(cudaMalloc((void**)&d_y, N * sizeof(float)));
 
-    // Copy data to device
     CHECK_CUDA(cudaMemcpy(d_x, h_x, N * sizeof(float), cudaMemcpyHostToDevice));
     CHECK_CUDA(cudaMemcpy(d_y, h_y, N * sizeof(float), cudaMemcpyHostToDevice));
 
-    // Create cuBLAS handle
     cublasHandle_t handle;
     CHECK_CUBLAS(cublasCreate(&handle));
 
-    // Timing events
     cudaEvent_t start, stop;
     CHECK_CUDA(cudaEventCreate(&start));
     CHECK_CUDA(cudaEventCreate(&stop));
 
-    // Warm‐up
     for (int i = 0; i < n_warmup; ++i) {
         CHECK_CUBLAS(cublasSaxpy(handle, N, &alpha, d_x, 1, d_y, 1));
     }
     CHECK_CUDA(cudaDeviceSynchronize());
 
-    // Timed repeats
     float total_ms = 0.0f;
     for (int i = 0; i < n_repeat; ++i) {
         CHECK_CUDA(cudaEventRecord(start, 0));
@@ -73,13 +66,9 @@ int main() {
     }
 
     float avg_ms = total_ms / n_repeat;
-    double bytes = double(N) * sizeof(float) * 2;  // read x and read/write y
-    double bandwidth = bytes / (avg_ms / 1e3) / 1e9;  // GB/s
+    printf("AXPY (N=%d) average over %d runs: %f ms\n",
+           N, n_repeat, avg_ms);
 
-    printf("AXPY (N=%d) average over %d runs: %f ms, bandwidth = %f GB/s\n",
-           N, n_repeat, avg_ms, bandwidth);
-
-    // Cleanup
     cublasDestroy(handle);
     cudaFree(d_x);
     cudaFree(d_y);
