@@ -51,14 +51,14 @@ def main():
         kernel.dataCopyH2D(args.batch_size * args.dense_dim_in)
         for ii in range(args.num_mult):
             kernel.matMulGeneral(args.device, [args.batch_size, args.dense_dim_in], [args.dense_dim_in, args.dense_dim_out], ([1], [0]))
-            kernel.axpy(args.device, args.dense_dim_in * args.dense_dim_out)
+            kernel.axpy_fast(args.device, args.dense_dim_in * args.dense_dim_out)
     kernel.top_k(args.device, args.num_sample, args.top_k)
     if args.device == 'gpu':
         kernel.dataCopyH2D(args.top_k * 2)
 
-    os.makedirs(root_path, exist_ok=True)
-    file_name = os.path.join(root_path, "result.txt")
-    kernel.writeSingleRank(args.top_k * 2, file_name)
+    dir_name = os.path.join(root_path, "result")
+    os.makedirs(dir_name, exist_ok=True)
+    kernel.writeSingleRank(args.top_k * 2, dir_name)
     end_time = time.time()
     print("Total running time is {} seconds".format(end_time - start_time))
 

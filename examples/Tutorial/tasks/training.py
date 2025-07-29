@@ -61,7 +61,7 @@ def main():
             kernel.dataCopyH2D(args.batch_size * args.dense_dim_in)
             for ii in range(args.num_mult):
                 kernel.matMulGeneral(args.device, [args.batch_size, args.dense_dim_in], [args.dense_dim_in, args.dense_dim_out], ([1], [0]))
-                kernel.axpy(args.device, args.dense_dim_in * args.dense_dim_out)
+                kernel.axpy_fast(args.device, args.dense_dim_in * args.dense_dim_out)
         if epoch % args.log_freq == 0:
             dir_name = os.path.join(root_path, f"./epoch_{epoch}")
             os.makedirs(dir_name, exist_ok=True)

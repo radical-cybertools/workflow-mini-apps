@@ -66,14 +66,16 @@ def main():
             kernel.fftn(args.device, (args.grid_size, args.grid_size, args.grid_size), 'complexF', (0,1,2))
         for j in range(args.n_int):
             kernel.axpy_fast(args.device, 3*args.N_atoms)
-        if i % log_freq == 0:
+        if i % args.log_freq == 0:
             dir_name = os.path.join(root_path, f"./log_step_{i}")
             os.makedirs(dir_name, exist_ok=True)
-            kernel.writeSingleRank(io_bytes, dir_name)
+            kernel.writeSingleRank(args.io_bytes, dir_name)
     print("After main loop takes ", time.time() - start_time)
 
     if args.device == 'gpu':
         kernel.dataCopyD2H(args.N_atoms * 3 * 3)
+
+    end_time = time.time()
     print("Total running time is {} seconds".format(end_time - start_time))
 
 if __name__ == '__main__':
