@@ -294,11 +294,11 @@ def axpy(device, size):
     y = xp.empty(size, dtype=xp.float32)
     y += 1.01 * x
 
-#_axpy_inplace = cp.ElementwiseKernel(
+#_axpy_fuse = cp.ElementwiseKernel(
 #    'float32 alpha, raw float32 x',
 #    'raw float32 y',               
 #    'y[i] += alpha * x[i]',        
-#    'axpy_inplace_kernel',
+#    'axpy_fuse_kernel',
 #    no_return=True                 
 #)
 #
@@ -310,10 +310,28 @@ def axpy(device, size):
 #    if xp == np:
 #        y += 1.01 * x
 #    elif xp == cp:
-#        _axpy_inplace(1.01, x, y, size=size)
+#        _axpy_fuse(1.01, x, y, size=size)
+
+_axpy_fuse_fast = cp.ElementwiseKernel(
+    'float32 alpha, raw float32 x',
+    'raw float32 y',               
+    'y[i] += alpha * x[i]',        
+    'axpy_fuse_kernel',
+    no_return=True                 
+)
 
 @annotate_kernel
-def implaceCompute(device, size, num_op, op):
+def axpy_fast(device, size):
+    xp = get_device_module(device)
+    x = xp.empty(size, dtype=xp.float32)
+    y = xp.empty(size, dtype=xp.float32)
+    if xp == np:
+        y += 1.01 * x
+    elif xp == cp:
+        _axpy_fuse_fast(1.01, x, y, size=size)
+
+@annotate_kernel
+def inplaceCompute(device, size, num_op, op):
     xp = get_device_module(device)
     x = xp.empty(size, dtype=xp.float32)
     if isinstance(op, str):
@@ -343,3 +361,11 @@ def scatterAdd(device, x_size, y_size):
         y += x[idx]
     elif xp == cp:
         cp.add.at(y, idx, x)
+
+@annotate_kernel
+def top_k(device, size, k):
+    xp = get_device_module(device)
+    arr = xp.empty(size, dtype=xp.float32)
+    indices = xp.argpartition(-arr, k)[:k]
+    sorted_indices = indices[xp.argsort(-arr[indices])]
+    top_values = arr[sorted_indices]
