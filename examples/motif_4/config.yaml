@@ -1,0 +1,27 @@
+experiment:
+  steps: 8
+  read_size_bytes: 1024         # 1 KiB pre-step read
+  write_size_bytes: 8589934592  # 8 GiB post-step write
+  device: "cpu"                 # "cpu" or "gpu"
+  matmul_dim: 8192              # dimension for square matrix multiplication
+
+simulation:
+  steps: 16
+  read_size_bytes: 1048576      # 1 MiB pre-step read
+  write_size_bytes: 4294967296  # 4 GiB post-step write
+  device: "cpu"                 # "cpu" or "gpu"
+  matmul_dim: 2048              # dimension for square matrix multiplication
+
+training:
+  steps: 6
+  read_size_bytes: 2147483648   # 2 GiB pre-step read
+  write_size_bytes: 512         # 512 B post-step write
+  data_copy_size_bytes: 2097152 # 2 MiB data copy
+  matmul_dim: 8192              # dimension for square matrix multiplication
+
+inference:
+  steps: 4
+  read_size_bytes: 1342177280   # 1.25 GiB pre
+  write_size_bytes: 2147483648  # 2 GiB post-step write
+  data_copy_size_bytes: 2097152 # 2 MiB data copy
+  matmul_dim: 8192              # dimension for square matrix multiplication

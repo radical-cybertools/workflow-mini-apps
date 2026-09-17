@@ -1,0 +1,8 @@
+numpy
+h5py
+mpi4py
+cupy
+radical-pilot
+radical-asyncflow
+dragonhpc
+rhapsody-py[all]

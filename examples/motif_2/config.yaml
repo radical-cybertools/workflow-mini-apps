@@ -1,0 +1,36 @@
+# Stages are executed in order; the AI analysis between stages filters
+# candidates so the ensemble shrinks as fidelity (steps/matmul_dim) grows.
+stages:
+  - name: "coarse_screening"
+    ensemble_size: 32
+    steps: 4
+    read_size_bytes: 1048576      # 1 MiB pre-step read
+    write_size_bytes: 268435456   # 256 MiB post-step write
+    device: "cpu"                 # "cpu" or "gpu"
+    matmul_dim: 2048              # dimension for square matrix multiplication
+    filter_threshold: 0.5         # candidates with score below this are dropped
+
+  - name: "refinement"
+    ensemble_size: 16
+    steps: 8
+    read_size_bytes: 268435456    # 256 MiB pre-step read
+    write_size_bytes: 1073741824  # 1 GiB post-step write
+    device: "cpu"
+    matmul_dim: 4096
+    filter_threshold: 0.5
+
+  - name: "high_fidelity"
+    ensemble_size: 4
+    steps: 16
+    read_size_bytes: 1073741824   # 1 GiB pre-step read
+    write_size_bytes: 4294967296  # 4 GiB post-step write
+    device: "cpu"
+    matmul_dim: 8192
+    filter_threshold: 0.5
+
+analysis:
+  steps: 4
+  read_size_bytes: 1342177280     # 1.25 GiB pre-step read
+  write_size_bytes: 512           # 512 B post-step write
+  data_copy_size_bytes: 2097152   # 2 MiB data copy
+  matmul_dim: 8192                # dimension for square matrix multiplication

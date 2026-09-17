@@ -1,0 +1,29 @@
+simulation:
+  steps: 8
+  read_size_bytes: 1024         # 1 KiB pre-step read
+  write_size_bytes: 4294967296  # 4 GiB post-step write
+  device: "cpu"                 # "cpu" or "gpu"
+  matmul_dim: 4096              # dimension for square matrix multiplication
+
+training:
+  read_size_bytes: 2147483648   # 2 GiB pre-step read
+  write_size_bytes: 512         # 512 B post-step write
+  data_copy_size_bytes: 2097152 # 2 MiB data copy
+  min_steps: 4                  # hyperparameter search space: training steps
+  max_steps: 8
+  matmul_dims: [4096, 8192]     # hyperparameter search space: model size
+
+analysis:
+  steps: 2
+  read_size_bytes: 1342177280   # 1.25 GiB pre-step read
+  write_size_bytes: 512         # 512 B post-step write
+  data_copy_size_bytes: 2097152 # 2 MiB data copy
+  matmul_dim: 8192              # dimension for square matrix multiplication
+
+ensemble:
+  num_models: 4                 # models trained concurrently
+  max_rounds: 3                 # maximum train/analyze rounds
+  initial_simulations: 8        # data-generating simulations before round 0
+  new_simulations_per_round: 4  # simulations spawned when coverage is low
+  accuracy_threshold: 0.4       # models below this are terminated and respawned
+  coverage_threshold: 0.5       # spawn new simulations below this coverage

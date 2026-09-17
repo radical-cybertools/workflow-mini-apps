@@ -1,0 +1,14 @@
+simulate:
+  steps: 8
+  device: "cpu"
+  read_size_bytes: 4294967296
+  write_size_bytes: 1073741824
+  matmul_dim: 8192
+
+training:
+  steps: 6
+  device: "cpu"
+  read_size_bytes: 1342177280
+  write_size_bytes: 512
+  data_copy_size_bytes: 2097152
+  matmul_dim: 8192

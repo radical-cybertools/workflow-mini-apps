@@ -1,0 +1,131 @@
+import argparse, asyncio, yaml, random, logging
+import time
+
+from rhapsody.backends import DragonExecutionBackendV3
+
+from radical.asyncflow import WorkflowEngine
+from radical.asyncflow.logging import init_default_logger
+
+from wfMiniAPI import kernel as kern
+
+class Timer:
+    def __init__(self): self.t0 = None
+    def start(self): self.t0 = time.time(); return self
+    def stop(self): return time.time() - self.t0
+
+def load_cfg(path): 
+    with open(path, "r") as f: return yaml.safe_load(f)
+
+async def workflow(cfg):
+    import multiprocessing as mp
+    logger = logging.getLogger(__name__)
+    init_default_logger(logging.DEBUG)
+
+    mp.set_start_method("dragon")
+    backend = await DragonExecutionBackendV3()
+    flow = await WorkflowEngine.create(backend=backend)
+
+    @flow.function_task
+    async def experiment():
+        e = cfg["experiment"]
+        steps = e["steps"]
+        read_size = e["read_size_bytes"]
+        write_size = e["write_size_bytes"]
+        device = e["device"]
+        matmul_dim = e["matmul_dim"]
+        
+        logger.info(f"Experiment Data...")
+        logger.info(time.strftime("%H:%M:%S", time.localtime()))
+        kern.generateRandomNumber(device=device, size=matmul_dim)
+        for j in range(steps):
+            kern.matMulSimple2D(device=device, size=matmul_dim)
+        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
+        kern.readNonMPI(num_bytes=read_size, data_root_dir="./")
+        logger.info(f"Finished simulating...")
+        logger.info(time.strftime("%H:%M:%S", time.localtime()))
+        return random.random()
+    
+    @flow.function_task
+    async def simulation(i, _experiment):
+        e = cfg["simulation"]
+        steps = e["steps"]
+        read_size = e["read_size_bytes"]
+        write_size = e["write_size_bytes"]
+        device = e["device"]
+        matmul_dim = e["matmul_dim"]
+
+        logger.info(f"Simulating {i}...")
+        logger.info(time.strftime("%H:%M:%S", time.localtime()))
+        kern.readNonMPI(num_bytes=read_size, data_root_dir="./")
+        kern.generateRandomNumber(device=device, size=matmul_dim)
+        for _ in range(steps):
+            kern.matMulSimple2D(device=device, size=matmul_dim)
+        if i == 0:
+            kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
+        logger.info(f"Finished simulating...")
+        logger.info(time.strftime("%H:%M:%S", time.localtime()))
+        return random.random()
+    
+    @flow.function_task
+    async def training():
+        e = cfg["training"]
+        steps = e["steps"]
+        read_size = e["read_size_bytes"]
+        write_size = e["write_size_bytes"]
+        copy_size = e["data_copy_size_bytes"]
+        matmul_dim = e["matmul_dim"]
+
+        logger.info(f"Training model with simulation results...")
+        logger.info(time.strftime("%H:%M:%S", time.localtime()))
+        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
+        kern.readNonMPI(num_bytes=read_size, data_root_dir="./")
+        kern.dataCopyH2D(data_size=copy_size)
+        for i in range(steps):
+            kern.matMulSimple2D(device="gpu", size=matmul_dim)
+            kern.matMulSimple2D(device="cpu", size=matmul_dim)
+        kern.dataCopyH2D(data_size=copy_size)
+        logger.info(f"Finished training model with evaluation results...")
+        logger.info(time.strftime("%H:%M:%S", time.localtime()))
+        return random.random()
+
+    @flow.function_task
+    async def inference(_training):
+        e = cfg["inference"]
+        steps = e["steps"]
+        read_size = e["read_size_bytes"]
+        write_size = e["write_size_bytes"]
+        copy_size = e["data_copy_size_bytes"]
+        matmul_dim = e["matmul_dim"]
+
+        logger.info(f"Inferencing model with evaluation results...")
+        logger.info(time.strftime("%H:%M:%S", time.localtime()))
+        kern.readNonMPI(num_bytes=read_size, data_root_dir="./")
+        kern.dataCopyH2D(data_size=copy_size)
+        for i in range(steps):
+            kern.matMulSimple2D(device="gpu", size=matmul_dim)
+            kern.matMulSimple2D(device="cpu", size=matmul_dim)
+        kern.dataCopyH2D(data_size=copy_size)
+        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
+        logger.info(f"Finished inferencing model with evaluation results...")
+        logger.info(time.strftime("%H:%M:%S", time.localtime()))
+        return random.random()
+
+    for j in range(3):
+        sim_t = []
+        experiment_t = experiment()
+        for i in range(32):
+            sim_t.append(simulation(i, experiment_t))
+        await asyncio.gather(*sim_t)
+        train_t = training()
+        infer_t = await inference(train_t)
+
+    await flow.shutdown()
+
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser(description="Digital Twin (Motif 4) Mini-App")
+    ap.add_argument("--config", type=str, default="config.yaml")
+    args = ap.parse_args()
+    cfg = load_cfg(args.config)
+    t = Timer().start()
+    asyncio.run(workflow(cfg))
+    print(f"DONE in {t.stop():.3f}s")
