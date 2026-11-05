@@ -1,12 +1,13 @@
 import argparse, asyncio, yaml, random, logging
 import time
 
-from rhapsody.backends import DragonExecutionBackendV3
+from rhapsody.backends import DragonExecutionBackend
 
 from radical.asyncflow import WorkflowEngine
 from radical.asyncflow.logging import init_default_logger
 
 from wfMiniAPI import kernel as kern
+from wfMiniAPI.api import MiniApp
 
 class Timer:
     def __init__(self): self.t0 = None
@@ -16,14 +17,19 @@ class Timer:
 def load_cfg(path): 
     with open(path, "r") as f: return yaml.safe_load(f)
 
-async def workflow(cfg):
+async def run_miniapp(cfg):
     import multiprocessing as mp
     logger = logging.getLogger(__name__)
     init_default_logger(logging.DEBUG)
 
     mp.set_start_method("dragon")
-    backend = await DragonExecutionBackendV3()
+    backend = await DragonExecutionBackend()
     flow = await WorkflowEngine.create(backend=backend)
+    telemetry = await flow.start_telemetry(checkpoint_path="telemetry")
+    async with MiniApp(flow, telemetry), flow.workflow_scope("motif_3_simple"):
+        await miniapp_workflow(cfg, flow, logger)
+
+async def miniapp_workflow(cfg, flow, logger):
     
     @flow.function_task
     async def simulate():
@@ -80,5 +86,5 @@ if __name__ == "__main__":
     args = ap.parse_args()
     cfg = load_cfg(args.config)
     t = Timer().start()
-    asyncio.run(workflow(cfg))
+    asyncio.run(run_miniapp(cfg))
     print(f"DONE in {t.stop():.3f}s")

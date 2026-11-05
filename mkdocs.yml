@@ -8,6 +8,7 @@ nav:
   - Getting started: getting-started.md
   - Kernels: kernels.md
   - API:
+      - MiniApp: api/miniapp.md
       - Kernels: api/kernels.md
   - Design:
       - Telemetry-first MiniApp API: design/miniapp-telemetry.md

@@ -40,7 +40,8 @@ pip install -e ".[workflow,io,mpi]"    # add "gpu" for CuPy (CUDA 12), "test" fo
 | `workflow` | AsyncFlow and RHAPSODY (with telemetry), needed by the examples |
 | `test`, `docs`, `dev` | pytest; MkDocs; ruff and pre-commit |
 
-Each example's README explains how to run it.
+Each example's README explains how to run it. Every example attaches to
+`wfMiniAPI.api.MiniApp`, which records and verifies the run's telemetry (see `docs/api/miniapp.md`).
 
 ## Tests
 

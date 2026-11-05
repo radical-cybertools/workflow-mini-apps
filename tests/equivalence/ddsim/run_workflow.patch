@@ -1,0 +1,150 @@
+--- a/workflows/miniapps_workflow/run_workflow.py	2026-10-23 20:35:09.000000000 +0200
++++ b/workflows/miniapps_workflow/run_workflow.py	2026-11-05 19:20:06.443196668 +0100
+@@ -1,10 +1,12 @@
+ #!/usr/bin/env python3
+ import argparse
+ import asyncio
++import logging
+ import os
+ from pathlib import Path
+ 
+ from radical.asyncflow import WorkflowEngine
++from wfMiniAPI.api import MiniApp, require_dragon
+ 
+ from ddsim.util import load_config
+ from workflows.miniapps_workflow.miniapps_workflow import MiniAppsWorkflow
+@@ -16,75 +18,75 @@
+     backend = os.environ.get("DDSIM_BACKEND", "dragon")
+     num_replicas = cfg.get("num_replicas", 4)
+ 
+-    # --- Build backend and asyncflow ---
++    # --- Build backend and asyncflow (explicit; no fallback) ---
+     if backend == "dragon":
+-        try:
+-            from rhapsody.backends import DragonExecutionBackend
+-
+-            engine_dragon = await DragonExecutionBackend()
+-            asyncflow = await WorkflowEngine.create(engine_dragon)
+-        except ImportError:
+-            backend = "concurrent"
++        require_dragon()
++        from rhapsody.backends import DragonExecutionBackend
+ 
+-    if backend != "dragon":
++        execution_backend = await DragonExecutionBackend()
++    elif backend == "concurrent":
+         from rhapsody.backends import ConcurrentExecutionBackend
+ 
+-        engine_concurrent = await ConcurrentExecutionBackend()
+-        asyncflow = await WorkflowEngine.create(engine_concurrent)
+-
+-    # --- Telemetry
+-    telemetry = None
+-    if cfg.get("telemetry", True):
+-        telemetry_dir = cfg.get("telemetry_dir", "telemetry-output")
+-        if hasattr(asyncflow, "start_telemetry"):
+-            telemetry = await asyncflow.start_telemetry(
+-                resource_poll_interval=0.05,
+-                checkpoint_path=telemetry_dir,
+-            )
+-            print("Started Asyncflow telemetry ...")
++        execution_backend = await ConcurrentExecutionBackend()
++    else:
++        raise ValueError(f"DDSIM_BACKEND={backend!r}: expected 'dragon' or 'concurrent'")
++    asyncflow = await WorkflowEngine.create(execution_backend)
++
++    # --- Telemetry (mandatory) ---
++    if not cfg.get("telemetry", True):
++        logging.getLogger(__name__).warning(
++            "config 'telemetry: false' is ignored: telemetry is mandatory"
++        )
++    telemetry_dir = cfg.get("telemetry_dir", "telemetry-output")
++    telemetry = await asyncflow.start_telemetry(
++        resource_poll_interval=0.05,
++        checkpoint_path=telemetry_dir,
++    )
++    print("Started Asyncflow telemetry ...")
+ 
+     home_dir = Path(cfg.get("home_dir", Path.home() / "MiniApps")).expanduser()
+ 
+-    # --- Launch replicas ---
+-    replicas = [
+-        workflow_class(
+-            config=cfg,
+-            name=f"min{i + 1}",
+-            asyncflow=asyncflow,
+-            telemetry=telemetry,
+-            home_dir=str(home_dir),
+-        )
+-        for i in range(num_replicas)
+-    ]
+-
+-    try:
+-        await asyncio.gather(*[r.start() for r in replicas])
+-    except Exception as e:
+-        print(f"An error occurred during workflow execution: {e}")
+-    finally:
+-        await asyncio.gather(*[r.close() for r in replicas])
++    async with MiniApp(asyncflow, telemetry), asyncflow.workflow_scope("ddsim"):
++        # --- Launch replicas ---
++        replicas = [
++            workflow_class(
++                config=cfg,
++                name=f"min{i + 1}",
++                asyncflow=asyncflow,
++                telemetry=telemetry,
++                home_dir=str(home_dir),
++            )
++            for i in range(num_replicas)
++        ]
+ 
+         try:
+-            summary = telemetry.summary()
+-            print(f"Tasks — {summary['tasks']}")
+-            if summary.get("duration"):
+-                d = summary["duration"]
+-                print(
+-                    f"Mean task time: {d['mean_seconds']:.2f} s  "
+-                    f"Max: {d['max_seconds']:.2f} s"
+-                )
++            await asyncio.gather(*[r.start() for r in replicas])
+         except Exception as e:
+-            print(f"An error occurred during telemetry summary: {e}")
+-
+-        if telemetry:
+-            await telemetry.stop()
+-        await asyncflow.shutdown()
+-
+-        pending = {t for t in asyncio.all_tasks() if t is not asyncio.current_task()}
+-        if pending:
+-            for t in pending:
+-                t.cancel()
+-            await asyncio.gather(*pending, return_exceptions=True)
++            print(f"An error occurred during workflow execution: {e}")
++        finally:
++            await asyncio.gather(*[r.close() for r in replicas])
++
++            try:
++                summary = telemetry.summary()
++                print(f"Tasks — {summary['tasks']}")
++                if summary.get("duration"):
++                    d = summary["duration"]
++                    print(
++                        f"Mean task time: {d['mean_seconds']:.2f} s  "
++                        f"Max: {d['max_seconds']:.2f} s"
++                    )
++            except Exception as e:
++                print(f"An error occurred during telemetry summary: {e}")
++
++            # telemetry.stop() is done by MiniApp, after the engine has shut down
++            await asyncflow.shutdown()
++
++    # after MiniApp: the sweep would otherwise cancel RHAPSODY's dispatch tasks
++    pending = {t for t in asyncio.all_tasks() if t is not asyncio.current_task()}
++    if pending:
++        for t in pending:
++            t.cancel()
++        await asyncio.gather(*pending, return_exceptions=True)
+ 
+     print()
+     print("=" * 60)

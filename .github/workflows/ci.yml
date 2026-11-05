@@ -18,8 +18,12 @@ jobs:
         run: pip install -e ".[workflow,io,mpi,test,docs,dev]"
       - name: Lint
         run: ruff check src tests
-      - name: Static equivalence (E1)
-        run: python tests/equivalence/static_check.py check
+      - name: Static equivalence (E1) and MiniApp contract (E2)
+        run: |
+          python tests/equivalence/static_check.py check
+          python tests/equivalence/contract_check.py
+      - name: Harness self-check (a second dynamic run must also match the goldens)
+        run: python tests/equivalence/run_equiv.py check
       - name: Unit tests and dynamic equivalence (DeepDriveSim case skipped without its export)
         run: pytest -q
       - name: Docs

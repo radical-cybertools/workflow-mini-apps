@@ -2,6 +2,28 @@
 
 ## 0.2.0 (unreleased)
 
+### Phase 2: explicit edge and MiniApp
+
+- **`wfMiniAPI.api.MiniApp(flow, telemetry)`**: the mini-app's contact point. It
+  attaches to the user-built engine and AsyncFlow telemetry, records
+  `wfminiapi.RunStarted`/`RunEnded`, always stops telemetry after the engine has shut
+  down, and verifies the checkpoint (`app.report`, plus
+  `<session>.wfminiapi.report.json`). It owns no exit codes or signal handlers.
+- **`wfMiniAPI.api.require_dragon()`**: optional preflight with a launch hint.
+- **Example edges** (motif_2, motif_3 ×2, motif_4, motif_6, dragon-mpi): unversioned
+  `DragonExecutionBackend`, `flow.start_telemetry(...)`, and
+  `async with MiniApp(flow, telemetry), flow.workflow_scope("<name>")`. The outer
+  function is now `run_miniapp(cfg)` (was `workflow`) and calls
+  `miniapp_workflow(cfg, flow, logger)`, which holds the unchanged core. Every workflow
+  still matches its baseline exactly.
+- **DeepDriveSim**: the same edge in `run_workflow.py`, as
+  `tests/equivalence/ddsim/run_workflow.patch`.
+- **Tests:** `contract_check.py` (each workflow attaches `MiniApp`); integration
+  scenarios (failures, signals, attach errors, early stop); layering and
+  framework-drift tests.
+
+### Phase 1: baseline and equivalence harness
+
 Phase 1 of the telemetry-first MiniApp redesign (`docs/design/miniapp-telemetry.md`):
 baseline and equivalence harness. No workflow behaviour changes.
 

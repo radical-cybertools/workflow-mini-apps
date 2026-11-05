@@ -31,7 +31,11 @@ SHIM = HERE / "shim"
 CONFIGS = HERE / "configs"
 GOLDENS = HERE / "goldens"
 WORK = REPO / ".equiv-work"
-DDSIM_BASELINE = Path(os.environ.get("WFMINI_EQUIV_DDSIM", WORK / "ddsim-0c4f0c2")).resolve()
+DDSIM_BASELINE = (WORK / "ddsim-0c4f0c2").resolve()
+DDSIM_PATCH = HERE / "ddsim" / "run_workflow.patch"
+# integrated DeepDriveSim = baseline export + DDSIM_PATCH (the edge change); override with
+# WFMINI_EQUIV_DDSIM to check another tree (e.g. the DeepDriveSim worktree)
+DDSIM_INTEGRATED = Path(os.environ.get("WFMINI_EQUIV_DDSIM", WORK / "ddsim-wfm")).resolve()
 PYTHON = Path(os.environ.get("WFMINI_EQUIV_PYTHON", sys.executable))
 TIMEOUT_S = int(os.environ.get("WFMINI_EQUIV_TIMEOUT", "900"))
 # tree whose examples are run (default: this repository); lets a test run a modified copy
@@ -151,6 +155,22 @@ def example_path(workflow: Workflow, tree: Path = TREE) -> Path:
     return tree / workflow.script
 
 
+def integrated_ddsim() -> Path:
+    """The integrated DeepDriveSim tree, built from the baseline export and DDSIM_PATCH."""
+    if "WFMINI_EQUIV_DDSIM" in os.environ or not DDSIM_BASELINE.exists():
+        return DDSIM_INTEGRATED
+    stamp = DDSIM_INTEGRATED / ".patch.sha"
+    digest = __import__("hashlib").sha256(DDSIM_PATCH.read_bytes()).hexdigest()
+    if not (stamp.exists() and stamp.read_text() == digest):
+        shutil.rmtree(DDSIM_INTEGRATED, ignore_errors=True)
+        shutil.copytree(DDSIM_BASELINE, DDSIM_INTEGRATED)
+        subprocess.run(
+            ["patch", "-p1", "-s", "-i", str(DDSIM_PATCH)], cwd=DDSIM_INTEGRATED, check=True
+        )
+        stamp.write_text(digest)
+    return DDSIM_INTEGRATED
+
+
 # ---------------------------------------------------------------------------- #
 # running
 def _env(
@@ -176,7 +196,13 @@ def _run(cmd: list[str], cwd: Path, env: dict[str, str]) -> subprocess.Completed
     return subprocess.run(cmd, cwd=cwd, env=env, capture_output=True, text=True, timeout=TIMEOUT_S)
 
 
-def run(name: str, mode: str, keep: Path | None = None, baseline: bool = False) -> dict:
+def run(
+    name: str,
+    mode: str,
+    keep: Path | None = None,
+    baseline: bool = False,
+    telemetry: bool = False,
+):
     """Run one workflow in one mode and return its summary.
 
     ``baseline=True`` runs the pristine baseline tree and library (used to capture goldens).
@@ -209,7 +235,8 @@ def run(name: str, mode: str, keep: Path | None = None, baseline: bool = False) 
             if workflow.config:
                 shutil.copy(CONFIGS / workflow.config, run_dir / "cfg.yaml")
             if workflow.kind == "ddsim":
-                script, extra = DDSIM_BASELINE / workflow.script, [DDSIM_BASELINE]
+                root = DDSIM_BASELINE if baseline else integrated_ddsim()
+                script, extra = root / workflow.script, [root]
             else:
                 script, extra = example_path(workflow, tree), []
             proc = _run(
@@ -221,13 +248,32 @@ def run(name: str, mode: str, keep: Path | None = None, baseline: bool = False) 
             (tmp / "stdout.txt").write_text(proc.stdout)
             (tmp / "stderr.txt").write_text(proc.stderr)
         summary = summarise(workflow, mode, trace_dir, run_dir, exit_code, stderr)
+        facts = telemetry_facts(run_dir) if telemetry else None
     finally:
         if keep is None:
             shutil.rmtree(tmp, ignore_errors=True)
         else:
             shutil.rmtree(keep, ignore_errors=True)
             shutil.move(str(tmp), keep)
-    return summary
+    return (summary, facts) if telemetry else summary
+
+
+# ---------------------------------------------------------------------------- #
+# telemetry produced by the integrated (MiniApp) edge; not part of the goldens
+def telemetry_facts(run_dir: Path) -> dict:
+    """What the MiniApp edge recorded: report, run events, task-span scope tags."""
+    reports = sorted(run_dir.rglob("*.wfminiapi.report.json"))
+    checkpoints = sorted(run_dir.rglob("*.telemetry.jsonl"))
+    facts = {"reports": [json.loads(p.read_text()) for p in reports], "task_span_scopes": []}
+    for path in checkpoints:
+        for line in path.read_text().splitlines():
+            if '"section": "span"' not in line:
+                continue
+            rec = json.loads(line)
+            if rec.get("name") == "task":
+                attrs = rec.get("attributes") or {}
+                facts["task_span_scopes"].append(attrs.get("asyncflow.workflow_id"))
+    return facts
 
 
 # ---------------------------------------------------------------------------- #
@@ -238,7 +284,9 @@ _TMP_RE = re.compile(r"/[^\s'\"]*?/\.equiv-work/[^/\s'\"]+/run")
 def _norm(value):
     """Replace per-run temporary paths so summaries are comparable."""
     if isinstance(value, str):
-        value = value.replace(str(DDSIM_BASELINE), "<DDSIM>").replace(str(PYTHON), "<PYTHON>")
+        for root in (DDSIM_BASELINE, DDSIM_INTEGRATED):
+            value = value.replace(str(root), "<DDSIM>")
+        value = value.replace(str(PYTHON), "<PYTHON>")
         return _TMP_RE.sub("<RUN>", value)
     if isinstance(value, list):
         return [_norm(v) for v in value]
@@ -271,13 +319,15 @@ def _kernel(rec: dict) -> dict:
 
 def _process_summary(records: list[dict]) -> dict:
     """Split one process trace into calls, task executions and manager kernels."""
-    calls, executions, manager_kernels = [], [], []
+    calls, executions, manager_kernels, violations = [], [], [], []
     open_by_thread: dict[str, list[dict]] = collections.defaultdict(list)
     argv = None
     for rec in sorted(records, key=lambda r: r["seq"]):
         kind = rec["kind"]
         if kind == "process":
             argv = rec["argv"]
+        elif kind == "violation":
+            violations.append(rec["what"])
         elif kind == "call":
             calls.append({k: rec[k] for k in ("comp", "name", "call", "args", "kwargs")})
         elif kind == "begin":
@@ -296,6 +346,7 @@ def _process_summary(records: list[dict]) -> dict:
             stack = open_by_thread[rec["thread"]]
             (stack[-1]["kernels"] if stack else manager_kernels).append(_kernel(rec))
     return {
+        "violations": violations,
         "argv": argv,
         "calls": calls,
         "executions": executions,
@@ -308,7 +359,7 @@ def _files(run_dir: Path) -> list[list]:
     for path in sorted(run_dir.rglob("*")):
         if path.is_file() and path.name != "cfg.yaml":
             rel = path.relative_to(run_dir).as_posix()
-            if rel.startswith(("telemetry-output/", "asyncflow.session.")):
+            if rel.startswith(("telemetry/", "telemetry-output/", "asyncflow.session.")):
                 continue
             out.append([rel, path.stat().st_size])
     return out
@@ -346,6 +397,9 @@ def summarise(
         ]
     else:  # ddsim: conditional equivalence (timing-dependent steering)
         summary.update(_ddsim_summary(processes))
+    violations = sorted({v for p in processes for v in p["violations"]})
+    if violations:  # absent when clean, so goldens keep their shape
+        summary["violations"] = violations
     return _norm(summary)
 
 

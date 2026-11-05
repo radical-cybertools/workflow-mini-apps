@@ -10,11 +10,16 @@ What it does when active:
     - every AsyncFlow task/block call (name, arguments, dependency edges),
     - task/block body begin and end;
 * ``WFMINI_EQUIV_KERNELS=dry`` records kernel calls without executing them;
-* makes the unmodified examples runnable on a CPU host, deterministically:
-    - ``rhapsody.backends.DragonExecutionBackendV3`` (an ImportError on
-      RHAPSODY main) becomes a one-worker ``ConcurrentExecutionBackend``,
+* makes the examples runnable on a CPU host, deterministically:
+    - ``rhapsody.backends.DragonExecutionBackend`` and ``...V3`` (an ImportError
+      on RHAPSODY main) become a one-worker ``ConcurrentExecutionBackend``,
     - ``multiprocessing.set_start_method("dragon")`` becomes a no-op,
-    - ``random`` and NumPy are seeded.
+    - ``random`` and NumPy are seeded, and reseeded once the engine exists,
+    - OpenTelemetry stops drawing from the global ``random`` stream (span and
+      trace ids use ``os.urandom``; metric exemplars are off), so turning
+      telemetry on cannot shift the workflow's own random numbers;
+* asserts that nothing draws from ``random`` between the reseed and the first
+  task call (recorded as a ``violation``).
 
 The shim is applied identically to the baseline and to the integrated code,
 so whatever it adds cancels out in the comparison.
@@ -67,6 +72,8 @@ if os.environ.get("WFMINI_EQUIV") == "1":
     # ------------------------------------------------------------------ #
     # determinism and CPU runnability
     random.seed(_SEED)
+    os.environ.setdefault("OTEL_METRICS_EXEMPLAR_FILTER", "always_off")
+    _reseeded_state = None  # random state right after the post-engine reseed
 
     import multiprocessing
 
@@ -116,17 +123,28 @@ if os.environ.get("WFMINI_EQUIV") == "1":
         module.random.seed(_SEED)
 
     def _on_rhapsody_backends(module):
-        if hasattr(module, "DragonExecutionBackendV3"):
-            return
         from concurrent.futures import ThreadPoolExecutor
 
         concurrent_backend = module.ConcurrentExecutionBackend
 
-        def DragonExecutionBackendV3(*args, **kwargs):  # noqa: N802
-            _record("shim", what="DragonExecutionBackendV3 -> Concurrent(max_workers=1)")
+        def dragon_on_cpu(*args, **kwargs):
+            _record("shim", what="Dragon backend -> Concurrent(max_workers=1)")
             return concurrent_backend(ThreadPoolExecutor(max_workers=1))
 
-        module.DragonExecutionBackendV3 = DragonExecutionBackendV3
+        # Replace both names: DragonExecutionBackend always exists in
+        # rhapsody.backends (its constructor fails later without Dragon).
+        module.DragonExecutionBackend = dragon_on_cpu
+        module.DragonExecutionBackendV3 = dragon_on_cpu
+
+    def _on_otel_id_generator(module):
+        def span_id(self):
+            return int.from_bytes(os.urandom(8), "big") or 1
+
+        def trace_id(self):
+            return int.from_bytes(os.urandom(16), "big") or 1
+
+        module.RandomIdGenerator.generate_span_id = span_id
+        module.RandomIdGenerator.generate_trace_id = trace_id
 
     # ------------------------------------------------------------------ #
     # independent kernel recorder
@@ -215,6 +233,13 @@ if os.environ.get("WFMINI_EQUIV") == "1":
     def _wrap_call(decorated, name, comp):
         @functools.wraps(decorated)
         def call(*args, **kwargs):
+            global _reseeded_state
+            if _reseeded_state is not None:
+                # first task/block call: nothing may have drawn from `random` since
+                # the reseed (edge code, telemetry, MiniApp)
+                if random.getstate() != _reseeded_state:
+                    _record("violation", what="global random drawn between reseed and first call")
+                _reseeded_state = None
             call_id = f"{name}#{next(_call_ids)}"
             _record(
                 "call",
@@ -257,6 +282,8 @@ if os.environ.get("WFMINI_EQUIV") == "1":
             random.seed(_SEED)
             if "numpy" in sys.modules:
                 sys.modules["numpy"].random.seed(_SEED)
+            global _reseeded_state
+            _reseeded_state = random.getstate()
             _record("shim", what="reseeded after WorkflowEngine creation")
             self.function_task = _wrap_decorator(self.function_task, "function")
             self.executable_task = _wrap_decorator(self.executable_task, "executable")
@@ -268,6 +295,7 @@ if os.environ.get("WFMINI_EQUIV") == "1":
     _hooks.update(
         {
             "numpy": _on_numpy,
+            "opentelemetry.sdk.trace.id_generator": _on_otel_id_generator,
             "rhapsody.backends": _on_rhapsody_backends,
             "wfMiniAPI.kernel": _on_kernel,
             "radical.asyncflow.workflow_manager": _on_workflow_manager,

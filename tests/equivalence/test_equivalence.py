@@ -50,8 +50,22 @@ def test_matches_golden(name, mode):
     if harness.WORKFLOWS[name].kind == "ddsim" and not harness.DDSIM_BASELINE.exists():
         pytest.skip(f"DeepDriveSim baseline not found at {harness.DDSIM_BASELINE}")
     golden = json.loads(harness.golden_path(name, mode).read_text())
-    diff = compare.first_difference(golden, harness.run(name, mode))
+    summary, facts = harness.run(name, mode, telemetry=True)
+    diff = compare.first_difference(golden, summary)
     assert diff is None, diff
+    if harness.WORKFLOWS[name].kind == "tutorial":
+        return  # task scripts only: no workflow edge, no MiniApp
+    # the MiniApp edge: one verified report, run events, every task span scoped
+    (report,) = facts["reports"]
+    assert report["telemetry_complete"], report["reasons"]
+    assert report["events"].get("wfminiapi.RunStarted") == 1
+    assert report["events"].get("wfminiapi.RunEnded") == 1
+    scopes = set(facts["task_span_scopes"])
+    if harness.WORKFLOWS[name].kind == "ddsim":
+        # replica @flow.block ids: only the innermost id is recorded (UP-17)
+        assert scopes and all(s and s.startswith("block.") for s in scopes), scopes
+    else:
+        assert scopes == {name}, scopes
 
 
 def test_harness_detects_behaviour_change(tmp_path):
