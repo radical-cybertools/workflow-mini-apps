@@ -1,0 +1,67 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wfMiniAPI"
+version = "0.2.0.dev0"
+description = "Emulation kernels and building blocks for RADICAL workflow mini-apps"
+readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE.md"]
+authors = [{ name = "RADICAL-Cybertools Team", email = "info@radical-cybertools.org" }]
+requires-python = ">=3.11"
+dependencies = ["numpy"]
+keywords = ["radical", "cybertools", "mini-app", "workflow", "hpc"]
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: System :: Distributed Computing",
+    "Topic :: Scientific/Engineering",
+    "Operating System :: POSIX",
+]
+
+[project.optional-dependencies]
+gpu = ["cupy-cuda12x"]
+mpi = ["mpi4py"]
+io = ["h5py"]
+# The workflow examples run on AsyncFlow and RHAPSODY.  Both main branches still
+# declare version 0.6.0, so they are pinned by commit until tagged releases exist.
+workflow = [
+    "pyyaml",
+    "radical.asyncflow @ git+https://github.com/radical-cybertools/radical.asyncflow@d97585e",
+    "rhapsody-py[telemetry] @ git+https://github.com/radical-cybertools/rhapsody@142f396",
+]
+test = ["pytest"]
+docs = ["mkdocs", "mkdocstrings[python]"]
+dev = ["ruff", "pre-commit"]
+
+[project.urls]
+Source = "https://github.com/radical-cybertools/workflow-mini-apps"
+Issues = "https://github.com/radical-cybertools/workflow-mini-apps/issues"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+# sim.py and timing.py are broken legacy modules (see bugs_wfminiapi.md), kept as-is for now
+extend-exclude = ["examples/legacy", "tools", "src/wfMiniAPI/sim.py", "src/wfMiniAPI/timing.py"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I"]
+
+[tool.ruff.lint.per-file-ignores]
+# Kernel bodies were moved verbatim from kernel.py; changing them can change what
+# workflows measure, so their clean-up waits for the opt-in measured-behaviour release.
+"src/wfMiniAPI/kernels/{misc,io,comm,transfer,compute,registry}.py" = [
+    "F405", "F841", "E501", "E711", "W291", "W293", "I001",
+]
+# Import order here is the kernel registration order (list_kernels()); do not sort.
+"src/wfMiniAPI/kernels/__init__.py" = ["I001"]
+"src/wfMiniAPI/kernel.py" = ["I001"]

@@ -1,0 +1,109 @@
+# Static equivalence contract (check E1).
+#
+# For every in-scope file it says which parts are CORE (must stay byte-identical)
+# and which lines are EDGE (may change, but only as listed below).
+#
+#   mode = "whole"     the whole file is core.
+#   mode = "segments"  [[file.segment]] blocks are core; every other line is edge.
+#
+# A segment is found by anchors (regexes, matched per line), not line numbers:
+#   start_at / start_after : first line that matches (any of the list, in order)
+#   end_at / end_before    : first matching line after the start
+#
+# allow_removed / allow_added: regexes (full match after strip) for edge lines that
+# may disappear or appear relative to the manifest. Phase 1 allows none; each later
+# phase extends these lists explicitly, so the edge change is reviewable here.
+
+[defaults]
+allow_removed = []
+allow_added = []
+
+# --------------------------------------------------------------------------- #
+# workflow-mini-apps examples: same edge shape in all six
+[[example]]
+id = "motif_2"
+path = "examples/motif_2/miniapp_pipeline.py"
+
+[[example]]
+id = "motif_3_simple"
+path = "examples/motif_3/miniapp_simple.py"
+
+[[example]]
+id = "motif_3_parallel"
+path = "examples/motif_3/miniapp_parallel.py"
+
+[[example]]
+id = "motif_4"
+path = "examples/motif_4/miniapp_async.py"
+
+[[example]]
+id = "motif_6"
+path = "examples/motif_6/miniapp_adaptive.py"
+
+[[example]]
+id = "dragon_mpi"
+path = "examples/dragon-mpi/miniapp_rhapsody.py"
+
+[[example_segment]]
+name = "helpers"
+start_at = ['^class Timer']
+end_before = ['^async def workflow\(cfg\):']
+
+[[example_segment]]
+name = "prologue"                 # includes mp.set_start_method and dragon-mpi's mpi4py import
+start_after = ['^async def workflow\(cfg\):']
+end_before = ['^\s*backend = await ']
+
+[[example_segment]]
+name = "core"                     # tasks, task graph, steering, the workflow's own shutdown
+start_after = ['^async def workflow_core\(', '^\s*flow = await WorkflowEngine\.create\(']
+end_at = ['^\s*await flow\.shutdown\(\)']
+
+[[example_segment]]
+name = "main"
+start_at = ['^if __name__ == "__main__":']
+
+# --------------------------------------------------------------------------- #
+# whole-file core
+[[whole]]
+id = "configs"
+root = "repo"
+paths = [
+  "examples/motif_2/config.yaml",
+  "examples/motif_3/config.yaml",
+  "examples/motif_4/config.yaml",
+  "examples/motif_6/config.yaml",
+  "examples/dragon-mpi/config.yaml",
+]
+
+[[whole]]
+id = "tutorial"
+root = "repo"
+paths = [
+  "examples/Tutorial/tasks/simulation.py",
+  "examples/Tutorial/tasks/training.py",
+  "examples/Tutorial/tasks/active_learn.py",
+]
+
+[[whole]]
+id = "ddsim_core"                 # DeepDriveSim @ 0c4f0c2; run_workflow.py is edge (not listed)
+root = "ddsim"
+paths = [
+  "ddsim/ddsim_manager.py",
+  "ddsim/util.py",
+  "ddsim/logger.py",
+  "workflows/miniapps_workflow/miniapps_workflow.py",
+  "workflows/miniapps_workflow/simulation.py",
+  "workflows/miniapps_workflow/training.py",
+  "workflows/miniapps_workflow/agent.py",
+  "workflows/miniapps_workflow/selection.py",
+  "workflows/miniapps_workflow/config.yaml",
+]
+
+# --------------------------------------------------------------------------- #
+# files moved by the Phase 1 restructure (baseline path -> current path);
+# the content must still match the manifest.
+[renames]
+"examples/Tutorial/tasks/simulation.py" = "examples/tutorial/simulation.py"
+"examples/Tutorial/tasks/training.py" = "examples/tutorial/training.py"
+"examples/Tutorial/tasks/active_learn.py" = "examples/tutorial/active_learn.py"

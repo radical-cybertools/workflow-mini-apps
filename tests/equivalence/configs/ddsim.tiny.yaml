@@ -1,0 +1,18 @@
+# Tiny inputs for the equivalence harness: same keys as DeepDriveSim
+# workflows/miniapps_workflow/config.yaml at 0c4f0c2.
+debug: false
+num_replicas: 2
+home_dir:      "MiniApps"
+telemetry:     true
+telemetry_dir: "telemetry-output"
+total_num_sim:            3
+max_sim_batch:            2
+training_cores:           1
+free_resources_for_train: true
+miniapps_data_ready:      2
+phase:                    0
+num_step:                 2
+num_epochs:               2
+clean_unregistered_sims:  false
+src_dir: ""
+executable: ""

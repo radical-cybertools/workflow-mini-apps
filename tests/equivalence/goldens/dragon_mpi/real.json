@@ -1,0 +1,86 @@
+{
+ "calls": [
+  {
+   "args": [],
+   "call": "stage1#0",
+   "comp": "function",
+   "kwargs": {},
+   "name": "stage1"
+  },
+  {
+   "args": [
+    {
+     "future_of": "stage1#0"
+    }
+   ],
+   "call": "stage2#1",
+   "comp": "function",
+   "kwargs": {},
+   "name": "stage2"
+  },
+  {
+   "args": [
+    {
+     "future_of": "stage1#0"
+    }
+   ],
+   "call": "stage3#2",
+   "comp": "function",
+   "kwargs": {},
+   "name": "stage3"
+  },
+  {
+   "args": [
+    {
+     "future_of": "stage2#1"
+    },
+    {
+     "future_of": "stage3#2"
+    }
+   ],
+   "call": "stage4#3",
+   "comp": "function",
+   "kwargs": {},
+   "name": "stage4"
+  }
+ ],
+ "error_tail": "radical.asyncflow.errors.DependencyFailureError: Cannot execute 'stage4' due to dependency failure",
+ "executions": [
+  {
+   "comp": "function",
+   "error": "ValueError: h5py was built without MPI support, can't use mpio driver",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./input",
+      "num_bytes": 64
+     },
+     "error": "ValueError: h5py was built without MPI support, can't use mpio driver",
+     "name": "readWithMPI",
+     "outcome": "error"
+    }
+   ],
+   "name": "stage1",
+   "outcome": "error"
+  }
+ ],
+ "exit_code": 1,
+ "files": [
+  [
+   "input/data_0.h5",
+   2112
+  ]
+ ],
+ "manager_kernels": [
+  {
+   "args": {
+    "data_root_dir": "./input",
+    "num_bytes": 64
+   },
+   "name": "writeNonMPI",
+   "outcome": "ok"
+  }
+ ],
+ "mode": "real",
+ "workflow": "dragon_mpi"
+}

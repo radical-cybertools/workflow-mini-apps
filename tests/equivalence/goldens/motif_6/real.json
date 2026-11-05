@@ -1,0 +1,277 @@
+{
+ "calls": [
+  {
+   "args": [
+    0
+   ],
+   "call": "simulate#0",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  },
+  {
+   "args": [
+    1
+   ],
+   "call": "simulate#1",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  },
+  {
+   "args": [
+    2
+   ],
+   "call": "simulate#2",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  },
+  {
+   "args": [
+    3
+   ],
+   "call": "simulate#3",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  },
+  {
+   "args": [
+    0,
+    3,
+    16
+   ],
+   "call": "train#4",
+   "comp": "function",
+   "kwargs": {},
+   "name": "train"
+  },
+  {
+   "args": [
+    1,
+    3,
+    16
+   ],
+   "call": "train#5",
+   "comp": "function",
+   "kwargs": {},
+   "name": "train"
+  },
+  {
+   "args": [
+    2,
+    1,
+    32
+   ],
+   "call": "train#6",
+   "comp": "function",
+   "kwargs": {},
+   "name": "train"
+  },
+  {
+   "args": [
+    3,
+    1,
+    16
+   ],
+   "call": "train#7",
+   "comp": "function",
+   "kwargs": {},
+   "name": "train"
+  }
+ ],
+ "error_tail": "ImportError: CuPy is not installed. Install CuPy to use GPU capabilities.",
+ "executions": [
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "ok"
+    }
+   ],
+   "name": "simulate",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "ok"
+    }
+   ],
+   "name": "simulate",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "ok"
+    }
+   ],
+   "name": "simulate",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "ok"
+    }
+   ],
+   "name": "simulate",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "error": "ImportError: CuPy is not installed. Install CuPy to use GPU capabilities.",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "error": "ImportError: CuPy is not installed. Install CuPy to use GPU capabilities.",
+     "name": "dataCopyH2D",
+     "outcome": "error"
+    }
+   ],
+   "name": "train",
+   "outcome": "error"
+  }
+ ],
+ "exit_code": 1,
+ "files": [
+  [
+   "data_0.h5",
+   6144
+  ]
+ ],
+ "manager_kernels": [],
+ "mode": "real",
+ "workflow": "motif_6"
+}

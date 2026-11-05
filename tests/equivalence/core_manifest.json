@@ -1,0 +1,173 @@
+{
+ "examples": {
+  "dragon_mpi": {
+   "edge_lines": [
+    "import argparse, asyncio, yaml, random, logging, os",
+    "import time",
+    "",
+    "from rhapsody.backends import DragonExecutionBackendV3",
+    "",
+    "from radical.asyncflow import WorkflowEngine",
+    "from radical.asyncflow.logging import init_default_logger",
+    "",
+    "from wfMiniAPI import kernel as kern",
+    "",
+    "async def workflow(cfg):",
+    "    backend = await DragonExecutionBackendV3()",
+    "    flow = await WorkflowEngine.create(backend=backend)",
+    ""
+   ],
+   "segments": {
+    "core": "08b41e18bbfc1f49ae76ba026a5a3bba763fbf59e9b63649ab6701be21807062",
+    "helpers": "26a040d20984d69dbca911e536bdb4a4446be878c19e48e2c42c51935cd85759",
+    "main": "ba3d9d20f0df7f7741d792be5567779792f904dcbfa47a93793860ae0881ad6f",
+    "prologue": "ec63c0827e792f158dafd51cd422139aa52093e083557a235cebaa1e78110f69"
+   }
+  },
+  "motif_2": {
+   "edge_lines": [
+    "import argparse, asyncio, yaml, random, logging",
+    "import time",
+    "",
+    "from rhapsody.backends import DragonExecutionBackendV3",
+    "",
+    "from radical.asyncflow import WorkflowEngine",
+    "from radical.asyncflow.logging import init_default_logger",
+    "",
+    "from wfMiniAPI import kernel as kern",
+    "",
+    "async def workflow(cfg):",
+    "    backend = await DragonExecutionBackendV3()",
+    "    flow = await WorkflowEngine.create(backend=backend)",
+    ""
+   ],
+   "segments": {
+    "core": "9379b4192058984d4d08cde3b5984d283aec994986ff6445bfedbef45007135e",
+    "helpers": "2e29607fc10f89ffb2449d87d9af343e48166ea2e3838b218805820d90c3553f",
+    "main": "0626c838059cde5555d3a9726ed765e085f47fbea1432042ce50413e63c4e825",
+    "prologue": "b4cf03212994ab146105eaaed1aa785c8cc6194de9b218de2293599d8604ce8e"
+   }
+  },
+  "motif_3_parallel": {
+   "edge_lines": [
+    "import argparse, asyncio, yaml, random, logging",
+    "import time",
+    "",
+    "from rhapsody.backends import DragonExecutionBackendV3",
+    "",
+    "from radical.asyncflow import WorkflowEngine",
+    "from radical.asyncflow.logging import init_default_logger",
+    "",
+    "from wfMiniAPI import kernel as kern",
+    "",
+    "async def workflow(cfg):",
+    "    backend = await DragonExecutionBackendV3()",
+    "    flow = await WorkflowEngine.create(backend=backend)",
+    ""
+   ],
+   "segments": {
+    "core": "63b54f044364fc1f0b022e9d05a9b797d1f294f82bad2db583654499ff057c58",
+    "helpers": "26a040d20984d69dbca911e536bdb4a4446be878c19e48e2c42c51935cd85759",
+    "main": "9352fe6fd40d4ee0020702a307b6068b48b121622160b5914c11e5f3f2a25c7e",
+    "prologue": "5af62e4dd85b31dc534a2d1f14911da0800e3d8236890a9883324401108fcd5b"
+   }
+  },
+  "motif_3_simple": {
+   "edge_lines": [
+    "import argparse, asyncio, yaml, random, logging",
+    "import time",
+    "",
+    "from rhapsody.backends import DragonExecutionBackendV3",
+    "",
+    "from radical.asyncflow import WorkflowEngine",
+    "from radical.asyncflow.logging import init_default_logger",
+    "",
+    "from wfMiniAPI import kernel as kern",
+    "",
+    "async def workflow(cfg):",
+    "    backend = await DragonExecutionBackendV3()",
+    "    flow = await WorkflowEngine.create(backend=backend)",
+    ""
+   ],
+   "segments": {
+    "core": "8220d59e6ea8ea332878a4e1e3d6592d90da38eb28019f9f6b902c156254aec4",
+    "helpers": "26a040d20984d69dbca911e536bdb4a4446be878c19e48e2c42c51935cd85759",
+    "main": "9352fe6fd40d4ee0020702a307b6068b48b121622160b5914c11e5f3f2a25c7e",
+    "prologue": "b4cf03212994ab146105eaaed1aa785c8cc6194de9b218de2293599d8604ce8e"
+   }
+  },
+  "motif_4": {
+   "edge_lines": [
+    "import argparse, asyncio, yaml, random, logging",
+    "import time",
+    "",
+    "from rhapsody.backends import DragonExecutionBackendV3",
+    "",
+    "from radical.asyncflow import WorkflowEngine",
+    "from radical.asyncflow.logging import init_default_logger",
+    "",
+    "from wfMiniAPI import kernel as kern",
+    "",
+    "async def workflow(cfg):",
+    "    backend = await DragonExecutionBackendV3()",
+    "    flow = await WorkflowEngine.create(backend=backend)",
+    ""
+   ],
+   "segments": {
+    "core": "8edc037fae33d6f4bad887aba80c3f84ec3b961e17c4ee45e42f63f149aa52c4",
+    "helpers": "26a040d20984d69dbca911e536bdb4a4446be878c19e48e2c42c51935cd85759",
+    "main": "ef0372aa0681973a7b5a1b90f918eaf25aa8cf65153e8944163f454d042d0c20",
+    "prologue": "b4cf03212994ab146105eaaed1aa785c8cc6194de9b218de2293599d8604ce8e"
+   }
+  },
+  "motif_6": {
+   "edge_lines": [
+    "import argparse, asyncio, yaml, random, logging",
+    "import time",
+    "",
+    "from rhapsody.backends import DragonExecutionBackendV3",
+    "",
+    "from radical.asyncflow import WorkflowEngine",
+    "from radical.asyncflow.logging import init_default_logger",
+    "",
+    "from wfMiniAPI import kernel as kern",
+    "",
+    "async def workflow(cfg):",
+    "    backend = await DragonExecutionBackendV3()",
+    "    flow = await WorkflowEngine.create(backend=backend)",
+    ""
+   ],
+   "segments": {
+    "core": "c5825efcb27871fdfb3266b1a1f7d73e85fcd243ef854db108c155210abc3644",
+    "helpers": "2e29607fc10f89ffb2449d87d9af343e48166ea2e3838b218805820d90c3553f",
+    "main": "4b0ad2e52f0bd20681d3f45662abeb71f99cec3455446f81cd49840943f33355",
+    "prologue": "b4cf03212994ab146105eaaed1aa785c8cc6194de9b218de2293599d8604ce8e"
+   }
+  }
+ },
+ "whole": {
+  "configs": {
+   "examples/dragon-mpi/config.yaml": "f378ee424d24c88cad7bf277c32516067a77c73f50bf768392cbc9ff70760f89",
+   "examples/motif_2/config.yaml": "a71c5c747d0678a198f1c202d06e73dc0543bf49beecc9815cd23e1b0002c512",
+   "examples/motif_3/config.yaml": "5edbd753176c8820a0eaa88564d958217f2680bce28c8d53fcd389cb62ef4865",
+   "examples/motif_4/config.yaml": "d05b17c406d57bd87f50839eb00919f2699b1a0c8a2a94e5e0c662c6ab6b45fa",
+   "examples/motif_6/config.yaml": "caad5950c549f4df1563aac0b6c877fd8225e5f8b14f420a8ed67a5e0950ef13"
+  },
+  "ddsim_core": {
+   "ddsim/ddsim_manager.py": "6f85fe3523e8bc7cdfa86beb4814f32807936aa3945257e2bdc880780ae37c69",
+   "ddsim/logger.py": "2482f4fed596ac7b486dd7dcc0682cb63c4613f2ac532f6481f9eee7a7f346f8",
+   "ddsim/util.py": "bd50c64e0049c12da83506b9dc24c23da6b5d9ca0bfa6949e90655bc31b8c5ce",
+   "workflows/miniapps_workflow/agent.py": "ec79d695c297f6fa987c1fd0664e38331b8ce1787ffb6a9570d6f5001f7578db",
+   "workflows/miniapps_workflow/config.yaml": "ede922b92dded2af77a35da8bd40a4b7844041826839e73b21313f8ddcd1be2a",
+   "workflows/miniapps_workflow/miniapps_workflow.py": "d878683a647dc4d8e5a6d773debc233a6d2fad69428ececf01503ca93fe7ff7e",
+   "workflows/miniapps_workflow/selection.py": "8917162de40d8b7faff191aba84b21651519e681cbda4bfe845b54ff733ff2dc",
+   "workflows/miniapps_workflow/simulation.py": "2fa4eae558165fafd27ee1b7c18918fc79f9162f900c661af5fd1cc5f41df842",
+   "workflows/miniapps_workflow/training.py": "a21b307a2ecaff97514077fe0a3ceac76cf155570a800e460cab1df680cb0f80"
+  },
+  "tutorial": {
+   "examples/Tutorial/tasks/active_learn.py": "6e8f14e37321e40f1955c2a5167f5998d9dd6a0961a3aeb6a3221024c2aa0f74",
+   "examples/Tutorial/tasks/simulation.py": "fa0d8e3df4d5488bdb44252d3bfe9d54d6ba92897c764af974b61803402449f5",
+   "examples/Tutorial/tasks/training.py": "079828db0eba0bfb505d4198612c3819f7a3c4af4d52130507b277adf44ebcd9"
+  }
+ }
+}

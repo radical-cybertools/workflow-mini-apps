@@ -1,0 +1,5 @@
+.venv/
+.equiv-work/
+__pycache__/
+*.egg-info/
+site/

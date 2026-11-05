@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: System libraries (MPI for mpi4py)
+        run: sudo apt-get update && sudo apt-get install -y libopenmpi-dev openmpi-bin
+      - name: Install
+        run: pip install -e ".[workflow,io,mpi,test,docs,dev]"
+      - name: Lint
+        run: ruff check src tests
+      - name: Static equivalence (E1)
+        run: python tests/equivalence/static_check.py check
+      - name: Unit tests and dynamic equivalence (DeepDriveSim case skipped without its export)
+        run: pytest -q
+      - name: Docs
+        run: mkdocs build --strict
