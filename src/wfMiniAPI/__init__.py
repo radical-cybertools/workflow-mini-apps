@@ -8,7 +8,7 @@ import importlib
 
 __all__ = ["kernel", "registry", "sim"]
 
-__version__ = "0.2.0.dev0"
+__version__ = "0.2.0"
 
 _LAZY = {"kernel": ".kernel", "kernels": ".kernels", "registry": ".kernels.registry", "sim": ".sim"}
 

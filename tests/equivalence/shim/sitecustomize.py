@@ -10,6 +10,13 @@ What it does when active:
     - every AsyncFlow task/block call (name, arguments, dependency edges),
     - task/block body begin and end;
 * ``WFMINI_EQUIV_KERNELS=dry`` records kernel calls without executing them;
+* ``WFMINI_EQUIV_BACKEND=dragon`` (run under the ``dragon`` launcher) keeps the real
+  Dragon backend and only aliases the removed ``DragonExecutionBackendV3`` name to
+  ``DragonExecutionBackend``, so the baseline runs unmodified; task order is then
+  parallel, and the harness compares multisets.  Task bodies then run in long-lived
+  Dragon workers, so each task body draws from its own ``random`` stream, seeded from
+  its name and arguments (thread-local); its random output depends only on its inputs,
+  not on which worker ran it before.  Otherwise (the default) the shim
 * makes the examples runnable on a CPU host, deterministically:
     - ``rhapsody.backends.DragonExecutionBackend`` and ``...V3`` (an ImportError
       on RHAPSODY main) become a one-worker ``ConcurrentExecutionBackend``,
@@ -30,6 +37,7 @@ import os
 if os.environ.get("WFMINI_EQUIV") == "1":
     import asyncio
     import functools
+    import hashlib
     import importlib.abc
     import importlib.util
     import inspect
@@ -42,6 +50,7 @@ if os.environ.get("WFMINI_EQUIV") == "1":
     _OUT_DIR = os.environ.get("WFMINI_EQUIV_OUT", ".")
     _DRY = os.environ.get("WFMINI_EQUIV_KERNELS", "real") == "dry"
     _SEED = int(os.environ.get("WFMINI_EQUIV_SEED", "1234"))
+    _ON_DRAGON = os.environ.get("WFMINI_EQUIV_BACKEND", "concurrent") == "dragon"
 
     _lock = threading.Lock()
     _seq = itertools.count()
@@ -80,12 +89,53 @@ if os.environ.get("WFMINI_EQUIV") == "1":
     _orig_set_start_method = multiprocessing.set_start_method
 
     def _set_start_method(method, *args, **kwargs):
-        if method == "dragon":
+        if method == "dragon" and not _ON_DRAGON:
             _record("shim", what="set_start_method(dragon) skipped")
             return None
         return _orig_set_start_method(method, *args, **kwargs)
 
     multiprocessing.set_start_method = _set_start_method
+
+    if _ON_DRAGON:
+        # Module-level `random` functions read a thread-local per-task generator while a
+        # task body runs, and the global one otherwise (manager code, the reseed).
+        _global_rng = random._inst
+
+        def _rng():
+            return getattr(_local, "rng", None) or _global_rng
+
+        def _per_task(name):
+            return lambda *a, **k: getattr(_rng(), name)(*a, **k)
+
+        for _name in (
+            "random",
+            "uniform",
+            "randint",
+            "randrange",
+            "choice",
+            "choices",
+            "sample",
+            "shuffle",
+            "gauss",
+            "normalvariate",
+            "betavariate",
+            "expovariate",
+        ):
+            setattr(random, _name, _per_task(_name))
+
+    # Task bodies are pickled by value to Dragon workers, together with every global
+    # they reference: they may reference module-level functions (pickled by reference)
+    # but no objects such as `_local`.
+    def _task_rng_enter(name, args, kwargs):
+        outer = getattr(_local, "rng", None)
+        if _ON_DRAGON:
+            key = json.dumps([name, _plain(list(args)), _plain(kwargs)], sort_keys=True)
+            seed = int.from_bytes(hashlib.sha256(key.encode()).digest()[:8], "big")
+            _local.rng = random.Random(seed)
+        return outer
+
+    def _task_rng_exit(outer):
+        _local.rng = outer
 
     # ------------------------------------------------------------------ #
     # post-import hooks
@@ -119,12 +169,22 @@ if os.environ.get("WFMINI_EQUIV") == "1":
 
     sys.meta_path.insert(0, _HookFinder())
 
-    def _on_numpy(module):
-        module.random.seed(_SEED)
+    def _seed_numpy():
+        # Best effort: NumPy's RNG only affects data values, which are not compared.
+        # Some environments load numpy lazily (importlib.util.LazyLoader), so no
+        # import hook on numpy itself.
+        try:
+            sys.modules["numpy"].random.seed(_SEED)
+        except Exception:
+            pass
 
     def _on_rhapsody_backends(module):
         from concurrent.futures import ThreadPoolExecutor
 
+        if _ON_DRAGON:
+            module.DragonExecutionBackendV3 = module.DragonExecutionBackend
+            _record("shim", what="DragonExecutionBackendV3 -> DragonExecutionBackend")
+            return
         concurrent_backend = module.ConcurrentExecutionBackend
 
         def dragon_on_cpu(*args, **kwargs):
@@ -207,6 +267,7 @@ if os.environ.get("WFMINI_EQUIV") == "1":
             @functools.wraps(func)
             async def body(*args, **kwargs):
                 _record("begin", comp=comp, name=name)
+                outer_rng = _task_rng_enter(name, args, kwargs)
                 try:
                     result = await func(*args, **kwargs)
                 except BaseException as exc:
@@ -218,6 +279,8 @@ if os.environ.get("WFMINI_EQUIV") == "1":
                         error=f"{type(exc).__name__}: {exc}",
                     )
                     raise
+                finally:
+                    _task_rng_exit(outer_rng)
                 _record(
                     "end",
                     comp=comp,
@@ -280,8 +343,7 @@ if os.environ.get("WFMINI_EQUIV") == "1":
             # Reseed after all imports: installed packages may consume the global
             # stream at import time, which would make goldens environment-dependent.
             random.seed(_SEED)
-            if "numpy" in sys.modules:
-                sys.modules["numpy"].random.seed(_SEED)
+            _seed_numpy()
             global _reseeded_state
             _reseeded_state = random.getstate()
             _record("shim", what="reseeded after WorkflowEngine creation")
@@ -294,7 +356,6 @@ if os.environ.get("WFMINI_EQUIV") == "1":
 
     _hooks.update(
         {
-            "numpy": _on_numpy,
             "opentelemetry.sdk.trace.id_generator": _on_otel_id_generator,
             "rhapsody.backends": _on_rhapsody_backends,
             "wfMiniAPI.kernel": _on_kernel,
