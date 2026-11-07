@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Validate the MiniApp edge on an HPC node: real Dragon backend, and a GPU when present.
 #
-#   tools/validate_node.sh [--ddsim PATH] [--python PYTHON] [--quick]
+#   tools/validate_node.sh [--ddsim PATH] [--python PYTHON] [--quick] [--setup | --offline]
 #
 # Run it from the repository root on a compute node (not a login node).  It
 #   1. creates a venv with wfMiniAPI and the pinned AsyncFlow/RHAPSODY/Dragon (and CuPy
@@ -14,22 +14,33 @@
 # --ddsim PATH   a DeepDriveSim clone (adds the DeepDriveSim workflow)
 # --python EXE   interpreter for the venv (default python3; 3.11-3.13)
 # --quick        dry mode only and no lifecycle scenarios (a smoke test of the script)
-# Environment:   CUDA_PACKAGE (default cupy-cuda12x) when the node has another CUDA major.
+# --setup        steps 1-2 only, CuPy included; run it where there is internet (a login node)
+# --offline      no installs: use the venv --setup made (a compute node without internet)
+# Environment:   CUDA_PACKAGE (default cupy-cuda12x) when the node has another CUDA major;
+#                `none` installs no CuPy.
 set -euo pipefail
 
 REPO=$(cd "$(dirname "$0")/.." && pwd)
 PYTHON=python3
 DDSIM=""
 QUICK=0
+SETUP=0
+OFFLINE=0
 while [ $# -gt 0 ]; do
     case "$1" in
         --ddsim) DDSIM=$(cd "$2" && pwd); shift 2 ;;
         --python) PYTHON=$2; shift 2 ;;
         --quick) QUICK=1; shift ;;
+        --setup) SETUP=1; shift ;;
+        --offline) OFFLINE=1; shift ;;
         -h|--help) sed -n '2,20p' "$0"; exit 0 ;;
         *) echo "unknown argument: $1" >&2; exit 2 ;;
     esac
 done
+if [ "$SETUP" = 1 ] && [ "$OFFLINE" = 1 ]; then
+    echo "--setup and --offline exclude each other" >&2; exit 2
+fi
+CUDA_PACKAGE=${CUDA_PACKAGE:-cupy-cuda12x}
 
 cd "$REPO"
 WORK=$REPO/.equiv-work
@@ -45,14 +56,27 @@ if command -v nvidia-smi >/dev/null && nvidia-smi -L >/dev/null 2>&1; then GPU=1
 echo "host=$HOST gpu=$GPU quick=$QUICK ddsim=${DDSIM:-none} tree=$(git rev-parse --short HEAD)"
 
 # 1. venv ------------------------------------------------------------------------
-if [ ! -x "$VENV/bin/python" ]; then
-    "$PYTHON" -m venv "$VENV"
-    "$VENV/bin/pip" install -q --upgrade pip
+if [ "$OFFLINE" = 1 ]; then
+    if [ ! -x "$VENV/bin/python" ]; then
+        echo "no $VENV: run tools/validate_node.sh --setup on a node with internet first" >&2
+        exit 2
+    fi
+else
+    if [ ! -x "$VENV/bin/python" ]; then
+        "$PYTHON" -m venv "$VENV"
+        "$VENV/bin/pip" install -q --upgrade pip
+    fi
+    EXTRAS="workflow,dragon,io,mpi,test"
+    "$VENV/bin/pip" install -q -e ".[$EXTRAS]"
+    # --setup runs on a node without a GPU, for a GPU node
+    if [ "$CUDA_PACKAGE" != none ] && { [ "$GPU" = 1 ] || [ "$SETUP" = 1 ]; }; then
+        "$VENV/bin/pip" install -q "$CUDA_PACKAGE"
+    fi
 fi
-EXTRAS="workflow,dragon,io,mpi,test"
-"$VENV/bin/pip" install -q -e ".[$EXTRAS]"
-if [ "$GPU" = 1 ]; then "$VENV/bin/pip" install -q "${CUDA_PACKAGE:-cupy-cuda12x}"; fi
 PY=$VENV/bin/python
+if [ "$GPU" = 1 ] && ! "$PY" -c "import cupy" 2>/dev/null; then
+    echo "warning: CuPy is not in $VENV, so the GPU kernels will fail (rerun --setup)"
+fi
 
 # 2. baselines (docs/testing/equivalence.md) ----------------------------------------
 if [ ! -d "$WORK/wfmini-55cd20f" ]; then
@@ -64,6 +88,10 @@ fi
 if [ -n "$DDSIM" ] && [ ! -d "$WORK/ddsim-0c4f0c2" ]; then
     mkdir -p "$WORK/ddsim-0c4f0c2"
     git -C "$DDSIM" archive 0c4f0c2 | tar -x -C "$WORK/ddsim-0c4f0c2"
+fi
+if [ "$SETUP" = 1 ]; then
+    echo "== setup done; on the compute node: tools/validate_node.sh --offline${DDSIM:+ --ddsim $DDSIM}"
+    exit 0
 fi
 
 # environment record

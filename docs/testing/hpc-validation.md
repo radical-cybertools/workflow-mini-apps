@@ -25,7 +25,24 @@ tools/validate_node.sh --ddsim ../DeepDriveSim
 | `--ddsim PATH` | a DeepDriveSim clone; adds the DeepDriveSim workflow |
 | `--python EXE` | interpreter for the venv (Python 3.11 to 3.13) |
 | `--quick` | dry mode only, no lifecycle scenarios: checks that the script itself works |
-| `CUDA_PACKAGE=...` | the CuPy wheel for the node's CUDA (default `cupy-cuda12x`) |
+| `--setup` | only build the venv (CuPy included) and export the baselines |
+| `--offline` | install nothing; use the venv `--setup` made |
+| `CUDA_PACKAGE=...` | the CuPy wheel for the node's CUDA (default `cupy-cuda12x`; `none` for no CuPy) |
+
+### Compute nodes without internet
+
+The venv needs internet (GitHub and PyPI). If the compute nodes have none, build it on a
+login node first; the repository and its `.equiv-work/` must be on a filesystem both see.
+
+```shell
+# login node: load the same modules (Python, CUDA) you will use on the compute node
+tools/validate_node.sh --setup --ddsim ../DeepDriveSim
+# compute node, same modules
+tools/validate_node.sh --offline --ddsim ../DeepDriveSim
+```
+
+The venv points at the interpreter that created it, so that interpreter must exist at the
+same path on the compute node.
 
 The script creates `.equiv-work/venv-validate`, and ends with
 
