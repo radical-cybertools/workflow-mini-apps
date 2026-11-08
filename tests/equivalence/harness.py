@@ -169,8 +169,13 @@ def integrated_ddsim() -> Path:
     if not (stamp.exists() and stamp.read_text() == digest):
         shutil.rmtree(DDSIM_INTEGRATED, ignore_errors=True)
         shutil.copytree(DDSIM_BASELINE, DDSIM_INTEGRATED)
+        # git, not `patch` (missing on some HPC nodes); the ceiling keeps git from finding
+        # this repository above WORK, so the paths apply to the copy as given
         subprocess.run(
-            ["patch", "-p1", "-s", "-i", str(DDSIM_PATCH)], cwd=DDSIM_INTEGRATED, check=True
+            ["git", "apply", "-p1", str(DDSIM_PATCH)],
+            cwd=DDSIM_INTEGRATED,
+            env=dict(os.environ, GIT_CEILING_DIRECTORIES=str(DDSIM_INTEGRATED.parent)),
+            check=True,
         )
         stamp.write_text(digest)
     return DDSIM_INTEGRATED

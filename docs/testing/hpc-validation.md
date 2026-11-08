@@ -44,6 +44,13 @@ tools/validate_node.sh --offline --ddsim ../DeepDriveSim
 The venv points at the interpreter that created it, so that interpreter must exist at the
 same path on the compute node.
 
+### MPI
+
+The kernels import `mpi4py`, which needs an MPI library when it is imported. The script
+checks this first and stops if there is none. Load the site's MPI module (the same one
+for `--setup` and for the run), or install an MPI from PyPI into the venv where there is
+internet: `.equiv-work/venv-validate/bin/pip install mpich`.
+
 The script creates `.equiv-work/venv-validate`, and ends with
 
 ```

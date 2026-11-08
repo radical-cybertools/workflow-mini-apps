@@ -77,6 +77,14 @@ PY=$VENV/bin/python
 if [ "$GPU" = 1 ] && ! "$PY" -c "import cupy" 2>/dev/null; then
     echo "warning: CuPy is not in $VENV, so the GPU kernels will fail (rerun --setup)"
 fi
+# mpi4py 4 needs an MPI library at import, and the kernels import it: without one every
+# run, baseline and integrated, dies at import
+if ! "$PY" -c "from mpi4py import MPI" 2>/dev/null; then
+    echo "mpi4py cannot load an MPI library on $HOST. Either load the site's MPI module" >&2
+    echo "(the same one on the login and the compute node), or install one into the venv" >&2
+    echo "where there is internet: $VENV/bin/pip install mpich" >&2
+    exit 2
+fi
 
 # 2. baselines (docs/testing/equivalence.md) ----------------------------------------
 if [ ! -d "$WORK/wfmini-55cd20f" ]; then

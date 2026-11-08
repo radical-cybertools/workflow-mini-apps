@@ -23,6 +23,10 @@ from wfMiniAPI.api import AttachError, MiniApp
 SCENARIO, WORKDIR = sys.argv[1], Path(sys.argv[2])
 BACKEND = os.environ.get("WFMINI_SCENARIO_BACKEND", "concurrent")
 result = {"scenario": SCENARIO, "backend": BACKEND}
+# MiniApp's shutdown_wait_s: longer than any backend's own start-up and shutdown (about
+# 50 s for Dragon on a large GPU node), so a run that wrongly waits it out is told apart
+# from a slow backend; short enough to stay within the test's 300 s timeout
+WAIT_S = 120.0
 
 
 def done(**fields):
@@ -88,7 +92,7 @@ async def main():
         await telemetry.stop()
         return done(attach_error=result.get("attach_error"))
 
-    app = MiniApp(flow, telemetry)
+    app = MiniApp(flow, telemetry, shutdown_wait_s=WAIT_S)
     t0 = time.monotonic()
     before_enter = random.getstate()
     before_exit = None
@@ -131,7 +135,7 @@ async def main():
             result["random_unchanged_by_exit"] = random.getstate() == before_exit
     finally:
         report = app.report.to_dict() if app.report else None
-        done(report=report, elapsed=time.monotonic() - t0)
+        done(report=report, elapsed=time.monotonic() - t0, shutdown_wait_s=WAIT_S)
 
 
 if BACKEND == "dragon":

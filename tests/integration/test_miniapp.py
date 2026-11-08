@@ -100,7 +100,7 @@ def test_exception_is_reraised_without_waiting(tmp_path, backend):
     proc, res = run("raise", tmp_path, backend)
     assert proc.returncode == 1 and "ValueError: core raised" in proc.stderr
     assert res["report"]["telemetry_complete"]
-    assert res["elapsed"] < 15  # no shutdown_wait_s (60 s) on a plain exception
+    assert res["elapsed"] < res["shutdown_wait_s"]  # no wait on a plain exception
 
 
 @pytest.mark.parametrize("scenario", ["sigint", "sigterm"])
@@ -116,7 +116,7 @@ def test_early_stop_is_reported(tmp_path, backend):
     _, res = run("early_stop", tmp_path, backend)
     assert not res["report"]["telemetry_complete"]
     assert any("stopped_before_exit" in r for r in res["report"]["reasons"])
-    assert res["elapsed"] < 15
+    assert res["elapsed"] < res["shutdown_wait_s"]
 
 
 @pytest.mark.parametrize(

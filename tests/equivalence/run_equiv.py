@@ -23,6 +23,10 @@ def selected(args) -> list[tuple[str, str]]:
     names = [args.workflow] if args.workflow else list(harness.WORKFLOWS)
     if args.action == "pair":  # task scripts only: nothing runs on a backend
         names = [n for n in names if harness.WORKFLOWS[n].kind != "tutorial"]
+    if not harness.DDSIM_BASELINE.exists():  # a local export, absent in CI (as in pytest)
+        for name in [n for n in names if harness.WORKFLOWS[n].kind == "ddsim"]:
+            print(f"{name:18s}      skipped: no DeepDriveSim export at {harness.DDSIM_BASELINE}")
+            names.remove(name)
     pairs = []
     for name in names:
         modes = harness.WORKFLOWS[name].modes
