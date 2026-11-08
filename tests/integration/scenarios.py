@@ -1,6 +1,7 @@
-"""MiniApp scenarios on the Concurrent backend, one per process (run by test_miniapp.py).
+"""MiniApp scenarios, one per process (run by test_miniapp.py).
 
-    python scenarios.py <scenario> <workdir>
+    python scenarios.py <scenario> <workdir>                  # Concurrent backend
+    WFMINI_SCENARIO_BACKEND=dragon dragon -s scenarios.py <scenario> <workdir>
 
 Prints one JSON line prefixed with ``RESULT `` describing the outcome.
 """
@@ -15,12 +16,17 @@ import time
 from pathlib import Path
 
 from radical.asyncflow import WorkflowEngine
-from rhapsody.backends import ConcurrentExecutionBackend
+from rhapsody.backends import ConcurrentExecutionBackend, DragonExecutionBackend
 
 from wfMiniAPI.api import AttachError, MiniApp
 
 SCENARIO, WORKDIR = sys.argv[1], Path(sys.argv[2])
-result = {"scenario": SCENARIO}
+BACKEND = os.environ.get("WFMINI_SCENARIO_BACKEND", "concurrent")
+result = {"scenario": SCENARIO, "backend": BACKEND}
+# MiniApp's shutdown_wait_s: longer than any backend's own start-up and shutdown (about
+# 50 s for Dragon on a large GPU node), so a run that wrongly waits it out is told apart
+# from a slow backend; short enough to stay within the test's 300 s timeout
+WAIT_S = 120.0
 
 
 def done(**fields):
@@ -29,8 +35,11 @@ def done(**fields):
 
 
 async def engine():
-    flow = await WorkflowEngine.create(backend=await ConcurrentExecutionBackend())
-    return flow
+    if BACKEND == "dragon":
+        backend = await DragonExecutionBackend()
+    else:
+        backend = await ConcurrentExecutionBackend()
+    return await WorkflowEngine.create(backend=backend)
 
 
 async def main():
@@ -64,8 +73,12 @@ async def main():
             async with MiniApp(flow, telemetry):
                 pass
         except AttachError as exc:
-            return done(attach_error=str(exc))
-        return done(attach_error=None)
+            result["attach_error"] = str(exc)
+        # MiniApp never took over the engine or telemetry: shutting them down stays the
+        # script's job (on Dragon the process would not exit otherwise)
+        await flow.shutdown()
+        await telemetry.stop()
+        return done(attach_error=result.get("attach_error"))
 
     if SCENARIO == "wrong_telemetry":
         other = await engine()
@@ -73,18 +86,24 @@ async def main():
             async with MiniApp(other, telemetry):
                 pass
         except AttachError as exc:
-            return done(attach_error=str(exc))
-        return done(attach_error=None)
+            result["attach_error"] = str(exc)
+        await other.shutdown()
+        await flow.shutdown()
+        await telemetry.stop()
+        return done(attach_error=result.get("attach_error"))
 
-    app = MiniApp(flow, telemetry)
+    app = MiniApp(flow, telemetry, shutdown_wait_s=WAIT_S)
     t0 = time.monotonic()
+    before_enter = random.getstate()
+    before_exit = None
     try:
         async with app, flow.workflow_scope("scenario"):
             if SCENARIO == "random_state":
-                result["random_unchanged_in_block"] = True
-                before = random.getstate()
-                await asyncio.sleep(0.2)
-                result["random_unchanged_in_block"] = random.getstate() == before
+                # MiniApp's own enter and exit, measured apart from the backend's start-up
+                # and shutdown (Dragon's runtime draws from `random` itself)
+                result["random_unchanged_by_enter"] = random.getstate() == before_enter
+                await flow.shutdown()
+                before_exit = random.getstate()
             elif SCENARIO == "ok":
                 await add(add(1, 2), 3)
                 await blk()
@@ -110,12 +129,19 @@ async def main():
                     await asyncio.sleep(0.01)
                 os.kill(os.getpid(), signal.SIGINT if SCENARIO == "sigint" else signal.SIGTERM)
                 await fut
-            if SCENARIO not in ("raise",):
+            if SCENARIO not in ("raise", "random_state"):
                 await flow.shutdown()
+        if before_exit is not None:
+            result["random_unchanged_by_exit"] = random.getstate() == before_exit
     finally:
         report = app.report.to_dict() if app.report else None
-        done(report=report, elapsed=time.monotonic() - t0)
+        done(report=report, elapsed=time.monotonic() - t0, shutdown_wait_s=WAIT_S)
 
+
+if BACKEND == "dragon":
+    import multiprocessing as mp
+
+    mp.set_start_method("dragon")
 
 if SCENARIO == "random_state":
     # isolate MiniApp's own draws from OpenTelemetry's (UP-18): ids from os.urandom,

@@ -25,6 +25,10 @@ print(app.report.telemetry_complete, app.report.tasks)
 - telemetry is not running, or has no checkpoint file (`checkpoint_path=`);
 - tasks were already submitted (enter `MiniApp` right after `start_telemetry()`).
 
+After an `AttachError`, `MiniApp` has not taken over anything: the engine and telemetry
+are still running and remain yours to shut down (`await flow.shutdown()`,
+`await telemetry.stop()`). On Dragon the process does not exit until both are.
+
 Then it records `wfminiapi.RunStarted` (wfMiniAPI, AsyncFlow and RHAPSODY versions,
 backend classes).
 
@@ -51,6 +55,18 @@ handled by AsyncFlow, as before.
 | `interrupted` | the block exited on a cancellation (signal) |
 | `reasons` | why telemetry is incomplete |
 | `exit_hint` | `0` if complete, `3` if not. wfMiniAPI never exits by itself; a script may do `sys.exit(app.report.exit_hint)`. |
+
+## What the telemetry covers
+
+| Recorded | By |
+|---|---|
+| The run: start, end, interruption, versions, backends | `MiniApp` (`wfminiapi.RunStarted` / `RunEnded`) |
+| Each task's lifecycle and outcome; workflow scopes and blocks; spans and resource metrics | AsyncFlow and RHAPSODY telemetry, as configured in `start_telemetry()` |
+| Whether all of the above reached the checkpoint | `MiniApp` (`app.report`) |
+
+**Nothing inside a task is recorded.** wfMiniAPI does not time kernels or steps, does
+not pass a task context into tasks and adds no hooks on the backend. In-task telemetry
+is the workflow developer's responsibility.
 
 ## Preflight
 
