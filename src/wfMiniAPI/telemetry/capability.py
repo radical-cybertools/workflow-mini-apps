@@ -1,8 +1,9 @@
 """The telemetry capability of a MiniApp: attaches to the user's AsyncFlow telemetry.
 
-It never creates, configures or replaces the user's components.  It reads two things
-RHAPSODY does not expose publicly yet (marked ``PRIVATE``; covered by drift tests):
-the checkpoint directory and the running flag.
+It never creates, configures or replaces the user's components.  From AsyncFlow it
+uses the public ``flow.telemetry`` (the manager the engine emits into).  It reads two
+things RHAPSODY does not expose publicly yet (marked ``PRIVATE``; covered by drift
+tests): the checkpoint directory and the running flag.
 """
 
 from __future__ import annotations
@@ -97,10 +98,26 @@ class MiniAppTelemetry:
             raise AttachError(
                 "telemetry is None: call `telemetry = await flow.start_telemetry(...)`"
             )
+        engine = type(self.flow)
+        if not hasattr(engine, "telemetry") or not hasattr(engine, "is_shutting_down"):
+            raise AttachError(
+                "this AsyncFlow has no joinable shutdown (flow.telemetry, "
+                "flow.is_shutting_down): install the radical.asyncflow pinned by wfMiniAPI"
+            )
         if self.manager.session_id != self.flow.uid:
             raise AttachError(
                 f"telemetry session {self.manager.session_id!r} is not this flow's "
                 f"({self.flow.uid!r}): pass the manager returned by this flow's start_telemetry()"
+            )
+        if self.flow.telemetry is None:
+            raise AttachError(
+                "this flow has no telemetry: call `telemetry = await flow.start_telemetry(...)`"
+            )
+        if self.manager is not self.flow.telemetry:
+            raise AttachError(
+                "telemetry is not the manager this flow emits into (built by hand, or from "
+                "an earlier start_telemetry() call): pass the object the latest "
+                "flow.start_telemetry() returned"
             )
         if not getattr(self.manager, "_running", False):  # PRIVATE (drift-tested)
             raise AttachError("telemetry is not running: start it before entering MiniApp")
@@ -162,7 +179,7 @@ class MiniAppTelemetry:
             return False
 
     # ------------------------------------------------------------------ exit
-    async def finish(self, *, interrupted: bool, exception_type: str, reasons: list[str]) -> None:
+    async def finish(self, *, ended_by: str, exception_type: str, reasons: list[str]) -> None:
         """Run-end events, stop telemetry (always), verify the checkpoint."""
         try:
             # PRIVATE read (drift-tested): a stopped manager drops emits silently (UP-08),
@@ -172,7 +189,7 @@ class MiniAppTelemetry:
             else:
                 self._emit(
                     RunEnded,
-                    interrupted=interrupted,
+                    ended_by=ended_by,
                     exception_type=exception_type,
                     duration_s=time.time() - self._t0,
                 )
@@ -188,7 +205,7 @@ class MiniAppTelemetry:
             self.manager.session_id,
             emitted={k: v for k, v in self._emitted.items() if k.startswith(PREFIX)},
             seen=dict(self._seen),
-            interrupted=interrupted,
+            ended_by=ended_by,
             reasons=tuple(reasons),
         )
         self._write_report()

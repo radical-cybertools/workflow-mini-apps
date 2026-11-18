@@ -32,7 +32,7 @@ class MiniAppReport:
     session_id: str
     checkpoint: str | None
     telemetry_complete: bool
-    interrupted: bool = False
+    ended_by: str = ""  # normal | exception | cancelled | engine_shutdown
     tasks: TaskCounts = field(default_factory=TaskCounts)
     events: dict[str, int] = field(default_factory=dict)  # wfminiapi events written, by type
     reasons: tuple[str, ...] = ()
@@ -73,7 +73,7 @@ def verify_checkpoint(
     *,
     emitted: dict[str, int] | None = None,
     seen: dict[str, int] | None = None,
-    interrupted: bool = False,
+    ended_by: str = "",
     reasons: tuple[str, ...] = (),
 ) -> MiniAppReport:
     """Check that the session's checkpoint holds what was emitted, and count task outcomes.
@@ -87,7 +87,7 @@ def verify_checkpoint(
     path, problem = find_checkpoint(directory, session_id)
     if path is None:
         reasons.append(problem)
-        return MiniAppReport(session_id, None, False, interrupted, reasons=tuple(reasons))
+        return MiniAppReport(session_id, None, False, ended_by, reasons=tuple(reasons))
 
     written: Counter[str] = Counter()
     created, submitted, terminal = set(), set(), {}
@@ -126,7 +126,7 @@ def verify_checkpoint(
         session_id=session_id,
         checkpoint=str(path),
         telemetry_complete=not reasons,
-        interrupted=interrupted,
+        ended_by=ended_by,
         tasks=tasks,
         events=dict(sorted(ours.items())),
         reasons=tuple(reasons),

@@ -78,7 +78,10 @@ def test_ok_run_is_complete_and_blocks_are_not_tasks(tmp_path, backend):
     assert proc.returncode == 0
     report = res["report"]
     assert report["telemetry_complete"], report["reasons"]
+    assert report["ended_by"] == "normal"
     assert report["tasks"]["created"] == 3 == report["tasks"]["completed"]
+    # the exit runs in the caller's Context, so RHAPSODY's OTel context detach works
+    assert "Failed to detach context" not in proc.stderr
     events = checkpoint_events(tmp_path)
     assert events.count("wfminiapi.RunStarted") == 1 and events.count("wfminiapi.RunEnded") == 1
     assert (tmp_path / "telemetry" / f"{report['session_id']}.wfminiapi.report.json").exists()
@@ -100,14 +103,15 @@ def test_exception_is_reraised_without_waiting(tmp_path, backend):
     proc, res = run("raise", tmp_path, backend)
     assert proc.returncode == 1 and "ValueError: core raised" in proc.stderr
     assert res["report"]["telemetry_complete"]
-    assert res["elapsed"] < res["shutdown_wait_s"]  # no wait on a plain exception
+    assert res["report"]["ended_by"] == "exception"
 
 
 @pytest.mark.parametrize("scenario", ["sigint", "sigterm"])
 def test_signal_reaches_the_ordered_exit(scenario, tmp_path, backend):
     proc, res = run(scenario, tmp_path, backend)
     assert proc.returncode == 1  # AsyncFlow's own handler: CancelledError, as before
-    assert res["report"]["interrupted"] and res["report"]["telemetry_complete"]
+    assert res["report"]["ended_by"] == "engine_shutdown"
+    assert res["report"]["telemetry_complete"], res["report"]["reasons"]
     events = checkpoint_events(tmp_path)
     assert "wfminiapi.RunEnded" in events and "SessionEnded" in events
 
@@ -116,7 +120,6 @@ def test_early_stop_is_reported(tmp_path, backend):
     _, res = run("early_stop", tmp_path, backend)
     assert not res["report"]["telemetry_complete"]
     assert any("stopped_before_exit" in r for r in res["report"]["reasons"])
-    assert res["elapsed"] < res["shutdown_wait_s"]
 
 
 @pytest.mark.parametrize(
@@ -124,11 +127,64 @@ def test_early_stop_is_reported(tmp_path, backend):
     [
         ("late_attach", "already submitted"),
         ("wrong_telemetry", "is not this flow's"),
+        ("hand_built_no_start", "this flow has no telemetry"),
+        ("hand_built_telemetry", "not the manager this flow emits into"),
+        ("second_start_telemetry", "not the manager this flow emits into"),
     ],
 )
 def test_attach_errors(scenario, needle, tmp_path, backend):
+    if scenario == "second_start_telemetry" and backend == "dragon":
+        # Upstream, not MiniApp: with two telemetry managers on one Dragon backend, the
+        # process hangs at exit about 1 run in 10 (RHAPSODY's Dragon adapter leaves its
+        # dragon.native Queue to the garbage collector, whose __del__ blocks once the
+        # runtime is gone). The attach check itself does not depend on the backend.
+        pytest.skip("two telemetry managers on Dragon can hang at exit (upstream)")
     _, res = run(scenario, tmp_path, backend)
     assert res["attach_error"] and needle in res["attach_error"]
+
+
+@pytest.mark.parametrize("scenario", ["outer_cancel", "ddsim_outer_cancel"])
+def test_outer_cancel_is_not_a_signal(scenario, tmp_path, backend):
+    # F1: a timeout around the run, also when the core's own finally shut the engine
+    # down, is a cancel from outside: no wait for a shutdown nobody started
+    proc, res = run(scenario, tmp_path, backend)
+    assert proc.returncode == 1 and res["raised"] == "TimeoutError"
+    assert res["report"]["ended_by"] == "cancelled"
+    assert res["report"]["telemetry_complete"], res["report"]["reasons"]
+    if backend == "concurrent":
+        assert res["elapsed"] < 20
+
+
+def test_cancel_during_exit_is_delivered_after_the_ordered_stop(tmp_path, backend):
+    # F2: the cancel lands while MiniApp's exit shuts the backend down
+    proc, res = run("cancel_in_exit", tmp_path, backend)
+    assert res["cancel_at"] >= res["exit_started"]
+    assert proc.returncode == 1 and res["raised"] == "CancelledError"
+    report = res["report"]
+    assert report["ended_by"] == "normal"
+    assert report["telemetry_complete"], report["reasons"]
+    assert res["backend_state"] == "SHUTDOWN"
+    events = checkpoint_events(tmp_path)
+    assert "wfminiapi.RunEnded" in events and "SessionEnded" in events
+
+
+def test_workflow_exception_wins_over_a_cancel_during_exit(tmp_path, backend):
+    proc, res = run("cancel_in_exit_after_error", tmp_path, backend)
+    assert res["cancel_at"] >= res["exit_started"]
+    assert proc.returncode == 1 and res["raised"] == "ValueError"
+    assert res["report"]["ended_by"] == "exception"
+    assert res["cancelling_after"] == 0  # the absorbed cancel was given back
+    assert res["backend_state"] == "SHUTDOWN"
+
+
+def test_a_kept_backend_stays_running(tmp_path, backend):
+    # F10: shutdown(skip_execution_backend=True) in the block keeps the backend
+    proc, res = run("kept_backend", tmp_path, backend)
+    assert proc.returncode == 0
+    assert res["report"]["ended_by"] == "normal"
+    assert res["report"]["telemetry_complete"], res["report"]["reasons"]
+    assert res["backend_state"] != "SHUTDOWN"
+    assert res["backend_state_after_owner"] == "SHUTDOWN"
 
 
 def test_miniapp_does_not_draw_from_global_random(tmp_path, backend):

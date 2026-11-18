@@ -2,6 +2,36 @@
 
 ## 0.2.0 (unreleased)
 
+### Hardening: the exit and attach fixes of the SOE review (F1, F2, F3, F9, F10)
+
+- **`MiniApp`'s exit joins AsyncFlow's shutdown.** It is now one `await flow.shutdown()`,
+  relying on AsyncFlow's joinable `shutdown()` (radical.asyncflow `fix/joinable-shutdown`,
+  pinned by commit until merged): a shutdown the workflow, a signal or an engine error
+  already started is waited for, not repeated. No more polling of backend states.
+  - **F1:** a cancel from outside (`asyncio.timeout`, a `TaskGroup`, a supervisor) no
+    longer waits 60 s for a signal shutdown that never started, and is no longer
+    reported as a signal.
+  - **F2:** a cancel that arrives during the exit no longer breaks it: the engine shuts
+    down, then telemetry stops and the report is written, then the cancel is
+    re-raised. If the workflow raised its own exception, that exception wins. On
+    Dragon such a run used to hang.
+  - **F10:** a backend kept with `flow.shutdown(skip_execution_backend=True)` stays
+    running.
+- **`shutdown_wait_s` is removed** (F9: it was never a bound). `MiniApp` sets no time
+  limit; `docs/api/miniapp.md` explains how to bound a run.
+- **The report's `ended_by` replaces `interrupted`:** `normal`, `exception`, `cancelled`
+  or `engine_shutdown`, also in `wfminiapi.RunEnded`. The schema tag stays
+  `wfminiapi/1`, which was never released; checkpoints written during development
+  carry `interrupted` instead.
+- **F3: new `AttachError` cases.** `telemetry` must be the manager the flow emits into
+  (`flow.telemetry`): a manager built by hand, or one from an earlier
+  `start_telemetry()` call, used to pass and report "complete" with no tasks. An
+  AsyncFlow without the joinable shutdown is refused with an install hint.
+- **Python ≥ 3.12** (was 3.11): the exit runs in the caller's Context
+  (`Task.get_context()`), which RHAPSODY's OTel context detach needs.
+- **Pins:** AsyncFlow `fix/joinable-shutdown` (on v0.7.0); RHAPSODY `142f396` (in
+  v0.7.0). Both projects now tag releases.
+
 ### Phase 3: real backends, packaging, release
 
 - **Scope:** in-task telemetry is out of scope for wfMiniAPI. `MiniApp` records the run

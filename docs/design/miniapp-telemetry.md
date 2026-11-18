@@ -14,7 +14,7 @@
 | Code | Revision |
 |---|---|
 | `workflow-mini-apps` (package `wfMiniAPI`) | baseline `55cd20f`; integrated on `feature/miniapp-telemetry` |
-| AsyncFlow **main** | `d97585e` |
+| AsyncFlow | `main` (482f166, v0.7.0) plus `fix/joinable-shutdown` (joinable `shutdown()`, `telemetry`, `is_shutting_down`); was `d97585e` until 2026-11-18 |
 | RHAPSODY **main** | `142f396` |
 | DeepDriveSim | baseline `0c4f0c2`; integrated through `tests/equivalence/ddsim/run_workflow.patch` |
 | Dragon | 0.15.0 |
@@ -50,6 +50,7 @@
 | E3 | `asyncio.run` stays. wfMiniAPI owns no exit codes and no signal handlers; it **reports**, and the script decides. |
 | M1 | **`MiniApp(flow, telemetry)` is the single contact point.** Telemetry is one capability of it, not the whole API. |
 | M2 | Running N workflows is the workflow developer's job, with AsyncFlow scopes and blocks; `MiniApp` does not orchestrate workflows. |
+| **X1** | **(2026-11-18) The exit joins AsyncFlow's shutdown** (SOE review F1–F3, F9, F10). AsyncFlow's `shutdown()` runs once and every call joins it (first call's arguments decide; a cancelled waiter does not abort it; a failed one is retried); `MiniApp`'s exit is one `await flow.shutdown()`, run as a shielded task in the caller's Context, and a cancel that arrives during it is re-raised afterwards (a workflow exception wins). The report's `ended_by` (`normal`, `exception`, `cancelled`, `engine_shutdown`) replaces `interrupted`. Ownership is `telemetry is flow.telemetry`. `shutdown_wait_s` is removed. Python ≥ 3.12. |
 
 ---
 
@@ -66,9 +67,9 @@ async with MiniApp(flow, telemetry), flow.workflow_scope("motif_4"):
 ```
 
 **`MiniApp` is a thin coordinator** over components the user built and passed in (H1). On top of AsyncFlow's own telemetry (task lifecycle events, spans, metrics) it adds:
-- **Attach checks.** The telemetry belongs to this flow, is running and writes a checkpoint, and no task was submitted yet. Otherwise `AttachError` says how to fix it.
-- **Run events.** `wfminiapi.RunStarted` (versions and commits, backends) and `wfminiapi.RunEnded` (interrupted, exception type, duration).
-- **A guaranteed stop order.** On leaving the block, normally, on an exception or after a signal: engine shut down, a FIFO barrier so every event is processed, `RunEnded`, then `telemetry.stop()`. DeepDriveSim's MA-11 ordering bug can no longer happen.
+- **Attach checks.** The telemetry is the manager this flow emits into (`flow.telemetry`), is running and writes a checkpoint, and no task was submitted yet. Otherwise `AttachError` says how to fix it.
+- **Run events.** `wfminiapi.RunStarted` (versions and commits, backends) and `wfminiapi.RunEnded` (`ended_by`, exception type, duration).
+- **A guaranteed stop order.** On leaving the block, normally, on an exception, a cancel or a signal: engine shut down (joining a shutdown already running), a FIFO barrier so every event is processed, `RunEnded`, then `telemetry.stop()`. DeepDriveSim's MA-11 ordering bug can no longer happen.
 - **A verified report.** It is computed from the checkpoint file alone:
   - `telemetry_complete`;
   - task counts: completed, failed, canceled, abandoned, not submitted;
@@ -90,7 +91,7 @@ async with MiniApp(flow, telemetry), flow.workflow_scope("motif_4"):
 | Callback hook and `submit_tasks` hook on the backend instance | **None** | I1; outcomes come from AsyncFlow's own events (Phase 2 Q1) |
 | `TaskOutcome` event per task | **None.** Counts come from `TaskCreated` / `TaskSubmitted` / terminal events | Phase 2 Q1 |
 | Internal task-span index, `export_traceparent` | **None** | Nothing needs it without in-task records |
-| `MiniApp(flow, telemetry, checkpoint_path=…, kernel_detail=…, gpu_timing=…, on_sink_error=…)` | `MiniApp(flow, telemetry, /, *, backends=None, shutdown_wait_s=60.0)`. The checkpoint path is read from the telemetry manager | Pass the path once; the in-task options are gone |
+| `MiniApp(flow, telemetry, checkpoint_path=…, kernel_detail=…, gpu_timing=…, on_sink_error=…)` | `MiniApp(flow, telemetry, /, *, backends=None)`. The checkpoint path is read from the telemetry manager | Pass the path once; the in-task options are gone |
 | `wfMiniAPI.app`, `wfMiniAPI.task` | `wfMiniAPI.api` (`MiniApp`, `MiniAppReport`, `AttachError`, `require_dragon`, `BackendUnavailableError`); no task-side module | `src/` layout of Phase 1; I1 |
 | `async with MiniApp(...)` around `workflow_core` | `async with MiniApp(flow, telemetry), flow.workflow_scope("<name>"):` around `miniapp_workflow`; the outer function is `run_miniapp` | Scope ids tag every task span; owner's naming |
 | Layer L0 (task-side probe) | Removed | I1 |
@@ -211,11 +212,8 @@ The same change applies to motif_2, motif_3 (both), motif_6 and dragon-mpi; only
    - attach barrier;
    - emit `RunStarted`.
 2. **Inside the block:** the unchanged core runs, including its own `flow.shutdown()`.
-3. **`__aexit__`** runs on normal exit, on exception and after a signal. It never raises and never replaces the workflow's exception.
-   1. **Shutdown:**
-      - if the backend is already SHUTDOWN, wait until `flow.components` is empty;
-      - on `CancelledError` (signal path), wait for AsyncFlow's own shutdown, with a timeout;
-      - otherwise call `flow.shutdown()`.
+3. **`__aexit__`** runs on normal exit, on exception, on a cancel and after a signal (X1). It first records `ended_by` (before any await: a cancel from outside has `Task.cancelling() > 0`; AsyncFlow's own shutdown cancels the awaited futures, not the task). The steps below run as one task in the caller's Context, awaited under `asyncio.shield`: a cancel that arrives meanwhile is re-raised after step 5, unless the workflow raised its own exception (then the cancels are given back with `uncancel()` and that exception propagates). A failed engine shutdown becomes a reason; errors inside verification can still escape (F11, open).
+   1. **Shutdown:** `await flow.shutdown()`, which joins a shutdown the core, a signal or an engine error already started, and returns when it has finished. Backends kept with `skip_execution_backend=True` stay running.
    2. **Exit barrier:** if telemetry is no longer running, record `stopped_before_exit`; otherwise emit the barrier and wait for it.
    3. Emit `RunEnded`.
    4. Call `telemetry.stop()`. This always runs, inside a `finally`.
@@ -240,15 +238,15 @@ The same change applies to motif_2, motif_3 (both), motif_6 and dragon-mpi; only
 
 ---
 
-## 7. API (Python ≥ 3.11)
+## 7. API (Python ≥ 3.12)
 
 ```python
 # wfMiniAPI/api: the mini-app's public surface
 class MiniApp:
     """Thin coordinator over user-built components. Never constructs or hides flow, backend or telemetry."""
-    def __init__(self, flow, telemetry, /, *, backends=None, shutdown_wait_s: float = 60.0): ...
+    def __init__(self, flow, telemetry, /, *, backends=None): ...
     async def __aenter__(self) -> "MiniApp": ...
-    async def __aexit__(self, et, ev, tb) -> bool: ...   # always False
+    async def __aexit__(self, et, ev, tb) -> bool: ...   # False; re-raises a cancel that arrived during the exit
     flow: "WorkflowEngine"
     telemetry: "MiniAppTelemetry"       # the telemetry capability (wraps the user's TelemetryManager)
     report: "MiniAppReport | None"      # valid after the block
@@ -257,7 +255,7 @@ class MiniAppReport:                    # frozen dataclass
     session_id: str
     checkpoint: str | None
     telemetry_complete: bool
-    interrupted: bool
+    ended_by: str                       # normal | exception | cancelled | engine_shutdown
     tasks: "TaskCounts"                 # created, completed, failed, canceled, abandoned, not_submitted
     events: dict[str, int]              # wfminiapi events written, by type
     reasons: tuple[str, ...]
@@ -284,7 +282,7 @@ def require_dragon() -> None: ...       # optional, explicit preflight
 A subprocess test asserts that importing L1 loads no AsyncFlow, RHAPSODY, OpenTelemetry or Dragon.
 
 **Packaging:**
-- `pyproject.toml` at the repository root, `src/` layout, Python ≥ 3.11.
+- `pyproject.toml` at the repository root, `src/` layout, Python ≥ 3.12.
 - Base dependency: `numpy`.
 - **Extras:**
   - `workflow`: AsyncFlow and `rhapsody-py[telemetry]`, pinned by commit until tagged (UP-16);
