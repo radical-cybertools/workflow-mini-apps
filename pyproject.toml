@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wfMiniAPI"
-version = "0.2.0.dev0"
+version = "0.2.0"
 description = "Emulation kernels and building blocks for RADICAL workflow mini-apps"
 readme = "README.md"
 license = "MIT"
@@ -33,6 +33,9 @@ workflow = [
     "radical.asyncflow @ git+https://github.com/radical-cybertools/radical.asyncflow@d97585e",
     "rhapsody-py[telemetry] @ git+https://github.com/radical-cybertools/rhapsody@142f396",
 ]
+# Dragon backend (dragonhpc 0.15.0 through RHAPSODY); run the examples under `dragon`.
+dragon = ["rhapsody-py[dragon] @ git+https://github.com/radical-cybertools/rhapsody@142f396"]
+plot = ["matplotlib"]
 test = ["pytest"]
 docs = ["mkdocs", "mkdocstrings[python]"]
 dev = ["ruff", "pre-commit"]
@@ -46,6 +49,7 @@ where = ["src"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+markers = ["dragon: runs on the real Dragon backend (set WFMINI_TEST_DRAGON=1)"]
 
 [tool.ruff]
 line-length = 100

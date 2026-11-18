@@ -11,12 +11,33 @@
 #   end_at / end_before    : first matching line after the start
 #
 # allow_removed / allow_added: regexes (full match after strip) for edge lines that
-# may disappear or appear relative to the manifest. Phase 1 allows none; each later
+# may disappear or appear relative to the manifest. Phase 1 allowed none; each later
 # phase extends these lists explicitly, so the edge change is reviewable here.
 
 [defaults]
-allow_removed = []
-allow_added = []
+# Phase 2 edge (design rev. 3 §6, phase plan step 2/3): unversioned backend name,
+# AsyncFlow telemetry, the MiniApp contact point with an explicit workflow scope,
+# the run_miniapp/miniapp_workflow split that keeps the core text untouched (the
+# outer function is renamed from workflow to run_miniapp, and __main__'s
+# asyncio.run(...) line follows the rename).
+allow_removed = [
+  'from rhapsody\.backends import DragonExecutionBackendV3',
+  'backend = await DragonExecutionBackendV3\(\)',
+  'async def workflow\(cfg\):',
+  'asyncio\.run\(workflow\(cfg\)\)',
+]
+allow_added = [
+  '',
+  'from rhapsody\.backends import DragonExecutionBackend',
+  'from wfMiniAPI\.api import MiniApp',
+  'backend = await DragonExecutionBackend\(\)',
+  'telemetry = await flow\.start_telemetry\(checkpoint_path="telemetry"\)',
+  'async with (MiniApp\(flow, telemetry\), )?flow\.workflow_scope\("[a-z0-9_]+"\):',
+  'async def run_miniapp\(cfg\):',
+  'await miniapp_workflow\(cfg, flow, logger\)',
+  'async def miniapp_workflow\(cfg, flow, logger\):',
+  'asyncio\.run\(run_miniapp\(cfg\)\)',
+]
 
 # --------------------------------------------------------------------------- #
 # workflow-mini-apps examples: same edge shape in all six
@@ -47,21 +68,26 @@ path = "examples/dragon-mpi/miniapp_rhapsody.py"
 [[example_segment]]
 name = "helpers"
 start_at = ['^class Timer']
-end_before = ['^async def workflow\(cfg\):']
+end_before = ['^async def (workflow|run_miniapp)\(cfg\):']
 
 [[example_segment]]
 name = "prologue"                 # includes mp.set_start_method and dragon-mpi's mpi4py import
-start_after = ['^async def workflow\(cfg\):']
+start_after = ['^async def (workflow|run_miniapp)\(cfg\):']
 end_before = ['^\s*backend = await ']
 
 [[example_segment]]
 name = "core"                     # tasks, task graph, steering, the workflow's own shutdown
-start_after = ['^async def workflow_core\(', '^\s*flow = await WorkflowEngine\.create\(']
+start_after = ['^async def miniapp_workflow\(', '^\s*flow = await WorkflowEngine\.create\(']
 end_at = ['^\s*await flow\.shutdown\(\)']
 
 [[example_segment]]
-name = "main"
+name = "main_head"                # argparse, config, timer
 start_at = ['^if __name__ == "__main__":']
+end_before = ['^\s*asyncio\.run\(']
+
+[[example_segment]]
+name = "main_tail"                # the DONE print after asyncio.run(...)
+start_after = ['^\s*asyncio\.run\(']
 
 # --------------------------------------------------------------------------- #
 # whole-file core

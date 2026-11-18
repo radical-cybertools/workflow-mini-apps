@@ -3,3 +3,9 @@
 __pycache__/
 *.egg-info/
 site/
+build/
+# run artefacts of the examples (telemetry checkpoints, the shared ./data_0.h5 of a preserved bug)
+examples/**/telemetry/
+examples/**/data_*.h5
+# tools/validate_node.sh output
+validation-*.tar.gz

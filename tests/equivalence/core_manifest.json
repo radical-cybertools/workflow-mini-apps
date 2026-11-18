@@ -15,12 +15,14 @@
     "async def workflow(cfg):",
     "    backend = await DragonExecutionBackendV3()",
     "    flow = await WorkflowEngine.create(backend=backend)",
-    ""
+    "",
+    "    asyncio.run(workflow(cfg))"
    ],
    "segments": {
     "core": "08b41e18bbfc1f49ae76ba026a5a3bba763fbf59e9b63649ab6701be21807062",
     "helpers": "26a040d20984d69dbca911e536bdb4a4446be878c19e48e2c42c51935cd85759",
-    "main": "ba3d9d20f0df7f7741d792be5567779792f904dcbfa47a93793860ae0881ad6f",
+    "main_head": "ad059e99faa69d605f95e37a9b280544356d953dde4344e050851dc01d370d6c",
+    "main_tail": "f552e3c408b2048b426835e826da23086049ff0acb9812a10eab8dd8f61028e7",
     "prologue": "ec63c0827e792f158dafd51cd422139aa52093e083557a235cebaa1e78110f69"
    }
   },
@@ -39,12 +41,14 @@
     "async def workflow(cfg):",
     "    backend = await DragonExecutionBackendV3()",
     "    flow = await WorkflowEngine.create(backend=backend)",
-    ""
+    "",
+    "    asyncio.run(workflow(cfg))"
    ],
    "segments": {
     "core": "9379b4192058984d4d08cde3b5984d283aec994986ff6445bfedbef45007135e",
     "helpers": "2e29607fc10f89ffb2449d87d9af343e48166ea2e3838b218805820d90c3553f",
-    "main": "0626c838059cde5555d3a9726ed765e085f47fbea1432042ce50413e63c4e825",
+    "main_head": "8b5d7e94724de428c7654767916f0eb99466866296cb1bffe21fd1968317e921",
+    "main_tail": "f552e3c408b2048b426835e826da23086049ff0acb9812a10eab8dd8f61028e7",
     "prologue": "b4cf03212994ab146105eaaed1aa785c8cc6194de9b218de2293599d8604ce8e"
    }
   },
@@ -63,12 +67,14 @@
     "async def workflow(cfg):",
     "    backend = await DragonExecutionBackendV3()",
     "    flow = await WorkflowEngine.create(backend=backend)",
-    ""
+    "",
+    "    asyncio.run(workflow(cfg))"
    ],
    "segments": {
     "core": "63b54f044364fc1f0b022e9d05a9b797d1f294f82bad2db583654499ff057c58",
     "helpers": "26a040d20984d69dbca911e536bdb4a4446be878c19e48e2c42c51935cd85759",
-    "main": "9352fe6fd40d4ee0020702a307b6068b48b121622160b5914c11e5f3f2a25c7e",
+    "main_head": "c0ed63031c32c87fd5c8effac812c7c451bceccc962961c2d5c0cc8393254132",
+    "main_tail": "f552e3c408b2048b426835e826da23086049ff0acb9812a10eab8dd8f61028e7",
     "prologue": "5af62e4dd85b31dc534a2d1f14911da0800e3d8236890a9883324401108fcd5b"
    }
   },
@@ -87,12 +93,14 @@
     "async def workflow(cfg):",
     "    backend = await DragonExecutionBackendV3()",
     "    flow = await WorkflowEngine.create(backend=backend)",
-    ""
+    "",
+    "    asyncio.run(workflow(cfg))"
    ],
    "segments": {
     "core": "8220d59e6ea8ea332878a4e1e3d6592d90da38eb28019f9f6b902c156254aec4",
     "helpers": "26a040d20984d69dbca911e536bdb4a4446be878c19e48e2c42c51935cd85759",
-    "main": "9352fe6fd40d4ee0020702a307b6068b48b121622160b5914c11e5f3f2a25c7e",
+    "main_head": "c0ed63031c32c87fd5c8effac812c7c451bceccc962961c2d5c0cc8393254132",
+    "main_tail": "f552e3c408b2048b426835e826da23086049ff0acb9812a10eab8dd8f61028e7",
     "prologue": "b4cf03212994ab146105eaaed1aa785c8cc6194de9b218de2293599d8604ce8e"
    }
   },
@@ -111,12 +119,14 @@
     "async def workflow(cfg):",
     "    backend = await DragonExecutionBackendV3()",
     "    flow = await WorkflowEngine.create(backend=backend)",
-    ""
+    "",
+    "    asyncio.run(workflow(cfg))"
    ],
    "segments": {
     "core": "8edc037fae33d6f4bad887aba80c3f84ec3b961e17c4ee45e42f63f149aa52c4",
     "helpers": "26a040d20984d69dbca911e536bdb4a4446be878c19e48e2c42c51935cd85759",
-    "main": "ef0372aa0681973a7b5a1b90f918eaf25aa8cf65153e8944163f454d042d0c20",
+    "main_head": "c2dbee2beee7a8f9c4ed8d1be0ffeea002cfc2880c6f9f3f888e754b5fb802eb",
+    "main_tail": "f552e3c408b2048b426835e826da23086049ff0acb9812a10eab8dd8f61028e7",
     "prologue": "b4cf03212994ab146105eaaed1aa785c8cc6194de9b218de2293599d8604ce8e"
    }
   },
@@ -135,12 +145,14 @@
     "async def workflow(cfg):",
     "    backend = await DragonExecutionBackendV3()",
     "    flow = await WorkflowEngine.create(backend=backend)",
-    ""
+    "",
+    "    asyncio.run(workflow(cfg))"
    ],
    "segments": {
     "core": "c5825efcb27871fdfb3266b1a1f7d73e85fcd243ef854db108c155210abc3644",
     "helpers": "2e29607fc10f89ffb2449d87d9af343e48166ea2e3838b218805820d90c3553f",
-    "main": "4b0ad2e52f0bd20681d3f45662abeb71f99cec3455446f81cd49840943f33355",
+    "main_head": "8f21e86eaee0ad486bfedf5c5818cad59342104c40857524d3007a0499e08ada",
+    "main_tail": "f552e3c408b2048b426835e826da23086049ff0acb9812a10eab8dd8f61028e7",
     "prologue": "b4cf03212994ab146105eaaed1aa785c8cc6194de9b218de2293599d8604ce8e"
    }
   }

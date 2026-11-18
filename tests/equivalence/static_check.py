@@ -68,6 +68,11 @@ def segments(text: str, specs: list[dict]) -> tuple[dict[str, str], list[str]]:
 
 
 def _roots(args) -> dict[str, Path]:
+    if args.ddsim is None:  # the integrated tree: 0c4f0c2 export + ddsim/run_workflow.patch
+        sys.path.insert(0, str(HERE))
+        import harness
+
+        args.ddsim = str(harness.integrated_ddsim())
     return {"repo": Path(args.repo).resolve(), "ddsim": Path(args.ddsim).resolve()}
 
 
@@ -146,8 +151,9 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--repo", default=str(REPO), help="workflow-mini-apps tree to check")
     ap.add_argument(
         "--ddsim",
-        default=str(REPO / ".equiv-work" / "ddsim-0c4f0c2"),
-        help="DeepDriveSim tree to check (default: the 0c4f0c2 export)",
+        default=None,
+        help="DeepDriveSim tree to check (default: the 0c4f0c2 export with "
+        "tests/equivalence/ddsim/run_workflow.patch applied)",
     )
     args = ap.parse_args(argv)
     return build(args) if args.action == "build" else check(args)
