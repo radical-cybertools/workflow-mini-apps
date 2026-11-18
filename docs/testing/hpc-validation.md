@@ -23,7 +23,7 @@ tools/validate_node.sh --ddsim ../DeepDriveSim
 | Option | Meaning |
 |---|---|
 | `--ddsim PATH` | a DeepDriveSim clone; adds the DeepDriveSim workflow |
-| `--python EXE` | interpreter for the venv (Python 3.11 to 3.13) |
+| `--python EXE` | interpreter for the venv (Python 3.12 or 3.13) |
 | `--quick` | dry mode only, no lifecycle scenarios: checks that the script itself works |
 | `--setup` | only build the venv (CuPy included) and export the baselines |
 | `--offline` | install nothing; use the venv `--setup` made |

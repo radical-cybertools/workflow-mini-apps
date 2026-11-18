@@ -17,7 +17,7 @@ RunStarted = define_event(
 RunEnded = define_event(
     "wfminiapi.RunEnded",
     schema=(str, SCHEMA),
-    interrupted=bool,
+    ended_by=str,  # normal | exception | cancelled | engine_shutdown
     exception_type=str,
     duration_s=float,
 )

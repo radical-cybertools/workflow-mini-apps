@@ -79,3 +79,12 @@ def test_needs_exactly_one_checkpoint(tmp_path):
     write(tmp_path, [], name=f"{SID}.2.telemetry.jsonl")
     report = verify_checkpoint(tmp_path, SID)
     assert not report.telemetry_complete and "found 2" in report.reasons[0]
+
+
+def test_ended_by_is_reported(tmp_path):
+    write(tmp_path, [event("wfminiapi.RunStarted")])
+    report = verify_checkpoint(tmp_path, SID, ended_by="engine_shutdown")
+    assert report.to_dict()["ended_by"] == "engine_shutdown"
+    assert verify_checkpoint(tmp_path / "missing", SID, ended_by="cancelled").ended_by == (
+        "cancelled"
+    )

@@ -24,7 +24,7 @@ The AI-steered simulation mini-app (formerly `DeepDriveMD` here) now lives in
 
 ## Installation
 
-Python 3.11 or newer.
+Python 3.12 or newer.
 
 ```shell
 git clone https://github.com/radical-cybertools/workflow-mini-apps.git

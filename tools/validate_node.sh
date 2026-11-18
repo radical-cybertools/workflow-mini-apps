@@ -12,7 +12,7 @@
 #   4. writes everything to one tarball to send back.
 #
 # --ddsim PATH   a DeepDriveSim clone (adds the DeepDriveSim workflow)
-# --python EXE   interpreter for the venv (default python3; 3.11-3.13)
+# --python EXE   interpreter for the venv (default python3; 3.12-3.13)
 # --quick        dry mode only and no lifecycle scenarios (a smoke test of the script)
 # --setup        steps 1-2 only, CuPy included; run it where there is internet (a login node)
 # --offline      no installs: use the venv --setup made (a compute node without internet)
