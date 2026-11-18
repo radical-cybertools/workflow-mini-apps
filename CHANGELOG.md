@@ -2,6 +2,25 @@
 
 ## 0.2.0 (unreleased)
 
+### Phase 3: real backends, packaging, release
+
+- **Scope:** in-task telemetry is out of scope for wfMiniAPI. `MiniApp` records the run
+  and verifies AsyncFlow's task-level telemetry; nothing inside a task is recorded.
+  `annotate_kernel` only registers kernels. The design record is now revision 4.
+- **Packaging:** `dragon` extra (RHAPSODY's Dragon backend, dragonhpc 0.15.0) and `plot`
+  extra; `wfminiapi.RunStarted` records the git commit of editable installs.
+- **`tools/plot_run.py`:** task-level plot of a run from its telemetry checkpoint.
+- **Real Dragon validation:** `WFMINI_EQUIV_BACKEND=dragon python
+  tests/equivalence/run_equiv.py pair` runs the baseline and this tree on the same node
+  and compares them (multisets). Every workflow matches on one node, dry and real.
+- **On Dragon, a failing example now exits.** Before, a task failure skipped the core's
+  `flow.shutdown()` and the process never exited; `MiniApp`'s exit shuts the engine down.
+- **Lifecycle tests on Dragon:** `WFMINI_TEST_DRAGON=1 pytest -m dragon tests/integration`.
+- **`tools/validate_node.sh`:** validation on an HPC node with Dragon and a GPU
+  (`docs/testing/hpc-validation.md`).
+- **Docs:** after an `AttachError`, the engine and telemetry are still the script's to
+  shut down.
+
 ### Phase 2: explicit edge and MiniApp
 
 - **`wfMiniAPI.api.MiniApp(flow, telemetry)`**: the mini-app's contact point. It

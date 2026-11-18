@@ -15,6 +15,7 @@ import time
 from collections import Counter
 from importlib import metadata
 from pathlib import Path
+from urllib.parse import unquote, urlparse
 
 from rhapsody.telemetry.events import make_event
 
@@ -30,8 +31,36 @@ class AttachError(RuntimeError):
     """MiniApp cannot attach: its telemetry would be wrong or incomplete."""
 
 
+def _git_head(repo: Path) -> str:
+    """Commit of a git checkout, read from its files (no subprocess); '' if unknown."""
+    try:
+        git = repo / ".git"
+        if git.is_file():  # a worktree: "gitdir: <path>"
+            git = (repo / git.read_text().split(":", 1)[1].strip()).resolve()
+        common = git
+        if (git / "commondir").is_file():  # refs of a worktree live in the main repository
+            common = (git / (git / "commondir").read_text().strip()).resolve()
+        head = (git / "HEAD").read_text().strip()
+        if not head.startswith("ref:"):
+            return head  # detached
+        ref = head.split(":", 1)[1].strip()
+        for base in (git, common):
+            if (base / ref).is_file():
+                return (base / ref).read_text().strip()
+        for line in (common / "packed-refs").read_text().splitlines():
+            if line.endswith(" " + ref):
+                return line.split()[0]
+    except (OSError, IndexError):
+        pass
+    return ""
+
+
 def _package(dist: str) -> str:
-    """'<version>' or '<version>@<commit>' from installed package metadata."""
+    """'<version>' or '<version>@<commit>' from installed package metadata.
+
+    The commit comes from the VCS URL of a git install, or from the checkout of an
+    editable install (both main branches still declare the same version, UP-16).
+    """
     try:
         d = metadata.distribution(dist)
     except metadata.PackageNotFoundError:
@@ -39,10 +68,13 @@ def _package(dist: str) -> str:
     commit = ""
     try:
         info = json.loads(d.read_text("direct_url.json") or "{}")
-        commit = info.get("vcs_info", {}).get("commit_id", "")[:7]
+        commit = info.get("vcs_info", {}).get("commit_id", "")
+        url = info.get("url", "")
+        if not commit and info.get("dir_info", {}).get("editable") and url.startswith("file://"):
+            commit = _git_head(Path(unquote(urlparse(url).path)))
     except ValueError:
         pass
-    return f"{d.version}@{commit}" if commit else d.version
+    return f"{d.version}@{commit[:7]}" if commit else d.version
 
 
 class MiniAppTelemetry:

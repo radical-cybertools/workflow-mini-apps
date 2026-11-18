@@ -16,6 +16,8 @@ pip install -e ".[workflow,io,mpi]"
 | `mpi` | `mpi4py` (MPI kernels) |
 | `gpu` | `cupy-cuda12x` (GPU kernels) |
 | `workflow` | AsyncFlow and RHAPSODY (with telemetry), needed by the examples |
+| `dragon` | the Dragon backend (`dragonhpc` 0.15.0, through RHAPSODY); run scripts under the `dragon` launcher |
+| `plot` | `matplotlib`, for `tools/plot_run.py` |
 | `test`, `docs`, `dev` | pytest; MkDocs; ruff and pre-commit |
 
 ## Use the kernels
@@ -46,7 +48,22 @@ async with MiniApp(flow, telemetry) as app, flow.workflow_scope("my_workflow"):
 print(app.report.telemetry_complete)
 ```
 
-See [MiniApp](api/miniapp.md).
+`MiniApp` records the run and verifies that AsyncFlow's task telemetry reached the
+checkpoint. It records nothing inside a task: in-task telemetry is yours. See
+[MiniApp](api/miniapp.md).
+
+## Plot a run
+
+`tools/plot_run.py` draws one run from its telemetry checkpoint: the task timeline, the
+tasks handed to the backend over time, node CPU and memory, and run time per task kind.
+
+```shell
+pip install -e ".[plot]"
+python tools/plot_run.py examples/motif_4/telemetry run.png
+```
+
+The directory must hold one run. "Running" starts at AsyncFlow's `TaskStarted`, which
+is emitted when a task is handed to the backend, not when it really starts.
 
 ## Run an example
 

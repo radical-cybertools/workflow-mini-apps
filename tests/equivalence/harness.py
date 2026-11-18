@@ -44,6 +44,11 @@ TREE = Path(os.environ.get("WFMINI_EQUIV_TREE", REPO)).resolve()
 LIB = os.environ.get("WFMINI_EQUIV_LIB")
 # goldens are captured on the baseline: workflow-mini-apps 55cd20f + the KR-01 guard
 BASELINE = WORK / "wfmini-55cd20f"
+# "concurrent" (default): deterministic, compared with the goldens.  "dragon": the real
+# Dragon backend under the `dragon` launcher; parallel, so baseline and integrated runs
+# are compared with each other as multisets (run_equiv.py pair), not with goldens.
+BACKEND = os.environ.get("WFMINI_EQUIV_BACKEND", "concurrent")
+DRAGON = Path(os.environ.get("WFMINI_EQUIV_DRAGON", PYTHON.parent / "dragon"))
 
 
 @dataclass(frozen=True)
@@ -164,8 +169,13 @@ def integrated_ddsim() -> Path:
     if not (stamp.exists() and stamp.read_text() == digest):
         shutil.rmtree(DDSIM_INTEGRATED, ignore_errors=True)
         shutil.copytree(DDSIM_BASELINE, DDSIM_INTEGRATED)
+        # git, not `patch` (missing on some HPC nodes); the ceiling keeps git from finding
+        # this repository above WORK, so the paths apply to the copy as given
         subprocess.run(
-            ["patch", "-p1", "-s", "-i", str(DDSIM_PATCH)], cwd=DDSIM_INTEGRATED, check=True
+            ["git", "apply", "-p1", str(DDSIM_PATCH)],
+            cwd=DDSIM_INTEGRATED,
+            env=dict(os.environ, GIT_CEILING_DIRECTORIES=str(DDSIM_INTEGRATED.parent)),
+            check=True,
         )
         stamp.write_text(digest)
     return DDSIM_INTEGRATED
@@ -186,14 +196,47 @@ def _env(
                 str(p) for p in [SHIM, *([lib] if lib else []), *extra_path]
             ),
             "PYTHONHASHSEED": "0",
-            "DDSIM_BACKEND": "concurrent",
+            "WFMINI_EQUIV_BACKEND": BACKEND,
+            "DDSIM_BACKEND": BACKEND,
         }
     )
+    if BACKEND == "dragon":  # the launcher starts `python` from PATH
+        env["PATH"] = os.pathsep.join([str(PYTHON.parent), env.get("PATH", "")])
     return env
 
 
+def _launch(script: Path) -> list[str]:
+    if BACKEND == "dragon":
+        return [str(DRAGON), "-s", str(script)]
+    return [str(PYTHON), str(script)]
+
+
 def _run(cmd: list[str], cwd: Path, env: dict[str, str]) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, cwd=cwd, env=env, capture_output=True, text=True, timeout=TIMEOUT_S)
+    """Run one workflow process; a run that outlives TIMEOUT_S gets returncode "timeout".
+
+    A hung run is killed with every process it started (Dragon's runtime and workers),
+    not just the launcher.  (The Dragon launcher does not start in a new session, so the
+    tree is collected with psutil instead of a process group.)
+    """
+    proc = subprocess.Popen(
+        cmd, cwd=cwd, env=env, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True
+    )
+    try:
+        out, err = proc.communicate(timeout=TIMEOUT_S)
+        return subprocess.CompletedProcess(cmd, proc.returncode, out, err)
+    except subprocess.TimeoutExpired:
+        import psutil  # installed with rhapsody-py[telemetry]
+
+        tree = psutil.Process(proc.pid).children(recursive=True)
+        for p in [*tree, psutil.Process(proc.pid)]:
+            try:
+                p.kill()
+            except psutil.NoSuchProcess:
+                pass
+        out, err = proc.communicate()
+        if BACKEND == "dragon":
+            subprocess.run([str(DRAGON.parent / "dragon-cleanup")], capture_output=True)
+        return subprocess.CompletedProcess(cmd, "timeout", out, err)
 
 
 def run(
@@ -240,7 +283,7 @@ def run(
             else:
                 script, extra = example_path(workflow, tree), []
             proc = _run(
-                [str(PYTHON), str(script), *workflow.args],
+                [*_launch(script), *workflow.args],
                 run_dir,
                 _env(trace_dir, mode, extra, lib),
             )
@@ -361,6 +404,8 @@ def _files(run_dir: Path) -> list[list]:
             rel = path.relative_to(run_dir).as_posix()
             if rel.startswith(("telemetry/", "telemetry-output/", "asyncflow.session.")):
                 continue
+            if rel.startswith(("runinfo/", "ddict_orc_")):  # Dragon runtime state, not output
+                continue
             out.append([rel, path.stat().st_size])
     return out
 
@@ -376,7 +421,9 @@ def summarise(
         "error_tail": _error_tail(stderr) if exit_code else None,
         "files": _files(run_dir) if mode == "real" else [],
     }
-    if workflow.kind == "example":
+    if workflow.kind == "example" and BACKEND == "dragon":
+        summary.update(_parallel_summary(workflow, processes, exit_code))
+    elif workflow.kind == "example":
         (main,) = processes
         executions = main["executions"]
         if exit_code:
@@ -403,13 +450,62 @@ def summarise(
     return _norm(summary)
 
 
+def _multiset(items):
+    counter = collections.Counter(json.dumps(i, sort_keys=True) for i in items)
+    return [[json.loads(k), n] for k, n in sorted(counter.items())]
+
+
+_CALL_NO = re.compile(r"#\d+$")
+
+
+def _call_shape(value):
+    """A recorded call argument with call numbers dropped (they follow parallel timing)."""
+    if isinstance(value, dict) and set(value) == {"future_of"}:
+        return {"future_of": _CALL_NO.sub("", value["future_of"])}
+    if isinstance(value, list):
+        return [_call_shape(v) for v in value]
+    if isinstance(value, dict):
+        return {k: _call_shape(v) for k, v in value.items()}
+    return value
+
+
+def _parallel_summary(workflow: Workflow, processes: list[dict], exit_code: int) -> dict:
+    """An example on a parallel backend: task bodies run in worker processes.
+
+    Calls and executions are multisets.  After a failure, how many other tasks still
+    run before shutdown depends on timing, so a failing run is reduced to the set of
+    distinct executions that failed (the failure point) and the calls made before it
+    cannot be compared either; only the call kinds that were made are kept.
+    """
+    script = Path(workflow.script).name
+    manager = next(p for p in processes if p["argv"] and p["argv"][0].endswith(script))
+    calls = [
+        {
+            "comp": c["comp"],
+            "name": c["name"],
+            "args": _call_shape(c["args"]),
+            "kwargs": _call_shape(c["kwargs"]),
+        }
+        for c in manager["calls"]
+    ]
+    executions = [e for p in processes for e in p["executions"]]
+    if exit_code:
+        failed = [e for e in executions if e.get("outcome") not in (None, "ok")]
+        return {
+            "call_kinds": [list(k) for k in sorted({(c["comp"], c["name"]) for c in calls})],
+            "failed_executions": [e for e, _ in _multiset(failed)],
+            "manager_kernels": manager["manager_kernels"],
+        }
+    return {
+        "calls": _multiset(calls),
+        "executions": _multiset(executions),
+        "manager_kernels": manager["manager_kernels"],
+    }
+
+
 def _ddsim_summary(processes: list[dict]) -> dict:
     manager = next(p for p in processes if p["argv"][0].endswith("run_workflow.py"))
     tasks = [p for p in processes if p is not manager]
-
-    def multiset(items):
-        counter = collections.Counter(json.dumps(i, sort_keys=True) for i in items)
-        return [[json.loads(k), n] for k, n in sorted(counter.items())]
 
     commands = [
         {"name": e["name"], "command": _norm(e.get("result"))}
@@ -425,9 +521,9 @@ def _ddsim_summary(processes: list[dict]) -> dict:
         for p in tasks
     ]
     return {
-        "call_names": multiset({"comp": c["comp"], "name": c["name"]} for c in manager["calls"]),
-        "commands": multiset(commands),
-        "script_traces": multiset(script_traces),
+        "call_names": _multiset({"comp": c["comp"], "name": c["name"]} for c in manager["calls"]),
+        "commands": _multiset(commands),
+        "script_traces": _multiset(script_traces),
         "manager_kernels": manager["manager_kernels"],
     }
 

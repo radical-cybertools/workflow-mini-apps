@@ -14,6 +14,7 @@ nav:
       - Telemetry-first MiniApp API: design/miniapp-telemetry.md
   - Testing:
       - Equivalence harness: testing/equivalence.md
+      - Validation on an HPC node: testing/hpc-validation.md
 
 plugins:
   - search
