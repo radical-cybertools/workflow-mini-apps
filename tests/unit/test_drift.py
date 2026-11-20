@@ -27,6 +27,21 @@ def test_telemetry_manager_private_touchpoints(tmp_path):
     assert "drain_on_stop" in inspect.signature(TelemetryManager.__init__).parameters
 
 
+def test_stop_sends_session_ended_to_subscribers_before_it_returns(tmp_path):
+    """verify() reads SessionEnded, seen by its subscriber during stop(), as the proof that
+    stop() wrote out its queue, and checks the engine's state at that moment."""
+
+    async def go():
+        tm = TelemetryManager(session_id="s.drift2", checkpoint_path=str(tmp_path))
+        await tm.start()
+        seen = []
+        tm.subscribe(lambda event: seen.append(event.event_type))
+        await tm.stop()
+        return seen
+
+    assert asyncio.run(go())[-1] == "SessionEnded"
+
+
 def test_asyncflow_public_surface_used_by_miniapp():
     async def go():
         flow = await WorkflowEngine.create(backend=await ConcurrentExecutionBackend())
@@ -54,7 +69,8 @@ def test_asyncflow_public_surface_used_by_miniapp():
 
 
 def test_asyncflow_joinable_shutdown_used_by_miniapp(tmp_path):
-    """MiniApp's exit is one `await flow.shutdown()`, joining any shutdown running."""
+    """The script's `await flow.shutdown()` joins a shutdown already running (a signal's,
+    an engine error's, a core's); MiniApp reads flow.telemetry and flow.is_shutting_down."""
 
     class Counting(ConcurrentExecutionBackend):
         calls = 0
@@ -79,7 +95,6 @@ def test_asyncflow_joinable_shutdown_used_by_miniapp(tmp_path):
         await tm.stop()
 
     asyncio.run(go())
-    assert hasattr(asyncio.Task, "get_context")  # the exit runs in the caller's Context
 
 
 def test_dragon_backend_name_always_exported():

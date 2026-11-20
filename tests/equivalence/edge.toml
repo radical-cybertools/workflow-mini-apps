@@ -25,6 +25,13 @@ allow_removed = [
   'backend = await DragonExecutionBackendV3\(\)',
   'async def workflow\(cfg\):',
   'asyncio\.run\(workflow\(cfg\)\)',
+  # design B (2026-11-20): the script shuts the engine down. The core's last line
+  # `await flow.shutdown()` (and the blank line after it) leave the core; the block is
+  # entered through `app` inside a try, so the core call moves one level in.
+  'await flow\.shutdown\(\)',
+  'async with MiniApp\(flow, telemetry\), flow\.workflow_scope\("[a-z0-9_]+"\):',
+  'await miniapp_workflow\(cfg, flow, logger\)',
+  '',
 ]
 allow_added = [
   '',
@@ -37,6 +44,14 @@ allow_added = [
   'await miniapp_workflow\(cfg, flow, logger\)',
   'async def miniapp_workflow\(cfg, flow, logger\):',
   'asyncio\.run\(run_miniapp\(cfg\)\)',
+  # design B (2026-11-20): the script owns the shutdown, in a nested finally
+  'app = MiniApp\(flow, telemetry\)',
+  'try:',
+  'async with app, flow\.workflow_scope\("[a-z0-9_]+"\):',
+  'finally:',
+  'await flow\.shutdown\(\)',
+  'await telemetry\.stop\(\)',
+  'app\.verify\(\)',
 ]
 
 # --------------------------------------------------------------------------- #
@@ -76,9 +91,12 @@ start_after = ['^async def (workflow|run_miniapp)\(cfg\):']
 end_before = ['^\s*backend = await ']
 
 [[example_segment]]
-name = "core"                     # tasks, task graph, steering, the workflow's own shutdown
+name = "core"                     # tasks, task graph, steering (not the shutdown)
 start_after = ['^async def miniapp_workflow\(', '^\s*flow = await WorkflowEngine\.create\(']
-end_at = ['^\s*await flow\.shutdown\(\)']
+# design B (2026-11-20): the core ends before its own `await flow.shutdown()`, which
+# moved to the script's finally. Today's files match the first pattern; once the line
+# is gone, the core ends before `if __name__`.
+end_before = ['^\s*await flow\.shutdown\(\)', '^if __name__']
 
 [[example_segment]]
 name = "main_head"                # argparse, config, timer

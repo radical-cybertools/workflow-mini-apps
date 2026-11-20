@@ -75,8 +75,8 @@ Two notes may follow a result; neither is a failure:
 - **"baseline hangs after the failure, integrated exits":** when a task fails, the
   baseline core never reaches its own `flow.shutdown()`. On Dragon nothing else shuts the
   backend down, so the baseline process never exits and is stopped after
-  `WFMINI_EQUIV_TIMEOUT` (300 s). The integrated run exits, because `MiniApp` shuts the
-  engine down. motif_2 always fails this way: it reads `./data_0.h5` before anything
+  `WFMINI_EQUIV_TIMEOUT` (300 s). The integrated run exits, because its script shuts
+  the engine down in a `finally`. motif_2 always fails this way: it reads `./data_0.h5` before anything
   writes it (a preserved bug).
 - **"attempt N, earlier ones hit the h5 lock race":** motif_2 and motif_4 tasks share
   `./data_0.h5` (a preserved bug), so on a parallel backend HDF5's file lock fails a task

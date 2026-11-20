@@ -3,70 +3,123 @@
     backend   = await DragonExecutionBackend()
     flow      = await WorkflowEngine.create(backend=backend)
     telemetry = await flow.start_telemetry(checkpoint_path="telemetry")
-    async with MiniApp(flow, telemetry), flow.workflow_scope("motif_4"):
-        await miniapp_workflow(cfg, flow, logger)
+    app = MiniApp(flow, telemetry)
+    try:
+        async with app, flow.workflow_scope("motif_4"):
+            await miniapp_workflow(cfg, flow, logger)
+    finally:
+        try:
+            await flow.shutdown()
+        finally:
+            await telemetry.stop()
+            app.verify()
 
-MiniApp is a thin coordinator over components the user built.  It never constructs,
-hides or replaces them; it only orders the entry and exit of its capabilities
-(today: telemetry, ``app.telemetry`` and ``app.report``).
+MiniApp is a thin observer of components the user built.  It never constructs, hides,
+replaces or shuts them down: the script that created the engine and telemetry shuts
+them down, and the nested ``finally`` stops telemetry and verifies even when the
+engine's shutdown fails.  MiniApp records the run and verifies its telemetry
+(``app.verify()``, ``app.report``).
 """
 
 from __future__ import annotations
 
 import asyncio
+import atexit
+import functools
+import logging
+import sys
 
 from ..telemetry.capability import AttachError, MiniAppTelemetry
 from ..telemetry.verify import MiniAppReport
 
 __all__ = ["AttachError", "MiniApp", "MiniAppReport"]
 
+log = logging.getLogger("wfMiniAPI.telemetry")
+
+
+def _would_emit(logger: logging.Logger, level: int) -> bool:
+    """True if a record at ``level`` reaches a handler that outputs it.
+
+    With no handler at all, logging's last-resort handler prints it.  Only NullHandlers
+    (the Dragon runtime adds one to the root logger) means nobody sees it.
+    """
+    found = False
+    node: logging.Logger | None = logger
+    while node is not None:
+        for handler in node.handlers:
+            found = True
+            if not isinstance(handler, logging.NullHandler) and level >= handler.level:
+                return True
+        node = node.parent if node.propagate else None
+    return not found
+
+
+def _warn_unverified(session: str) -> None:
+    """At interpreter exit, for a MiniApp whose verify() was never called."""
+    if not log.isEnabledFor(logging.WARNING):
+        return  # silenced on purpose
+    msg = (
+        f"MiniApp {session}: verify() was never called; no report written. "
+        "Call app.verify() after flow.shutdown() and telemetry.stop()."
+    )
+    if _would_emit(log, logging.WARNING):
+        log.warning(msg)
+    else:  # only NullHandlers (e.g. under Dragon): the warning would vanish
+        print(f"WARNING: {msg}", file=sys.stderr, flush=True)
+
 
 class MiniApp:
-    """Async context manager tying a workflow run to its telemetry.
+    """Async context manager that records a workflow run and verifies its telemetry.
 
     On entry it checks that ``telemetry`` is the manager ``flow`` emits into and can be
     verified, and records the run.  On exit (normal, exception, cancel or signal) it
-    shuts the engine down (``flow.shutdown()``, which joins a shutdown already running),
-    records the end of the run, stops telemetry and verifies the checkpoint, in that
-    order.  A cancel that arrives during the exit is delivered once the exit is done;
-    the workflow's own exception wins over it.
+    only records how the run ended; it awaits nothing and shuts nothing down.  After
+    the script has shut the engine down and stopped telemetry, ``verify()`` checks the
+    checkpoint and sets ``report``.
     """
 
     def __init__(self, flow, telemetry, /, *, backends=None):
         self.flow = flow
         self.backends = list(backends) if backends is not None else [flow.backend]
         self.telemetry = MiniAppTelemetry(flow, telemetry)
+        # one stored object (atexit.unregister compares by equality) holding only a
+        # string, so nothing of the run is kept alive until interpreter exit
+        session = getattr(telemetry, "session_id", None) or getattr(flow, "uid", "")
+        self._reminder = functools.partial(_warn_unverified, str(session))
 
     @property
     def report(self) -> MiniAppReport | None:
-        """The verified telemetry report, available after the ``async with`` block."""
+        """The verified telemetry report, set by ``verify()``."""
         return self.telemetry.report
 
     async def __aenter__(self) -> MiniApp:
-        self.telemetry.check()
-        await self.telemetry.start(self.backends)
+        atexit.register(self._reminder)
+        try:
+            self.telemetry.check()
+            await self.telemetry.start(self.backends)
+        except BaseException as exc:
+            self.telemetry.attach_error = f"{type(exc).__name__}: {exc}"
+            raise
         return self
 
     async def __aexit__(self, exc_type, exc, tb) -> bool:
-        ended_by = self._ended_by(exc_type)  # before any await
-        task = asyncio.current_task()
-        # The caller's Context: RHAPSODY's telemetry.stop() detaches what start() attached
-        exit_task = asyncio.get_running_loop().create_task(
-            self._exit(exc_type, ended_by), context=task.get_context()
-        )
-        absorbed = 0  # cancels that arrived during the exit
-        while not exit_task.done():
-            try:
-                await asyncio.shield(exit_task)
-            except asyncio.CancelledError:
-                if exit_task.cancelled():
-                    break
-                absorbed += 1  # finish the ordered stop first
-        if absorbed and (exc_type is None or issubclass(exc_type, asyncio.CancelledError)):
-            raise asyncio.CancelledError  # deliver the cancel, after the ordered stop
-        for _ in range(absorbed):  # the workflow's exception wins: give the cancels back
-            task.uncancel()
+        # No await: a cancel cannot interrupt the exit.  Never mask the workflow's outcome.
+        try:
+            self.telemetry.record_end(
+                self._ended_by(exc_type), exc_type.__name__ if exc_type else ""
+            )
+        except Exception as err:
+            self.telemetry.reasons.append(f"run-end event failed: {type(err).__name__}: {err}")
         return False
+
+    def verify(self) -> MiniAppReport:
+        """Verify the telemetry checkpoint and set ``report``; never raises.
+
+        Call it after ``flow.shutdown()`` and ``telemetry.stop()``.  It also writes
+        ``<checkpoint>/<session>.wfminiapi.report.json``.  Calling it again recomputes it.
+        """
+        atexit.unregister(self._reminder)
+        return self.telemetry.verify()
 
     def _ended_by(self, exc_type) -> str:
         if exc_type is None:
@@ -78,15 +131,3 @@ class MiniApp:
         if self.flow.is_shutting_down:
             return "engine_shutdown"  # AsyncFlow cancelled the futures: signal, error, call
         return "cancelled"
-
-    async def _exit(self, exc_type, ended_by: str) -> None:
-        reasons: list[str] = []
-        try:
-            await self.flow.shutdown()  # joins a shutdown already running
-        except (Exception, asyncio.CancelledError) as err:  # the workflow's outcome wins
-            reasons.append(f"engine shutdown failed: {type(err).__name__}: {err}")
-        await self.telemetry.finish(
-            ended_by=ended_by,
-            exception_type=exc_type.__name__ if exc_type else "",
-            reasons=reasons,
-        )

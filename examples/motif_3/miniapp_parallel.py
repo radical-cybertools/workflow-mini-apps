@@ -26,8 +26,16 @@ async def run_miniapp(cfg):
     backend = await DragonExecutionBackend()
     flow = await WorkflowEngine.create(backend=backend)
     telemetry = await flow.start_telemetry(checkpoint_path="telemetry")
-    async with MiniApp(flow, telemetry), flow.workflow_scope("motif_3_parallel"):
-        await miniapp_workflow(cfg, flow, logger)
+    app = MiniApp(flow, telemetry)
+    try:
+        async with app, flow.workflow_scope("motif_3_parallel"):
+            await miniapp_workflow(cfg, flow, logger)
+    finally:
+        try:
+            await flow.shutdown()
+        finally:
+            await telemetry.stop()
+            app.verify()
 
 async def miniapp_workflow(cfg, flow, logger):
 
@@ -83,8 +91,6 @@ async def miniapp_workflow(cfg, flow, logger):
     simulate_t2 = simulate(train_t1)
     
     train_t3 = await train(simulate_t2, train_t2)
-
-    await flow.shutdown()
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Inverse Design (Motif 3) Mini-App")

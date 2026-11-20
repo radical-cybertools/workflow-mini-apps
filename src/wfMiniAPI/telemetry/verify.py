@@ -35,7 +35,8 @@ class MiniAppReport:
     ended_by: str = ""  # normal | exception | cancelled | engine_shutdown
     tasks: TaskCounts = field(default_factory=TaskCounts)
     events: dict[str, int] = field(default_factory=dict)  # wfminiapi events written, by type
-    reasons: tuple[str, ...] = ()
+    reasons: tuple[str, ...] = ()  # why telemetry is incomplete
+    notes: tuple[str, ...] = ()  # worth knowing, but telemetry is still complete
 
     @property
     def exit_hint(self) -> int:
@@ -75,19 +76,23 @@ def verify_checkpoint(
     seen: dict[str, int] | None = None,
     ended_by: str = "",
     reasons: tuple[str, ...] = (),
+    notes: tuple[str, ...] = (),
 ) -> MiniAppReport:
     """Check that the session's checkpoint holds what was emitted, and count task outcomes.
 
     ``emitted`` / ``seen`` are the wfminiapi events MiniApp emitted and its subscriber saw
     (``seen`` also covers every other event type).  Telemetry is complete when the
     checkpoint exists and every count matches; tasks without a terminal event are
-    reported, not treated as telemetry loss.
+    reported, not treated as telemetry loss.  ``notes`` are passed through: facts that
+    do not make telemetry incomplete.
     """
     reasons = list(reasons)
     path, problem = find_checkpoint(directory, session_id)
     if path is None:
         reasons.append(problem)
-        return MiniAppReport(session_id, None, False, ended_by, reasons=tuple(reasons))
+        return MiniAppReport(
+            session_id, None, False, ended_by, reasons=tuple(reasons), notes=tuple(notes)
+        )
 
     written: Counter[str] = Counter()
     created, submitted, terminal = set(), set(), {}
@@ -130,4 +135,5 @@ def verify_checkpoint(
         tasks=tasks,
         events=dict(sorted(ours.items())),
         reasons=tuple(reasons),
+        notes=tuple(notes),
     )

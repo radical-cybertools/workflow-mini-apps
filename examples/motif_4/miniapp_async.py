@@ -26,8 +26,16 @@ async def run_miniapp(cfg):
     backend = await DragonExecutionBackend()
     flow = await WorkflowEngine.create(backend=backend)
     telemetry = await flow.start_telemetry(checkpoint_path="telemetry")
-    async with MiniApp(flow, telemetry), flow.workflow_scope("motif_4"):
-        await miniapp_workflow(cfg, flow, logger)
+    app = MiniApp(flow, telemetry)
+    try:
+        async with app, flow.workflow_scope("motif_4"):
+            await miniapp_workflow(cfg, flow, logger)
+    finally:
+        try:
+            await flow.shutdown()
+        finally:
+            await telemetry.stop()
+            app.verify()
 
 async def miniapp_workflow(cfg, flow, logger):
 
@@ -124,8 +132,6 @@ async def miniapp_workflow(cfg, flow, logger):
         await asyncio.gather(*sim_t)
         train_t = training()
         infer_t = await inference(train_t)
-
-    await flow.shutdown()
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="Digital Twin (Motif 4) Mini-App")

@@ -88,3 +88,12 @@ def test_ended_by_is_reported(tmp_path):
     assert verify_checkpoint(tmp_path / "missing", SID, ended_by="cancelled").ended_by == (
         "cancelled"
     )
+
+
+def test_notes_are_reported_and_do_not_make_telemetry_incomplete(tmp_path):
+    write(tmp_path, [event("wfminiapi.RunStarted")])
+    report = verify_checkpoint(tmp_path, SID, notes=("RunEnded not in the checkpoint",))
+    assert report.telemetry_complete and report.reasons == ()
+    assert report.to_dict()["notes"] == ("RunEnded not in the checkpoint",)
+    missing = verify_checkpoint(tmp_path / "missing", SID, notes=("n",))
+    assert missing.notes == ("n",) and not missing.telemetry_complete

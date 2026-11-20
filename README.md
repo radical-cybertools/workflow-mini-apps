@@ -6,6 +6,8 @@ Workflow Mini-apps can be scaled and configured without application specific dep
 
 Workflow Mini-app facilitate experimentation and helps understand workflow (distinct from application) performance.
 
+**Documentation:** <https://radical-cybertools.github.io/workflow-mini-apps/>
+
 ## Repository layout
 
 | Path | Contents |
