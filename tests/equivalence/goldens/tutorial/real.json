@@ -1,0 +1,213 @@
+{
+ "error_tail": "ImportError: CuPy is not installed. Install CuPy to use GPU capabilities.",
+ "exit_code": 1,
+ "files": [
+  [
+   "0/log_step_0/data.h5",
+   11264
+  ],
+  [
+   "0/log_step_1/data.h5",
+   11264
+  ]
+ ],
+ "mode": "real",
+ "scripts": [
+  {
+   "kernels": [
+    {
+     "args": {
+      "data_size": 512
+     },
+     "error": "ImportError: CuPy is not installed. Install CuPy to use GPU capabilities.",
+     "name": "dataCopyH2D",
+     "outcome": "error"
+    }
+   ],
+   "script": "active_learn.py"
+  },
+  {
+   "kernels": [
+    {
+     "args": {
+      "device": "cpu",
+      "size": 576
+     },
+     "name": "generateRandomNumber",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "axis": 1,
+      "device": "cpu",
+      "size_a": [
+       64,
+       3
+      ],
+      "size_b": [
+       3,
+       64
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 192
+     },
+     "name": "axpy_fast",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 192
+     },
+     "name": "axpy_fast",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_size": [
+       8,
+       8,
+       8
+      ],
+      "device": "cpu",
+      "transform_dim": [
+       0,
+       1,
+       2
+      ],
+      "type_in": "complexF"
+     },
+     "name": "fftn",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 192
+     },
+     "name": "axpy_fast",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 192
+     },
+     "name": "axpy_fast",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_root_dir": "<RUN>/0/./log_step_0",
+      "num_bytes": 9216
+     },
+     "name": "writeSingleRank",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "axis": 1,
+      "device": "cpu",
+      "size_a": [
+       64,
+       3
+      ],
+      "size_b": [
+       3,
+       64
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 192
+     },
+     "name": "axpy_fast",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 192
+     },
+     "name": "axpy_fast",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_size": [
+       8,
+       8,
+       8
+      ],
+      "device": "cpu",
+      "transform_dim": [
+       0,
+       1,
+       2
+      ],
+      "type_in": "complexF"
+     },
+     "name": "fftn",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 192
+     },
+     "name": "axpy_fast",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 192
+     },
+     "name": "axpy_fast",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_root_dir": "<RUN>/0/./log_step_1",
+      "num_bytes": 9216
+     },
+     "name": "writeSingleRank",
+     "outcome": "ok"
+    }
+   ],
+   "script": "simulation.py"
+  },
+  {
+   "kernels": [
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "generateRandomNumber",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_size": 512
+     },
+     "error": "ImportError: CuPy is not installed. Install CuPy to use GPU capabilities.",
+     "name": "dataCopyH2D",
+     "outcome": "error"
+    }
+   ],
+   "script": "training.py"
+  }
+ ],
+ "workflow": "tutorial"
+}

@@ -1,0 +1,1049 @@
+{
+ "error_tail": null,
+ "exit_code": 0,
+ "files": [],
+ "mode": "dry",
+ "scripts": [
+  {
+   "kernels": [
+    {
+     "args": {
+      "data_size": 512
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 512
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 512
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 512
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "k": 2,
+      "size": 64
+     },
+     "name": "top_k",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "<RUN>/0/result",
+      "num_bytes": 4
+     },
+     "name": "writeSingleRank",
+     "outcome": "dry"
+    }
+   ],
+   "script": "active_learn.py"
+  },
+  {
+   "kernels": [
+    {
+     "args": {
+      "device": "cpu",
+      "size": 576
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": 1,
+      "device": "cpu",
+      "size_a": [
+       64,
+       3
+      ],
+      "size_b": [
+       3,
+       64
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 192
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 192
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": [
+       8,
+       8,
+       8
+      ],
+      "device": "cpu",
+      "transform_dim": [
+       0,
+       1,
+       2
+      ],
+      "type_in": "complexF"
+     },
+     "name": "fftn",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 192
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 192
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "<RUN>/0/./log_step_0",
+      "num_bytes": 9216
+     },
+     "name": "writeSingleRank",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": 1,
+      "device": "cpu",
+      "size_a": [
+       64,
+       3
+      ],
+      "size_b": [
+       3,
+       64
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 192
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 192
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": [
+       8,
+       8,
+       8
+      ],
+      "device": "cpu",
+      "transform_dim": [
+       0,
+       1,
+       2
+      ],
+      "type_in": "complexF"
+     },
+     "name": "fftn",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 192
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 192
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "<RUN>/0/./log_step_1",
+      "num_bytes": 9216
+     },
+     "name": "writeSingleRank",
+     "outcome": "dry"
+    }
+   ],
+   "script": "simulation.py"
+  },
+  {
+   "kernels": [
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 512
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 512
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 512
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 512
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "<RUN>/0/./epoch_0",
+      "num_bytes": 0
+     },
+     "name": "writeSingleRank",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 512
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 512
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 512
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 512
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "axis": [
+       [
+        1
+       ],
+       [
+        0
+       ]
+      ],
+      "device": "cpu",
+      "size_a": [
+       16,
+       32
+      ],
+      "size_b": [
+       32,
+       16
+      ]
+     },
+     "name": "matMulGeneral",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 512
+     },
+     "name": "axpy_fast",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "<RUN>/0/./epoch_1",
+      "num_bytes": 0
+     },
+     "name": "writeSingleRank",
+     "outcome": "dry"
+    }
+   ],
+   "script": "training.py"
+  }
+ ],
+ "workflow": "tutorial"
+}

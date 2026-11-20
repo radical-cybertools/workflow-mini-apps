@@ -1,0 +1,25 @@
+# Tiny inputs for the equivalence harness: same keys as examples/motif_4/config.yaml.
+experiment:
+  steps: 2
+  read_size_bytes: 1024
+  write_size_bytes: 4096
+  device: "cpu"
+  matmul_dim: 16
+simulation:
+  steps: 2
+  read_size_bytes: 1024
+  write_size_bytes: 4096
+  device: "cpu"
+  matmul_dim: 16
+training:
+  steps: 2
+  read_size_bytes: 1024
+  write_size_bytes: 512
+  data_copy_size_bytes: 256
+  matmul_dim: 16
+inference:
+  steps: 2
+  read_size_bytes: 1024
+  write_size_bytes: 1024
+  data_copy_size_bytes: 256
+  matmul_dim: 16

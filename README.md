@@ -6,44 +6,59 @@ Workflow Mini-apps can be scaled and configured without application specific dep
 
 Workflow Mini-app facilitate experimentation and helps understand workflow (distinct from application) performance.
 
-There are 2 example Workflow Mini-apps:
+**Documentation:** <https://radical-cybertools.github.io/workflow-mini-apps/>
 
-- Neutron Diffraction Experiment (InverseProblem)
+## Repository layout
 
-- AI Steered Simulations (DeepDriveMD)
+| Path | Contents |
+|---|---|
+| `src/wfMiniAPI/` | The Python package: emulation kernels (`wfMiniAPI.kernels`, also importable as `wfMiniAPI.kernel`) |
+| `cpp/include/wfMiniAPI/` | Header-only C++ kernels |
+| `examples/` | Workflow mini-apps on AsyncFlow and RHAPSODY: `motif_2`, `motif_3`, `motif_4`, `motif_6`, `dragon-mpi`; standalone task scripts in `tutorial/` |
+| `examples/legacy/exalearn/` | The Neutron Diffraction (InverseProblem) mini-app on the old RADICAL-Pilot API; kept for reference, not maintained |
+| `benchmarks/` | CUDA micro-benchmarks |
+| `tools/` | `plot_run.py` (plot a run's telemetry), `validate_node.sh` (validation on an HPC node), `analyze/` (result-analysis helpers) |
+| `docs/` | Documentation (MkDocs) |
+| `tests/` | Unit tests and the workflow equivalence harness |
 
-### Installation
-1). Install RADICAL tools. Please make sure to use conda env approach since we also need an env that has `cupy`/`h5py`/`mpi4py`
+The AI-steered simulation mini-app (formerly `DeepDriveMD` here) now lives in
+[DeepDriveSim](https://github.com/radical-collaboration/DeepDriveSim) (`workflows/miniapps_workflow`).
 
-2). Install Darshan. Please make sure to modify the darshan code as explained so that it can be used to collect info. Also don't forget to install `darshan-util`
+## Installation
 
-3). Set the environment, a sample script is shown below:
+Python 3.12 or newer.
 
 ```shell
-#/bin/bash
-
-module load cray-hdf5/1.12.1.3
-module load conda
-conda activate <your RCT environment>
-
-which python
-python -V
-
-
-export RADICAL_LOG_LVL=DEBUG
-export RADICAL_PROFILE=TRUE
-export RADICAL_SMT=1
-
-export PATH=<path to darshan binary>:$PATH
+git clone https://github.com/radical-cybertools/workflow-mini-apps.git
+cd workflow-mini-apps
+pip install -e ".[workflow,io,mpi]"    # add "gpu" for CuPy (CUDA 12), "test" for the tests
 ```
 
-Here `"<your RCT environment>"` is the conda env with RADICAL tools, and `"<path to darshan binary>"` is where Darshan is installed.
+| Extra | Installs |
+|---|---|
+| `io` | `h5py` (I/O kernels) |
+| `mpi` | `mpi4py` (MPI kernels) |
+| `gpu` | `cupy-cuda12x` (GPU kernels) |
+| `workflow` | AsyncFlow and RHAPSODY (with telemetry), needed by the examples |
+| `dragon` | the Dragon backend (`dragonhpc` 0.15.0, through RHAPSODY) |
+| `plot` | `matplotlib`, for `tools/plot_run.py` |
+| `test`, `docs`, `dev` | pytest; MkDocs; ruff and pre-commit |
 
-4). Go to the specific mini-app sub-dir, then do source `source_me.sh` 
+Each example's README explains how to run it. Every example attaches to
+`wfMiniAPI.api.MiniApp`, which records the run and verifies AsyncFlow's task telemetry
+(see `docs/api/miniapp.md`). Nothing inside a task is recorded: in-task telemetry is the
+workflow developer's.
 
-5). Go to launch-scripts to run the experiment. Before starting, make sure the parameters have been set up
+## Tests
 
-6). Analyze the results. Some useful tools can be found in Analyze/
+```shell
+pip install -e ".[workflow,io,mpi,test]"
+pytest
+```
+
+`tests/equivalence/` checks that the example workflows behave exactly as their recorded
+baseline; see its README. On a node with Dragon (and a GPU), `tools/validate_node.sh`
+runs the same comparison on the real backend (`docs/testing/hpc-validation.md`).
 
 This work has been supported by the DOE [RECUP](https://github.com/RECUP-DOE/workflow-miniapps) project.
 

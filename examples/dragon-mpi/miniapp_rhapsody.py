@@ -1,12 +1,13 @@
 import argparse, asyncio, yaml, random, logging, os
 import time
 
-from rhapsody.backends import DragonExecutionBackendV3
+from rhapsody.backends import DragonExecutionBackend
 
 from radical.asyncflow import WorkflowEngine
 from radical.asyncflow.logging import init_default_logger
 
 from wfMiniAPI import kernel as kern
+from wfMiniAPI.api import MiniApp
 
 class Timer:
     def __init__(self): self.t0 = None
@@ -16,7 +17,7 @@ class Timer:
 def load_cfg(path): 
     with open(path, "r") as f: return yaml.safe_load(f)
 
-async def workflow(cfg):
+async def run_miniapp(cfg):
     import multiprocessing as mp
     import mpi4py
     from mpi4py import MPI
@@ -24,8 +25,21 @@ async def workflow(cfg):
     init_default_logger(logging.DEBUG)
 
     mp.set_start_method("dragon")
-    backend = await DragonExecutionBackendV3()
+    backend = await DragonExecutionBackend()
     flow = await WorkflowEngine.create(backend=backend)
+    telemetry = await flow.start_telemetry(checkpoint_path="telemetry")
+    app = MiniApp(flow, telemetry)
+    try:
+        async with app, flow.workflow_scope("dragon_mpi"):
+            await miniapp_workflow(cfg, flow, logger)
+    finally:
+        try:
+            await flow.shutdown()
+        finally:
+            await telemetry.stop()
+            app.verify()
+
+async def miniapp_workflow(cfg, flow, logger):
     
     os.makedirs("./input", exist_ok=True)
     os.makedirs("./output", exist_ok=True)
@@ -146,13 +160,11 @@ async def workflow(cfg):
     stage3_t = stage3(stage1_t)
     stage4_t = await stage4(stage2_t, stage3_t)
 
-    await flow.shutdown()
-
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="MPI with Dragon Mini-App")
     ap.add_argument("--config", type=str, default="config.yaml")
     args = ap.parse_args()
     cfg = load_cfg(args.config)
     t = Timer().start()
-    asyncio.run(workflow(cfg))
+    asyncio.run(run_miniapp(cfg))
     print(f"DONE in {t.stop():.3f}s")

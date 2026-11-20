@@ -21,8 +21,8 @@ First clone the wfMiniAPI repository
 - `$ git clone git@github.com:radical-cybertools/workflow-mini-apps.git`
 - `$ cd workflow-mini-apps/`
 
-Now before installing, we must patch the kernel.py to use the correct axpy kernel.
-Edit `wfMiniAPI/src/wfMiniAPI/kernel.py` by uncommenting lines `305-313` and commenting lines `315-321`.
+Now before installing, we must patch `src/wfMiniAPI/kernels/compute.py` to use the correct axpy kernel.
+Edit `src/wfMiniAPI/kernels/compute.py` by uncommenting lines `63-79` and commenting lines `81-87`.
 It should look like this:
 ```python
 @annotate_kernel
@@ -49,15 +49,14 @@ In our case, on DELTA we are using CUDA 12.8
 - `$ pip install cupy-cuda12x`
 
 Now we can install the wfMiniAPI
-- `$ cd wfMiniAPI`
-- `$ pip install .`
+- `$ pip install -e ".[workflow,io,mpi]"` (from the repository root)
 
 ### Running the workflow
 Navigate to the example motif and launch the workflow mini-app using Dragon
 - `$ cd workflow-mini-apps/examples/motif_3`
-- `$ dragon -s workflow_simple.py`
+- `$ dragon -s miniapp_simple.py`
 or
- `$ dragon -s workflow_parallel.py`
+ `$ dragon -s miniapp_parallel.py`
 
 This will launch the workflows using Dragon with a single node.
 Remove the `-s` to run the workflow with more than one node.

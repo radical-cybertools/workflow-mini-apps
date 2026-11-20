@@ -1,0 +1,156 @@
+{
+ "calls": [
+  {
+   "args": [],
+   "call": "simulate#0",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  },
+  {
+   "args": [
+    {
+     "future_of": "simulate#0"
+    }
+   ],
+   "call": "train#1",
+   "comp": "function",
+   "kwargs": {},
+   "name": "train"
+  },
+  {
+   "args": [
+    {
+     "future_of": "simulate#0"
+    }
+   ],
+   "call": "simulate#2",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  },
+  {
+   "args": [
+    {
+     "future_of": "simulate#2"
+    },
+    {
+     "future_of": "train#1"
+    }
+   ],
+   "call": "train#3",
+   "comp": "function",
+   "kwargs": {},
+   "name": "train"
+  },
+  {
+   "args": [
+    {
+     "future_of": "train#1"
+    }
+   ],
+   "call": "simulate#4",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  },
+  {
+   "args": [
+    {
+     "future_of": "simulate#4"
+    },
+    {
+     "future_of": "train#3"
+    }
+   ],
+   "call": "train#5",
+   "comp": "function",
+   "kwargs": {},
+   "name": "train"
+  }
+ ],
+ "error_tail": "radical.asyncflow.errors.DependencyFailureError: Cannot execute 'train' due to dependency failure",
+ "executions": [
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "ok"
+    }
+   ],
+   "name": "simulate",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "error": "ImportError: CuPy is not installed. Install CuPy to use GPU capabilities.",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "error": "ImportError: CuPy is not installed. Install CuPy to use GPU capabilities.",
+     "name": "dataCopyH2D",
+     "outcome": "error"
+    }
+   ],
+   "name": "train",
+   "outcome": "error"
+  }
+ ],
+ "exit_code": 1,
+ "files": [
+  [
+   "data_0.h5",
+   6144
+  ]
+ ],
+ "manager_kernels": [],
+ "mode": "real",
+ "workflow": "motif_3_parallel"
+}

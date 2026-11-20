@@ -1,0 +1,109 @@
+{
+ "calls": [
+  {
+   "args": [
+    0,
+    0
+   ],
+   "call": "simulate#0",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  },
+  {
+   "args": [
+    0,
+    1
+   ],
+   "call": "simulate#1",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  },
+  {
+   "args": [
+    0,
+    2
+   ],
+   "call": "simulate#2",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  },
+  {
+   "args": [
+    0,
+    3
+   ],
+   "call": "simulate#3",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  },
+  {
+   "args": [
+    0,
+    4
+   ],
+   "call": "simulate#4",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  },
+  {
+   "args": [
+    0,
+    5
+   ],
+   "call": "simulate#5",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  },
+  {
+   "args": [
+    0,
+    6
+   ],
+   "call": "simulate#6",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  },
+  {
+   "args": [
+    0,
+    7
+   ],
+   "call": "simulate#7",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  }
+ ],
+ "error_tail": "FileNotFoundError: [Errno 2] Unable to synchronously open file (unable to open file: name = './data_0.h5', errno = 2, error message = 'No such file or directory', flags = 0, o_flags = 0)",
+ "executions": [
+  {
+   "comp": "function",
+   "error": "FileNotFoundError: [Errno 2] Unable to synchronously open file (unable to open file: name = './data_0.h5', errno = 2, error message = 'No such file or directory', flags = 0, o_flags = 0)",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "error": "FileNotFoundError: [Errno 2] Unable to synchronously open file (unable to open file: name = './data_0.h5', errno = 2, error message = 'No such file or directory', flags = 0, o_flags = 0)",
+     "name": "readNonMPI",
+     "outcome": "error"
+    }
+   ],
+   "name": "simulate",
+   "outcome": "error"
+  }
+ ],
+ "exit_code": 1,
+ "files": [],
+ "manager_kernels": [],
+ "mode": "real",
+ "workflow": "motif_2"
+}

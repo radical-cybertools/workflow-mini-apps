@@ -1,0 +1,153 @@
+# Static equivalence contract (check E1).
+#
+# For every in-scope file it says which parts are CORE (must stay byte-identical)
+# and which lines are EDGE (may change, but only as listed below).
+#
+#   mode = "whole"     the whole file is core.
+#   mode = "segments"  [[file.segment]] blocks are core; every other line is edge.
+#
+# A segment is found by anchors (regexes, matched per line), not line numbers:
+#   start_at / start_after : first line that matches (any of the list, in order)
+#   end_at / end_before    : first matching line after the start
+#
+# allow_removed / allow_added: regexes (full match after strip) for edge lines that
+# may disappear or appear relative to the manifest. Phase 1 allowed none; each later
+# phase extends these lists explicitly, so the edge change is reviewable here.
+
+[defaults]
+# Phase 2 edge (design rev. 3 §6, phase plan step 2/3): unversioned backend name,
+# AsyncFlow telemetry, the MiniApp contact point with an explicit workflow scope,
+# the run_miniapp/miniapp_workflow split that keeps the core text untouched (the
+# outer function is renamed from workflow to run_miniapp, and __main__'s
+# asyncio.run(...) line follows the rename).
+allow_removed = [
+  'from rhapsody\.backends import DragonExecutionBackendV3',
+  'backend = await DragonExecutionBackendV3\(\)',
+  'async def workflow\(cfg\):',
+  'asyncio\.run\(workflow\(cfg\)\)',
+  # design B (2026-11-20): the script shuts the engine down. The core's last line
+  # `await flow.shutdown()` (and the blank line after it) leave the core; the block is
+  # entered through `app` inside a try, so the core call moves one level in.
+  'await flow\.shutdown\(\)',
+  'async with MiniApp\(flow, telemetry\), flow\.workflow_scope\("[a-z0-9_]+"\):',
+  'await miniapp_workflow\(cfg, flow, logger\)',
+  '',
+]
+allow_added = [
+  '',
+  'from rhapsody\.backends import DragonExecutionBackend',
+  'from wfMiniAPI\.api import MiniApp',
+  'backend = await DragonExecutionBackend\(\)',
+  'telemetry = await flow\.start_telemetry\(checkpoint_path="telemetry"\)',
+  'async with (MiniApp\(flow, telemetry\), )?flow\.workflow_scope\("[a-z0-9_]+"\):',
+  'async def run_miniapp\(cfg\):',
+  'await miniapp_workflow\(cfg, flow, logger\)',
+  'async def miniapp_workflow\(cfg, flow, logger\):',
+  'asyncio\.run\(run_miniapp\(cfg\)\)',
+  # design B (2026-11-20): the script owns the shutdown, in a nested finally
+  'app = MiniApp\(flow, telemetry\)',
+  'try:',
+  'async with app, flow\.workflow_scope\("[a-z0-9_]+"\):',
+  'finally:',
+  'await flow\.shutdown\(\)',
+  'await telemetry\.stop\(\)',
+  'app\.verify\(\)',
+]
+
+# --------------------------------------------------------------------------- #
+# workflow-mini-apps examples: same edge shape in all six
+[[example]]
+id = "motif_2"
+path = "examples/motif_2/miniapp_pipeline.py"
+
+[[example]]
+id = "motif_3_simple"
+path = "examples/motif_3/miniapp_simple.py"
+
+[[example]]
+id = "motif_3_parallel"
+path = "examples/motif_3/miniapp_parallel.py"
+
+[[example]]
+id = "motif_4"
+path = "examples/motif_4/miniapp_async.py"
+
+[[example]]
+id = "motif_6"
+path = "examples/motif_6/miniapp_adaptive.py"
+
+[[example]]
+id = "dragon_mpi"
+path = "examples/dragon-mpi/miniapp_rhapsody.py"
+
+[[example_segment]]
+name = "helpers"
+start_at = ['^class Timer']
+end_before = ['^async def (workflow|run_miniapp)\(cfg\):']
+
+[[example_segment]]
+name = "prologue"                 # includes mp.set_start_method and dragon-mpi's mpi4py import
+start_after = ['^async def (workflow|run_miniapp)\(cfg\):']
+end_before = ['^\s*backend = await ']
+
+[[example_segment]]
+name = "core"                     # tasks, task graph, steering (not the shutdown)
+start_after = ['^async def miniapp_workflow\(', '^\s*flow = await WorkflowEngine\.create\(']
+# design B (2026-11-20): the core ends before its own `await flow.shutdown()`, which
+# moved to the script's finally. Today's files match the first pattern; once the line
+# is gone, the core ends before `if __name__`.
+end_before = ['^\s*await flow\.shutdown\(\)', '^if __name__']
+
+[[example_segment]]
+name = "main_head"                # argparse, config, timer
+start_at = ['^if __name__ == "__main__":']
+end_before = ['^\s*asyncio\.run\(']
+
+[[example_segment]]
+name = "main_tail"                # the DONE print after asyncio.run(...)
+start_after = ['^\s*asyncio\.run\(']
+
+# --------------------------------------------------------------------------- #
+# whole-file core
+[[whole]]
+id = "configs"
+root = "repo"
+paths = [
+  "examples/motif_2/config.yaml",
+  "examples/motif_3/config.yaml",
+  "examples/motif_4/config.yaml",
+  "examples/motif_6/config.yaml",
+  "examples/dragon-mpi/config.yaml",
+]
+
+[[whole]]
+id = "tutorial"
+root = "repo"
+paths = [
+  "examples/Tutorial/tasks/simulation.py",
+  "examples/Tutorial/tasks/training.py",
+  "examples/Tutorial/tasks/active_learn.py",
+]
+
+[[whole]]
+id = "ddsim_core"                 # DeepDriveSim @ 0c4f0c2; run_workflow.py is edge (not listed)
+root = "ddsim"
+paths = [
+  "ddsim/ddsim_manager.py",
+  "ddsim/util.py",
+  "ddsim/logger.py",
+  "workflows/miniapps_workflow/miniapps_workflow.py",
+  "workflows/miniapps_workflow/simulation.py",
+  "workflows/miniapps_workflow/training.py",
+  "workflows/miniapps_workflow/agent.py",
+  "workflows/miniapps_workflow/selection.py",
+  "workflows/miniapps_workflow/config.yaml",
+]
+
+# --------------------------------------------------------------------------- #
+# files moved by the Phase 1 restructure (baseline path -> current path);
+# the content must still match the manifest.
+[renames]
+"examples/Tutorial/tasks/simulation.py" = "examples/tutorial/simulation.py"
+"examples/Tutorial/tasks/training.py" = "examples/tutorial/training.py"
+"examples/Tutorial/tasks/active_learn.py" = "examples/tutorial/active_learn.py"

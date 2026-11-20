@@ -1,0 +1,29 @@
+# Tiny inputs for the equivalence harness: same keys as examples/dragon-mpi/config.yaml.
+stage1:
+  ranks: 2
+  steps: 2
+  read_size_bytes: 64
+  write_size_bytes: 4096
+  device: "cpu"
+  matmul_dim: 16
+stage2:
+  ranks: 4
+  steps: 2
+  read_size_bytes: 1024
+  write_size_bytes: 4096
+  device: "cpu"
+  matmul_dim: 16
+stage3:
+  ranks: 8
+  steps: 2
+  read_size_bytes: 1024
+  write_size_bytes: 512
+  data_copy_size_bytes: 256
+  matmul_dim: 16
+stage4:
+  ranks: 16
+  steps: 2
+  read_size_bytes: 1024
+  write_size_bytes: 1024
+  data_copy_size_bytes: 256
+  matmul_dim: 16

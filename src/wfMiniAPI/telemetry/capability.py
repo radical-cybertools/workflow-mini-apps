@@ -1,0 +1,310 @@
+"""The telemetry capability of a MiniApp: attaches to the user's AsyncFlow telemetry.
+
+It never creates, configures, replaces or stops the user's components: the script
+shuts the engine down and stops telemetry, then calls ``verify()``.  From AsyncFlow it
+uses the public ``flow.telemetry`` (the manager the engine emits into).  It reads two
+things RHAPSODY does not expose publicly yet (marked ``PRIVATE``; covered by drift
+tests): the checkpoint directory and the running flag.
+"""
+
+from __future__ import annotations
+
+import asyncio
+import inspect
+import json
+import logging
+import time
+from collections import Counter
+from importlib import metadata
+from pathlib import Path
+from urllib.parse import unquote, urlparse
+
+from rhapsody.telemetry.events import make_event
+
+from .events import PREFIX, Barrier, RunEnded, RunStarted
+from .verify import MiniAppReport, find_checkpoint, verify_checkpoint
+
+log = logging.getLogger("wfMiniAPI.telemetry")
+
+BARRIER_TIMEOUT_S = 30.0
+
+
+class AttachError(RuntimeError):
+    """MiniApp cannot attach: its telemetry would be wrong or incomplete."""
+
+
+def _git_head(repo: Path) -> str:
+    """Commit of a git checkout, read from its files (no subprocess); '' if unknown."""
+    try:
+        git = repo / ".git"
+        if git.is_file():  # a worktree: "gitdir: <path>"
+            git = (repo / git.read_text().split(":", 1)[1].strip()).resolve()
+        common = git
+        if (git / "commondir").is_file():  # refs of a worktree live in the main repository
+            common = (git / (git / "commondir").read_text().strip()).resolve()
+        head = (git / "HEAD").read_text().strip()
+        if not head.startswith("ref:"):
+            return head  # detached
+        ref = head.split(":", 1)[1].strip()
+        for base in (git, common):
+            if (base / ref).is_file():
+                return (base / ref).read_text().strip()
+        for line in (common / "packed-refs").read_text().splitlines():
+            if line.endswith(" " + ref):
+                return line.split()[0]
+    except (OSError, IndexError):
+        pass
+    return ""
+
+
+def _package(dist: str) -> str:
+    """'<version>' or '<version>@<commit>' from installed package metadata.
+
+    The commit comes from the VCS URL of a git install, or from the checkout of an
+    editable install (both main branches still declare the same version, UP-16).
+    """
+    try:
+        d = metadata.distribution(dist)
+    except metadata.PackageNotFoundError:
+        return "not installed"
+    commit = ""
+    try:
+        info = json.loads(d.read_text("direct_url.json") or "{}")
+        commit = info.get("vcs_info", {}).get("commit_id", "")
+        url = info.get("url", "")
+        if not commit and info.get("dir_info", {}).get("editable") and url.startswith("file://"):
+            commit = _git_head(Path(unquote(urlparse(url).path)))
+    except ValueError:
+        pass
+    return f"{d.version}@{commit[:7]}" if commit else d.version
+
+
+class MiniAppTelemetry:
+    """Attach-time checks, run events and the end-of-run verification."""
+
+    def __init__(self, flow, telemetry) -> None:
+        self.flow = flow
+        self.manager = telemetry  # the user's RHAPSODY TelemetryManager, as passed in
+        self.checkpoint_dir: Path | None = None
+        self.report: MiniAppReport | None = None
+        self.attach_error: str | None = None
+        self.started = False  # attach checks passed and RunStarted is queued
+        self.ended_by = ""
+        self.exception_type = ""
+        self.reasons: list[str] = []
+        self.notes: list[str] = []
+        self._run_ended_queued = False
+        # set when RHAPSODY's stop() sends SessionEnded, before it writes out its queue
+        self._session_ended_seen = False
+        self._engine_down_at_stop: bool | None = None
+        self._emitted: Counter[str] = Counter()
+        self._seen: Counter[str] = Counter()
+        self._barrier_seen: asyncio.Event | None = None
+        self._t0 = 0.0
+
+    # ------------------------------------------------------------------ attach
+    def check(self) -> None:
+        """Raise AttachError unless telemetry belongs to this flow and can be verified."""
+        if self.manager is None:
+            raise AttachError(
+                "telemetry is None: call `telemetry = await flow.start_telemetry(...)`"
+            )
+        engine = type(self.flow)
+        if not hasattr(engine, "telemetry") or not hasattr(engine, "is_shutting_down"):
+            raise AttachError(
+                "this AsyncFlow has no joinable shutdown (flow.telemetry, "
+                "flow.is_shutting_down): install the radical.asyncflow pinned by wfMiniAPI"
+            )
+        if self.manager.session_id != self.flow.uid:
+            raise AttachError(
+                f"telemetry session {self.manager.session_id!r} is not this flow's "
+                f"({self.flow.uid!r}): pass the manager returned by this flow's start_telemetry()"
+            )
+        if self.flow.telemetry is None:
+            raise AttachError(
+                "this flow has no telemetry: call `telemetry = await flow.start_telemetry(...)`"
+            )
+        if self.manager is not self.flow.telemetry:
+            raise AttachError(
+                "telemetry is not the manager this flow emits into (built by hand, or from "
+                "an earlier start_telemetry() call): pass the object the latest "
+                "flow.start_telemetry() returned"
+            )
+        if not getattr(self.manager, "_running", False):  # PRIVATE (drift-tested)
+            raise AttachError("telemetry is not running: start it before entering MiniApp")
+        checkpoint = getattr(self.manager, "_checkpoint_path", None)  # PRIVATE (drift-tested)
+        if not checkpoint:
+            raise AttachError(
+                "telemetry has no checkpoint file to verify: "
+                "use flow.start_telemetry(checkpoint_path=...)"
+            )
+        self.checkpoint_dir = Path(checkpoint)
+        path, problem = find_checkpoint(self.checkpoint_dir, self.manager.session_id)
+        if path is None:
+            raise AttachError(f"telemetry checkpoint not found: {problem}")
+        submitted = sorted(self.flow.running | self.flow.resolved)
+        if submitted:
+            raise AttachError(
+                f"tasks were already submitted before MiniApp attached ({submitted[:5]}...): "
+                "enter MiniApp right after start_telemetry()"
+            )
+        if "drain_on_stop" not in inspect.signature(type(self.manager).__init__).parameters:
+            raise AttachError(
+                "RHAPSODY telemetry lacks drain_on_stop: install RHAPSODY main (142f396 or newer)"
+            )
+
+    async def start(self, backends) -> None:
+        self._t0 = time.time()
+        self._barrier_seen = asyncio.Event()
+        self.manager.subscribe(self._on_event)
+        if not await self._barrier("attach"):
+            raise AttachError("telemetry dispatch loop did not respond: is it running?")
+        self._emit(
+            RunStarted,
+            wfminiapi_version=_package("wfMiniAPI"),
+            asyncflow_version=_package("radical.asyncflow"),
+            rhapsody_version=_package("rhapsody-py"),
+            backends=",".join(type(b).__name__ for b in backends),
+        )
+        self.started = True
+
+    # ------------------------------------------------------------------ events
+    def _on_event(self, event) -> None:  # O(1): runs in RHAPSODY's dispatch loop
+        self._seen[event.event_type] += 1
+        if event.event_type == Barrier.__name__ and self._barrier_seen is not None:
+            self._barrier_seen.set()
+        elif event.event_type == "SessionEnded":
+            # telemetry is stopping: was the engine already shutting down? (a stop by the
+            # engine's shutdown, or by hand while the engine still ran)
+            self._session_ended_seen = True
+            self._engine_down_at_stop = bool(getattr(self.flow, "is_shutting_down", False))
+
+    def _emit(self, cls, **fields) -> None:
+        self.manager.emit(
+            make_event(cls, session_id=self.manager.session_id, backend="wfminiapi", **fields)
+        )
+        self._emitted[cls.__name__] += 1
+
+    async def _barrier(self, purpose: str) -> bool:
+        """Wait until every event emitted so far has been processed (the queue is FIFO)."""
+        self._barrier_seen.clear()
+        self._emit(Barrier, purpose=purpose)
+        try:
+            await asyncio.wait_for(self._barrier_seen.wait(), BARRIER_TIMEOUT_S)
+            return True
+        except asyncio.TimeoutError:
+            return False
+
+    # ------------------------------------------------------------------ exit
+    def record_end(self, ended_by: str, exception_type: str) -> None:
+        """Queue RunEnded while telemetry still runs; called by MiniApp's exit, never awaits.
+
+        Nothing is decided here: under a stop that is still writing out its queue the
+        outcome is only known in verify().
+        """
+        self.ended_by, self.exception_type = ended_by, exception_type
+        if self.started and getattr(self.manager, "_running", False):  # PRIVATE (drift-tested)
+            self._emit(
+                RunEnded,
+                ended_by=ended_by,
+                exception_type=exception_type,
+                duration_s=time.time() - self._t0,
+            )
+            self._run_ended_queued = True
+
+    def verify(self) -> MiniAppReport:
+        """Verify the checkpoint after the script stopped telemetry; never raises."""
+        try:
+            self.report = self._verify()
+        except Exception as exc:  # last resort: verify() never raises
+            self.report = MiniAppReport(
+                session_id=str(getattr(self.flow, "uid", "")),
+                checkpoint=None,
+                telemetry_complete=False,
+                ended_by=self.ended_by,
+                reasons=(f"verification failed: {type(exc).__name__}: {exc}",),
+            )
+        self._write_report()
+        self._log_report()
+        return self.report
+
+    def _verify(self) -> MiniAppReport:
+        session = str(getattr(self.flow, "uid", ""))
+        if self.attach_error is not None or not self.started:
+            why = (
+                f"not attached: {self.attach_error}"
+                if self.attach_error is not None
+                else "MiniApp was never entered"
+            )
+            return MiniAppReport(session, None, False, self.ended_by, reasons=(why,))
+        if getattr(self.manager, "_running", False):  # PRIVATE (drift-tested)
+            # the checkpoint is still buffered: counting it would only produce noise
+            return MiniAppReport(
+                self.manager.session_id,
+                None,
+                False,
+                self.ended_by,
+                reasons=(
+                    "telemetry still running: call verify() after flow.shutdown() "
+                    "and telemetry.stop()",
+                ),
+            )
+        reasons, notes = list(self.reasons), list(self.notes)
+        if not self._session_ended_seen:
+            reasons.append(
+                "telemetry did not finish writing its queue (stop() stalled or was cancelled)"
+            )
+        if not self._run_ended_queued:
+            if self._engine_down_at_stop:
+                notes.append(
+                    "RunEnded not in the checkpoint: the engine shutdown stopped telemetry "
+                    "before MiniApp's exit"
+                )
+            else:
+                reasons.append(
+                    "stopped_before_exit: telemetry was stopped while the engine was still "
+                    "running"
+                )
+        try:
+            return verify_checkpoint(
+                self.checkpoint_dir,
+                self.manager.session_id,
+                emitted={k: v for k, v in self._emitted.items() if k.startswith(PREFIX)},
+                seen=dict(self._seen),
+                ended_by=self.ended_by,
+                reasons=tuple(reasons),
+                notes=tuple(notes),
+            )
+        except Exception as exc:
+            reasons.append(f"verification failed: {type(exc).__name__}: {exc}")
+            return MiniAppReport(
+                self.manager.session_id,
+                None,
+                False,
+                self.ended_by,
+                reasons=tuple(reasons),
+                notes=tuple(notes),
+            )
+
+    def _write_report(self) -> None:
+        if self.checkpoint_dir is None:  # not attached: no checkpoint to write next to
+            return
+        try:
+            out = self.checkpoint_dir / f"{self.report.session_id}.wfminiapi.report.json"
+            out.write_text(json.dumps(self.report.to_dict(), indent=1) + "\n")
+        except OSError as exc:
+            log.warning("could not write the MiniApp report: %s", exc)
+
+    def _log_report(self) -> None:
+        r, t = self.report, self.report.tasks
+        msg = (
+            f"MiniApp {r.session_id}: telemetry "
+            f"{'complete' if r.telemetry_complete else 'INCOMPLETE'}; tasks created={t.created} "
+            f"completed={t.completed} failed={t.failed} canceled={t.canceled} "
+            f"abandoned={t.abandoned} not_submitted={t.not_submitted}"
+        )
+        if r.reasons:
+            msg += "; " + "; ".join(r.reasons)
+        if r.notes:
+            msg += "; note: " + "; ".join(r.notes)
+        log.log(logging.INFO if r.telemetry_complete else logging.WARNING, msg)

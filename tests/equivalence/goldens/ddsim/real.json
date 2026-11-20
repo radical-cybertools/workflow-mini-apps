@@ -1,0 +1,2832 @@
+{
+ "call_names": [
+  [
+   {
+    "comp": "block",
+    "name": "run_workflow"
+   },
+   2
+  ],
+  [
+   {
+    "comp": "executable",
+    "name": "prediction"
+   },
+   2
+  ],
+  [
+   {
+    "comp": "executable",
+    "name": "simulation"
+   },
+   6
+  ],
+  [
+   {
+    "comp": "executable",
+    "name": "training"
+   },
+   2
+  ]
+ ],
+ "commands": [
+  [
+   {
+    "command": "<PYTHON> <DDSIM>/workflows/miniapps_workflow/agent.py --data_root_dir MiniApps/min1/sim_output --instance_index 1 --phase 0 --num_epochs 2 --num_mult_outlier 1 --num_mult 2 --output_file MiniApps/min1/predictions.yaml",
+    "name": "prediction"
+   },
+   1
+  ],
+  [
+   {
+    "command": "<PYTHON> <DDSIM>/workflows/miniapps_workflow/agent.py --data_root_dir MiniApps/min2/sim_output --instance_index 1 --phase 0 --num_epochs 2 --num_mult_outlier 1 --num_mult 2 --output_file MiniApps/min2/predictions.yaml",
+    "name": "prediction"
+   },
+   1
+  ],
+  [
+   {
+    "command": "<PYTHON> <DDSIM>/workflows/miniapps_workflow/simulation.py --data_root_dir MiniApps/min1/sim_output --instance_index 0 --phase 0 --num_step 2 ",
+    "name": "simulation"
+   },
+   1
+  ],
+  [
+   {
+    "command": "<PYTHON> <DDSIM>/workflows/miniapps_workflow/simulation.py --data_root_dir MiniApps/min1/sim_output --instance_index 1 --phase 0 --num_step 2 ",
+    "name": "simulation"
+   },
+   1
+  ],
+  [
+   {
+    "command": "<PYTHON> <DDSIM>/workflows/miniapps_workflow/simulation.py --data_root_dir MiniApps/min1/sim_output --instance_index 2 --phase 0 --num_step 2 ",
+    "name": "simulation"
+   },
+   1
+  ],
+  [
+   {
+    "command": "<PYTHON> <DDSIM>/workflows/miniapps_workflow/simulation.py --data_root_dir MiniApps/min2/sim_output --instance_index 0 --phase 0 --num_step 2 ",
+    "name": "simulation"
+   },
+   1
+  ],
+  [
+   {
+    "command": "<PYTHON> <DDSIM>/workflows/miniapps_workflow/simulation.py --data_root_dir MiniApps/min2/sim_output --instance_index 1 --phase 0 --num_step 2 ",
+    "name": "simulation"
+   },
+   1
+  ],
+  [
+   {
+    "command": "<PYTHON> <DDSIM>/workflows/miniapps_workflow/simulation.py --data_root_dir MiniApps/min2/sim_output --instance_index 2 --phase 0 --num_step 2 ",
+    "name": "simulation"
+   },
+   1
+  ],
+  [
+   {
+    "command": "<PYTHON> <DDSIM>/workflows/miniapps_workflow/training.py --data_root_dir MiniApps/min1/sim_output --instance_index 1 --phase 0 --num_epochs 2",
+    "name": "training"
+   },
+   1
+  ],
+  [
+   {
+    "command": "<PYTHON> <DDSIM>/workflows/miniapps_workflow/training.py --data_root_dir MiniApps/min2/sim_output --instance_index 1 --phase 0 --num_epochs 2",
+    "name": "training"
+   },
+   1
+  ]
+ ],
+ "error_tail": null,
+ "exit_code": 0,
+ "files": [],
+ "manager_kernels": [],
+ "mode": "real",
+ "script_traces": [
+  [
+   {
+    "argv": [
+     "--data_root_dir",
+     "MiniApps/min1/sim_output",
+     "--instance_index",
+     "0",
+     "--phase",
+     "0",
+     "--num_step",
+     "2"
+    ],
+    "kernels": [
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 25000000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "num_op": 1,
+       "op": "square",
+       "size": 25000000
+      },
+      "name": "inplaceCompute",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        5000,
+        5000
+       ],
+       "size_b": [
+        5000
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 25000000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "num_op": 1,
+       "op": "square",
+       "size": 25000000
+      },
+      "name": "inplaceCompute",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        5000,
+        5000
+       ],
+       "size_b": [
+        5000
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min1/sim_output/phase0/",
+       "filename_suffix": 0,
+       "num_bytes": 3500000
+      },
+      "name": "writeNonMPI",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min1/sim_output/phase0/",
+       "filename_suffix": 0,
+       "num_bytes": 6000000
+      },
+      "name": "readNonMPI",
+      "outcome": "ok"
+     }
+    ],
+    "script": "simulation.py"
+   },
+   1
+  ],
+  [
+   {
+    "argv": [
+     "--data_root_dir",
+     "MiniApps/min1/sim_output",
+     "--instance_index",
+     "1",
+     "--phase",
+     "0",
+     "--num_epochs",
+     "2",
+     "--num_mult_outlier",
+     "1",
+     "--num_mult",
+     "2",
+     "--output_file",
+     "MiniApps/min1/predictions.yaml"
+    ],
+    "kernels": [
+     {
+      "args": {
+       "seconds": 20.0
+      },
+      "name": "sleep",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min1/sim_output/phase0/",
+       "filename_suffix": 1,
+       "num_bytes": 0
+      },
+      "name": "readNonMPI",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1254400
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        100
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        100
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min1/sim_output/phase0/",
+       "filename_suffix": 1,
+       "num_bytes": 3500000
+      },
+      "name": "writeNonMPI",
+      "outcome": "ok"
+     }
+    ],
+    "script": "agent.py"
+   },
+   1
+  ],
+  [
+   {
+    "argv": [
+     "--data_root_dir",
+     "MiniApps/min1/sim_output",
+     "--instance_index",
+     "1",
+     "--phase",
+     "0",
+     "--num_epochs",
+     "2"
+    ],
+    "kernels": [
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min1/sim_output/phase0/",
+       "filename_suffix": 1,
+       "num_bytes": 0
+      },
+      "name": "readNonMPI",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "seconds": 20.0
+      },
+      "name": "sleep",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1254400
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min1/sim_output/phase0/",
+       "filename_suffix": 1,
+       "num_bytes": 3500000
+      },
+      "name": "writeNonMPI",
+      "outcome": "ok"
+     }
+    ],
+    "script": "training.py"
+   },
+   1
+  ],
+  [
+   {
+    "argv": [
+     "--data_root_dir",
+     "MiniApps/min1/sim_output",
+     "--instance_index",
+     "1",
+     "--phase",
+     "0",
+     "--num_step",
+     "2"
+    ],
+    "kernels": [
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 25000000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "num_op": 1,
+       "op": "square",
+       "size": 25000000
+      },
+      "name": "inplaceCompute",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        5000,
+        5000
+       ],
+       "size_b": [
+        5000
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 25000000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "num_op": 1,
+       "op": "square",
+       "size": 25000000
+      },
+      "name": "inplaceCompute",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        5000,
+        5000
+       ],
+       "size_b": [
+        5000
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min1/sim_output/phase0/",
+       "filename_suffix": 1,
+       "num_bytes": 3500000
+      },
+      "name": "writeNonMPI",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min1/sim_output/phase0/",
+       "filename_suffix": 1,
+       "num_bytes": 6000000
+      },
+      "name": "readNonMPI",
+      "outcome": "ok"
+     }
+    ],
+    "script": "simulation.py"
+   },
+   1
+  ],
+  [
+   {
+    "argv": [
+     "--data_root_dir",
+     "MiniApps/min1/sim_output",
+     "--instance_index",
+     "2",
+     "--phase",
+     "0",
+     "--num_step",
+     "2"
+    ],
+    "kernels": [
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 25000000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "num_op": 1,
+       "op": "square",
+       "size": 25000000
+      },
+      "name": "inplaceCompute",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        5000,
+        5000
+       ],
+       "size_b": [
+        5000
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 25000000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "num_op": 1,
+       "op": "square",
+       "size": 25000000
+      },
+      "name": "inplaceCompute",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        5000,
+        5000
+       ],
+       "size_b": [
+        5000
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min1/sim_output/phase0/",
+       "filename_suffix": 2,
+       "num_bytes": 3500000
+      },
+      "name": "writeNonMPI",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min1/sim_output/phase0/",
+       "filename_suffix": 2,
+       "num_bytes": 6000000
+      },
+      "name": "readNonMPI",
+      "outcome": "ok"
+     }
+    ],
+    "script": "simulation.py"
+   },
+   1
+  ],
+  [
+   {
+    "argv": [
+     "--data_root_dir",
+     "MiniApps/min2/sim_output",
+     "--instance_index",
+     "0",
+     "--phase",
+     "0",
+     "--num_step",
+     "2"
+    ],
+    "kernels": [
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 25000000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "num_op": 1,
+       "op": "square",
+       "size": 25000000
+      },
+      "name": "inplaceCompute",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        5000,
+        5000
+       ],
+       "size_b": [
+        5000
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 25000000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "num_op": 1,
+       "op": "square",
+       "size": 25000000
+      },
+      "name": "inplaceCompute",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        5000,
+        5000
+       ],
+       "size_b": [
+        5000
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min2/sim_output/phase0/",
+       "filename_suffix": 0,
+       "num_bytes": 3500000
+      },
+      "name": "writeNonMPI",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min2/sim_output/phase0/",
+       "filename_suffix": 0,
+       "num_bytes": 6000000
+      },
+      "name": "readNonMPI",
+      "outcome": "ok"
+     }
+    ],
+    "script": "simulation.py"
+   },
+   1
+  ],
+  [
+   {
+    "argv": [
+     "--data_root_dir",
+     "MiniApps/min2/sim_output",
+     "--instance_index",
+     "1",
+     "--phase",
+     "0",
+     "--num_epochs",
+     "2",
+     "--num_mult_outlier",
+     "1",
+     "--num_mult",
+     "2",
+     "--output_file",
+     "MiniApps/min2/predictions.yaml"
+    ],
+    "kernels": [
+     {
+      "args": {
+       "seconds": 20.0
+      },
+      "name": "sleep",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min2/sim_output/phase0/",
+       "filename_suffix": 1,
+       "num_bytes": 0
+      },
+      "name": "readNonMPI",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1254400
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        100
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        100
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min2/sim_output/phase0/",
+       "filename_suffix": 1,
+       "num_bytes": 3500000
+      },
+      "name": "writeNonMPI",
+      "outcome": "ok"
+     }
+    ],
+    "script": "agent.py"
+   },
+   1
+  ],
+  [
+   {
+    "argv": [
+     "--data_root_dir",
+     "MiniApps/min2/sim_output",
+     "--instance_index",
+     "1",
+     "--phase",
+     "0",
+     "--num_epochs",
+     "2"
+    ],
+    "kernels": [
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min2/sim_output/phase0/",
+       "filename_suffix": 1,
+       "num_bytes": 0
+      },
+      "name": "readNonMPI",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "seconds": 20.0
+      },
+      "name": "sleep",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1254400
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        100,
+        12544
+       ],
+       "size_b": [
+        12544,
+        128
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 1605632
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min2/sim_output/phase0/",
+       "filename_suffix": 1,
+       "num_bytes": 3500000
+      },
+      "name": "writeNonMPI",
+      "outcome": "ok"
+     }
+    ],
+    "script": "training.py"
+   },
+   1
+  ],
+  [
+   {
+    "argv": [
+     "--data_root_dir",
+     "MiniApps/min2/sim_output",
+     "--instance_index",
+     "1",
+     "--phase",
+     "0",
+     "--num_step",
+     "2"
+    ],
+    "kernels": [
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 25000000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "num_op": 1,
+       "op": "square",
+       "size": 25000000
+      },
+      "name": "inplaceCompute",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        5000,
+        5000
+       ],
+       "size_b": [
+        5000
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 25000000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "num_op": 1,
+       "op": "square",
+       "size": 25000000
+      },
+      "name": "inplaceCompute",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        5000,
+        5000
+       ],
+       "size_b": [
+        5000
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min2/sim_output/phase0/",
+       "filename_suffix": 1,
+       "num_bytes": 3500000
+      },
+      "name": "writeNonMPI",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min2/sim_output/phase0/",
+       "filename_suffix": 1,
+       "num_bytes": 6000000
+      },
+      "name": "readNonMPI",
+      "outcome": "ok"
+     }
+    ],
+    "script": "simulation.py"
+   },
+   1
+  ],
+  [
+   {
+    "argv": [
+     "--data_root_dir",
+     "MiniApps/min2/sim_output",
+     "--instance_index",
+     "2",
+     "--phase",
+     "0",
+     "--num_step",
+     "2"
+    ],
+    "kernels": [
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 25000000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "num_op": 1,
+       "op": "square",
+       "size": 25000000
+      },
+      "name": "inplaceCompute",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        5000,
+        5000
+       ],
+       "size_b": [
+        5000
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 5000
+      },
+      "name": "axpy",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "size": 25000000
+      },
+      "name": "generateRandomNumber",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "device": "cpu",
+       "num_op": 1,
+       "op": "square",
+       "size": 25000000
+      },
+      "name": "inplaceCompute",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "axis": [
+        [
+         1
+        ],
+        [
+         0
+        ]
+       ],
+       "device": "cpu",
+       "size_a": [
+        5000,
+        5000
+       ],
+       "size_b": [
+        5000
+       ]
+      },
+      "name": "matMulGeneral",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min2/sim_output/phase0/",
+       "filename_suffix": 2,
+       "num_bytes": 3500000
+      },
+      "name": "writeNonMPI",
+      "outcome": "ok"
+     },
+     {
+      "args": {
+       "data_root_dir": "MiniApps/min2/sim_output/phase0/",
+       "filename_suffix": 2,
+       "num_bytes": 6000000
+      },
+      "name": "readNonMPI",
+      "outcome": "ok"
+     }
+    ],
+    "script": "simulation.py"
+   },
+   1
+  ]
+ ],
+ "workflow": "ddsim"
+}
