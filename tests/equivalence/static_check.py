@@ -86,9 +86,14 @@ def build(args) -> int:
             "segments": {name: _sha(text) for name, text in segs.items()},
             "edge_lines": edge,
         }
+    renames = spec.get("renames", {})
     for group in spec["whole"]:
         root = roots[group["root"]]
-        manifest["whole"][group["id"]] = {p: _sha((root / p).read_text()) for p in group["paths"]}
+        # keyed by the baseline path; read from where the file lives now (as check does)
+        manifest["whole"][group["id"]] = {
+            p: _sha((root / p if (root / p).exists() else root / renames.get(p, p)).read_text())
+            for p in group["paths"]
+        }
     MANIFEST.write_text(json.dumps(manifest, indent=1, sort_keys=True) + "\n")
     print(f"wrote {MANIFEST.relative_to(REPO)}")
     return 0
