@@ -1,7 +1,67 @@
 site_name: RADICAL Workflow Mini-Apps
+site_url: https://radical-cybertools.github.io/workflow-mini-apps/
+site_author: RADICAL Cybertools
+site_description: Workflow mini-apps and the wfMiniAPI emulation kernels, with verified telemetry.
+
+repo_name: radical-cybertools/workflow-mini-apps
 repo_url: https://github.com/radical-cybertools/workflow-mini-apps
 docs_dir: docs
 strict: true
+
+copyright: Copyright &copy; 2024—Present by <a target="_blank" href="https://radical.rutgers.edu">RADICAL Lab</a>
+
+# Same theme and features as the RHAPSODY docs; own warm beige palette (docs/stylesheets/extra.css)
+theme:
+  name: material
+  features:
+    - content.code.annotate
+    - content.code.copy
+    - content.code.select
+    - navigation.path
+    - navigation.tabs
+    - navigation.top
+    - navigation.tracking
+    - navigation.indexes
+    - search.highlight
+    - search.share
+    - search.suggest
+    - toc.follow
+    - toc.integrate      # the page's contents in the left sidebar
+  font:
+    text: Open Sans
+    code: Roboto Mono
+  palette:
+    - media: "(prefers-color-scheme)"
+      toggle:
+        icon: material/brightness-auto
+        name: Switch to light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: custom
+      accent: custom
+      toggle:
+        icon: material/brightness-4
+        name: Switch to system preference
+
+extra:
+  social:
+    - icon: fontawesome/brands/github
+      link: https://github.com/radical-cybertools/workflow-mini-apps
+
+extra_css:
+  - stylesheets/extra.css
+
+watch:
+  - mkdocs.yml
+  - docs/
+  - src/
 
 nav:
   - Home: index.md
@@ -11,8 +71,6 @@ nav:
   - API:
       - MiniApp: api/miniapp.md
       - Kernels: api/kernels.md
-  - Design:
-      - Telemetry-first MiniApp API: design/miniapp-telemetry.md
   - Testing:
       - Equivalence harness: testing/equivalence.md
       - Validation on an HPC node: testing/hpc-validation.md
@@ -30,5 +88,17 @@ plugins:
 markdown_extensions:
   - tables
   - admonition
+  - attr_list
+  - md_in_html
   - toc:
       permalink: true
+  - pymdownx.details
+  - pymdownx.highlight:
+      anchor_linenums: true
+      line_spans: __span
+      pygments_lang_class: true
+  - pymdownx.inlinehilite
+  - pymdownx.keys
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true

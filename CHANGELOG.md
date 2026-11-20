@@ -36,6 +36,9 @@
 - **Contract check:** expects the new script shape.
 - **New docs page `docs/telemetry.md`:** what a run records (events, metrics, spans,
   the report), the settings, how to read the data, and the limits.
+- **Docs look:** the Material theme, laid out like the RHAPSODY docs, with a warm beige
+  palette and each page's contents in the left sidebar (`mkdocs-material` added to the
+  `docs` extra). The Kernels and Home pages are rewritten with sections.
 
 ### Hardening: the exit and attach fixes of the SOE review (F1, F2, F3, F9, F10)
 
@@ -108,7 +111,7 @@
 
 ### Phase 1: baseline and equivalence harness
 
-Phase 1 of the telemetry-first MiniApp redesign (`docs/design/miniapp-telemetry.md`):
+Phase 1 of the telemetry-first MiniApp redesign (design record kept outside the repository):
 baseline and equivalence harness. No workflow behaviour changes.
 
 ### Changed

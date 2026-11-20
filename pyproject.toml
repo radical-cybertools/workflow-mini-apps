@@ -39,7 +39,7 @@ workflow = [
 dragon = ["rhapsody-py[dragon] @ git+https://github.com/radical-cybertools/rhapsody@142f396"]
 plot = ["matplotlib"]
 test = ["pytest"]
-docs = ["mkdocs", "mkdocstrings[python]"]
+docs = ["mkdocs", "mkdocs-material>=9.0.0", "mkdocstrings[python]"]
 dev = ["ruff", "pre-commit"]
 
 [project.urls]
