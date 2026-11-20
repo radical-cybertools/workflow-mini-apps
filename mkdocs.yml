@@ -7,6 +7,7 @@ nav:
   - Home: index.md
   - Getting started: getting-started.md
   - Kernels: kernels.md
+  - Telemetry: telemetry.md
   - API:
       - MiniApp: api/miniapp.md
       - Kernels: api/kernels.md

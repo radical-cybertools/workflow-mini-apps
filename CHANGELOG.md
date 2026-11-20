@@ -2,6 +2,41 @@
 
 ## 0.2.0 (unreleased)
 
+### Design B: the script owns the shutdown; MiniApp records and verifies
+
+- **Breaking: new script shape.** The script that builds the engine and telemetry now
+  shuts them down, in a nested `finally`, and calls the new `app.verify()`
+  The nesting keeps telemetry stopped and the report written when the engine's
+  shutdown fails or a second Ctrl-C arrives. A script still using only
+  `async with MiniApp(...)` no longer gets telemetry stopped or a report, and on Dragon
+  it may not exit: update it to this shape.
+- **Why:** AsyncFlow #125 makes `flow.shutdown()` stop telemetry. An exit that shut the
+  engine down and then recorded `RunEnded` would have lost it on every run. The script
+  shape works with and without #125 (`telemetry.stop()` after it does nothing).
+- **`MiniApp`'s exit** only records `ended_by` and queues `wfminiapi.RunEnded`; it
+  awaits nothing and shuts nothing down. The F2 machinery (the shielded exit task in
+  the caller's Context, absorbed cancels, `uncancel()`) is removed, as is the exit
+  barrier. `RunEnded` now comes before the engine's shutdown events, and its
+  `duration_s` covers the block, not the shutdown.
+- **`app.verify()`** (new) reads the checkpoint, sets `app.report` and writes the report
+  file. It never raises (F11 closed): telemetry still running, an `AttachError`, a
+  block never entered, or an error while reading the checkpoint become reasons.
+- **The report's new `notes`:** facts that do not make telemetry incomplete, e.g.
+  `RunEnded` lost because the engine's shutdown stopped telemetry before `MiniApp`'s
+  exit. Telemetry stopped by hand while the engine still ran stays a reason
+  (`stopped_before_exit`), and so does a `telemetry.stop()` that did not finish writing
+  its queue (no `SessionEnded` seen).
+- **A WARNING at interpreter exit** if a script never calls `app.verify()`.
+- **The workflow cores changed by one line:** each core's last line,
+  `await flow.shutdown()`, moved to the script; DeepDriveSim's patch moves its shutdown
+  out of the block the same way. The static check proves nothing else changed: its
+  core boundary now ends before that line, and the manifest was rebuilt (commit A)
+  from a tree that still passed against the baseline manifest, before the line moved
+  (commit B). `static_check.py build` now reads moved files the way `check` does.
+- **Contract check:** expects the new script shape.
+- **New docs page `docs/telemetry.md`:** what a run records (events, metrics, spans,
+  the report), the settings, how to read the data, and the limits.
+
 ### Hardening: the exit and attach fixes of the SOE review (F1, F2, F3, F9, F10)
 
 - **`MiniApp`'s exit joins AsyncFlow's shutdown.** It is now one `await flow.shutdown()`,

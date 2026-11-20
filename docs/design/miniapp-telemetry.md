@@ -45,12 +45,13 @@
 | U6 | Task bodies stay textually unchanged. |
 | D-b | The DeepDriveSim baseline is `0c4f0c2`; EO1's step-level OpLog is retired. |
 | D-c | The backend is explicit; **no fallback**. |
-| E1 | wfMiniAPI attaches as an **`async with`** block that guarantees the stop order, also on exceptions and signals. |
+| E1 | wfMiniAPI attaches as an **`async with`** block. The stop order, also on exceptions and signals, is guaranteed by the script's nested `finally` since X2 (it was `MiniApp`'s exit until then). |
 | E2 | "Mandatory" means **contract plus verification**: CI fails a workflow that doesn't attach; each run verifies its own telemetry. |
 | E3 | `asyncio.run` stays. wfMiniAPI owns no exit codes and no signal handlers; it **reports**, and the script decides. |
 | M1 | **`MiniApp(flow, telemetry)` is the single contact point.** Telemetry is one capability of it, not the whole API. |
 | M2 | Running N workflows is the workflow developer's job, with AsyncFlow scopes and blocks; `MiniApp` does not orchestrate workflows. |
-| **X1** | **(2026-11-18) The exit joins AsyncFlow's shutdown** (SOE review F1–F3, F9, F10). AsyncFlow's `shutdown()` runs once and every call joins it (first call's arguments decide; a cancelled waiter does not abort it; a failed one is retried); `MiniApp`'s exit is one `await flow.shutdown()`, run as a shielded task in the caller's Context, and a cancel that arrives during it is re-raised afterwards (a workflow exception wins). The report's `ended_by` (`normal`, `exception`, `cancelled`, `engine_shutdown`) replaces `interrupted`. Ownership is `telemetry is flow.telemetry`. `shutdown_wait_s` is removed. Python ≥ 3.12. |
+| **X1** | **(2026-11-18) The exit joins AsyncFlow's shutdown** (SOE review F1–F3, F9, F10). AsyncFlow's `shutdown()` runs once and every call joins it (first call's arguments decide; a cancelled waiter does not abort it; a failed one is retried); `MiniApp`'s exit is one `await flow.shutdown()`, run as a shielded task in the caller's Context, and a cancel that arrives during it is re-raised afterwards (a workflow exception wins). The report's `ended_by` (`normal`, `exception`, `cancelled`, `engine_shutdown`) replaces `interrupted`. Ownership is `telemetry is flow.telemetry`. `shutdown_wait_s` is removed. Python ≥ 3.12. The exit part is superseded by X2. |
+| **X2** | **(2026-11-20) The script owns the shutdown; `MiniApp` records and verifies** ("design B"). AsyncFlow #125 makes `shutdown()` stop telemetry, so an exit that shut the engine down and then recorded `RunEnded` would lose it on every run. The script that built the engine and telemetry shuts them down in a nested `finally` (`try: await flow.shutdown()` / `finally: await telemetry.stop(); app.verify()`), so telemetry is stopped and the report written even when the shutdown fails. `MiniApp`'s exit only queues `RunEnded` and records `ended_by`; it awaits nothing, so the shielded exit task of X1 is gone. `app.verify()` never raises (F11 closed). A report is incomplete only if events were lost or telemetry was stopped by hand while the engine ran; `RunEnded` lost to the engine's own stop is a `note`. A script that never calls `verify()` gets a WARNING at interpreter exit. **The one core change:** each core's last line, `await flow.shutdown()`, moved to the script; the static check's manifest was rebuilt just before the move with the core ending before that line, so the check proves nothing else changed. |
 
 ---
 
@@ -62,14 +63,22 @@ Mini-apps are built from explicit RADICAL components. The integrator writes, and
 backend   = await DragonExecutionBackend()                        # RHAPSODY execution backend
 flow      = await WorkflowEngine.create(backend=backend)          # AsyncFlow engine
 telemetry = await flow.start_telemetry(checkpoint_path="telemetry")  # AsyncFlow telemetry (RHAPSODY's TelemetryManager)
-async with MiniApp(flow, telemetry), flow.workflow_scope("motif_4"):
-    await miniapp_workflow(cfg, flow, logger)                     # the unchanged workflow
+app = MiniApp(flow, telemetry)
+try:
+    async with app, flow.workflow_scope("motif_4"):
+        await miniapp_workflow(cfg, flow, logger)                 # the workflow, minus its own shutdown
+finally:
+    try:
+        await flow.shutdown()                                     # the script owns the shutdown (X2)
+    finally:
+        await telemetry.stop()
+        app.verify()                                              # never raises; sets app.report
 ```
 
-**`MiniApp` is a thin coordinator** over components the user built and passed in (H1). On top of AsyncFlow's own telemetry (task lifecycle events, spans, metrics) it adds:
+**`MiniApp` is a thin observer** over components the user built and passed in (H1). On top of AsyncFlow's own telemetry (task lifecycle events, spans, metrics) it adds:
 - **Attach checks.** The telemetry is the manager this flow emits into (`flow.telemetry`), is running and writes a checkpoint, and no task was submitted yet. Otherwise `AttachError` says how to fix it.
 - **Run events.** `wfminiapi.RunStarted` (versions and commits, backends) and `wfminiapi.RunEnded` (`ended_by`, exception type, duration).
-- **A guaranteed stop order.** On leaving the block, normally, on an exception, a cancel or a signal: engine shut down (joining a shutdown already running), a FIFO barrier so every event is processed, `RunEnded`, then `telemetry.stop()`. DeepDriveSim's MA-11 ordering bug can no longer happen.
+- **A recorded end.** On leaving the block, normally, on an exception, a cancel or a signal, it records `ended_by` and queues `RunEnded`; it awaits nothing and shuts nothing down. The stop order (engine, then telemetry, then verification) is the script's nested `finally` (X2), which also prevents DeepDriveSim's MA-11 ordering bug.
 - **A verified report.** It is computed from the checkpoint file alone:
   - `telemetry_complete`;
   - task counts: completed, failed, canceled, abandoned, not submitted;
@@ -79,7 +88,7 @@ async with MiniApp(flow, telemetry), flow.workflow_scope("motif_4"):
 
 **What it does not do (I1):** anything inside a task. There are no kernel timings and no in-task spans.
 
-**The workflow core is untouched and byte-identical.** Every example changes at the edge only (§6). DeepDriveSim changes only `run_workflow.py`. The equivalence harness proves the cores are unchanged (§9).
+**The workflow core is untouched and byte-identical,** except its last line, `await flow.shutdown()`, which moved to the script (X2). Every example changes at the edge only (§6). DeepDriveSim changes only `run_workflow.py`. The equivalence harness proves the cores are unchanged (§9).
 
 ---
 
@@ -93,7 +102,7 @@ async with MiniApp(flow, telemetry), flow.workflow_scope("motif_4"):
 | Internal task-span index, `export_traceparent` | **None** | Nothing needs it without in-task records |
 | `MiniApp(flow, telemetry, checkpoint_path=…, kernel_detail=…, gpu_timing=…, on_sink_error=…)` | `MiniApp(flow, telemetry, /, *, backends=None)`. The checkpoint path is read from the telemetry manager | Pass the path once; the in-task options are gone |
 | `wfMiniAPI.app`, `wfMiniAPI.task` | `wfMiniAPI.api` (`MiniApp`, `MiniAppReport`, `AttachError`, `require_dragon`, `BackendUnavailableError`); no task-side module | `src/` layout of Phase 1; I1 |
-| `async with MiniApp(...)` around `workflow_core` | `async with MiniApp(flow, telemetry), flow.workflow_scope("<name>"):` around `miniapp_workflow`; the outer function is `run_miniapp` | Scope ids tag every task span; owner's naming |
+| `async with MiniApp(...)` around `workflow_core` | `app = MiniApp(flow, telemetry)`; `async with app, flow.workflow_scope("<name>"):` around `miniapp_workflow`, inside the script's nested `try`/`finally` (X2); the outer function is `run_miniapp` | Scope ids tag every task span; owner's naming |
 | Layer L0 (task-side probe) | Removed | I1 |
 
 ---
@@ -114,8 +123,8 @@ async with MiniApp(flow, telemetry), flow.workflow_scope("motif_4"):
 
 | # | Fact | Consequence |
 |---|---|---|
-| UP-08 | `emit()` after `stop()` is silently dropped (`rh/tm.py:426-427`) | `MiniApp` checks the running flag before its exit barrier (`stopped_before_exit`). |
-| F6 | AsyncFlow's signal handlers call `shutdown()`, which never stops telemetry (`af/wm.py:339-383`) | Handled by the `async with` exit (§6.3). |
+| UP-08 | `emit()` after `stop()` is silently dropped (`rh/tm.py:426-427`) | `MiniApp` queues `RunEnded` only while telemetry runs; `verify()` reads whether the engine was shutting down when its subscriber saw `SessionEnded` (a note) or not (`stopped_before_exit`). |
+| F6 | AsyncFlow's signal handlers call `shutdown()`, which never stops telemetry (`af/wm.py:339-383`) | Handled by the script's nested `finally` (§6.3). |
 | F7 | Plain or foreign futures passed to a task raise `TypeError` | Nothing wraps futures or the engine. |
 | UP-01 | Dragon and Concurrent emit `TaskStarted` at submission, not at the real start | Recorded; "running" in plots means "handed to the backend". Upstream ticket. |
 | UP-06 | `TaskFailed` has no real `exit_code` / `error_type` | Upstream ticket. |
@@ -146,7 +155,7 @@ async with MiniApp(flow, telemetry), flow.workflow_scope("motif_4"):
 | Checkpoint path | Read from the manager's private `_checkpoint_path` (drift-tested) | Pass it once; upstream U-H makes it public. |
 | Telemetry running | Read from the private `_running` (drift-tested) | Detects an early `telemetry.stop()` in about 1 s instead of a 30 s barrier timeout. U-H. |
 | Task completeness | From AsyncFlow's own events, tasks only (`block.` uids excluded) | No hook needed (Phase 2 Q1). |
-| Exit ordering | A FIFO barrier event, awaited with a timeout, before `RunEnded` and `stop()` | The subscriber lags behind the emitter at exit. |
+| Exit ordering | No exit barrier (X2). `RunEnded` is queued when the block ends; `telemetry.stop()` writes out its queue; `SessionEnded` seen by the subscriber proves it finished | The exit awaits nothing; a stalled stop is a reason in the report. |
 | Identity | `session_id = flow.uid` | H1 |
 | Dragon unavailable | No fallback (D-c). Optional `require_dragon()` raises `BackendUnavailableError` with a launch hint; the exit status stays the script's own. | E3 |
 
@@ -175,11 +184,20 @@ The same change applies to motif_2, motif_3 (both), motif_6 and dragon-mpi; only
 +    backend = await DragonExecutionBackend()
      flow = await WorkflowEngine.create(backend=backend)
 +    telemetry = await flow.start_telemetry(checkpoint_path="telemetry")
-+    async with MiniApp(flow, telemetry), flow.workflow_scope("motif_4"):
-+        await miniapp_workflow(cfg, flow, logger)
++    app = MiniApp(flow, telemetry)
++    try:
++        async with app, flow.workflow_scope("motif_4"):
++            await miniapp_workflow(cfg, flow, logger)
++    finally:
++        try:
++            await flow.shutdown()
++        finally:
++            await telemetry.stop()
++            app.verify()
 +
 +async def miniapp_workflow(cfg, flow, logger):
-     ...                                   # core, byte-identical, ends with await flow.shutdown()
+     ...                                   # core, byte-identical
+-    await flow.shutdown()                 # moved to the script (X2)
  ...
 -    asyncio.run(workflow(cfg))
 +    asyncio.run(run_miniapp(cfg))
@@ -190,8 +208,16 @@ The same change applies to motif_2, motif_3 (both), motif_6 and dragon-mpi; only
 **A script that wants an exit code does it visibly:**
 
 ```python
-    async with MiniApp(flow, telemetry) as app, flow.workflow_scope("motif_4"):
-        await miniapp_workflow(cfg, flow, logger)
+    app = MiniApp(flow, telemetry)
+    try:
+        async with app, flow.workflow_scope("motif_4"):
+            await miniapp_workflow(cfg, flow, logger)
+    finally:
+        try:
+            await flow.shutdown()
+        finally:
+            await telemetry.stop()
+            app.verify()
     return app.report          # __main__: sys.exit(asyncio.run(run_miniapp(cfg)).exit_hint)
 ```
 
@@ -200,26 +226,26 @@ The same change applies to motif_2, motif_3 (both), motif_6 and dragon-mpi; only
 `run_workflow.py` is entirely edge. `miniapps_workflow.py`, `ddsim_manager.py`, the task scripts and `config.yaml` stay byte-identical. The reference change is `tests/equivalence/ddsim/run_workflow.patch`:
 - **Backend:** explicit, no fallback, with `require_dragon()` in the Dragon branch. An unknown `DDSIM_BACKEND` fails explicitly.
 - **Telemetry is mandatory.** `telemetry: false` is warned about and ignored.
-- **The block:** `async with MiniApp(asyncflow, telemetry), asyncflow.workflow_scope("ddsim"):` around the replicas. `telemetry.stop()` is removed, because the block stops it.
-- **The pending-task sweep moves after the block.** `asyncio.all_tasks()` includes RHAPSODY's dispatch and checkpoint tasks; cancelling them before the block exits makes `stop()` discard queued events.
+- **The block:** `app = MiniApp(asyncflow, telemetry)`; `async with app, asyncflow.workflow_scope("ddsim"):` around the replicas, inside the script's nested `try`/`finally` (`await asyncflow.shutdown()`, then `await telemetry.stop()` and `app.verify()`). The replicas' `close()` and the summary print stay in the inner `finally`.
+- **The pending-task sweep moves after the script's `finally`.** `asyncio.all_tasks()` includes RHAPSODY's dispatch and checkpoint tasks; cancelling them before the block exits makes `stop()` discard queued events.
 - **Behaviour that stays:** MA-08 (errors swallowed, "no errors" banner). MA-11 is gone.
 
-### 6.3 Lifecycle inside the block
+### 6.3 Lifecycle (X2)
 
 1. **`__aenter__`:**
+   - register the interpreter-exit reminder (a WARNING if `verify()` is never called);
    - attach checks (§2);
    - subscribe an O(1) counter;
    - attach barrier;
    - emit `RunStarted`.
-2. **Inside the block:** the unchanged core runs, including its own `flow.shutdown()`.
-3. **`__aexit__`** runs on normal exit, on exception, on a cancel and after a signal (X1). It first records `ended_by` (before any await: a cancel from outside has `Task.cancelling() > 0`; AsyncFlow's own shutdown cancels the awaited futures, not the task). The steps below run as one task in the caller's Context, awaited under `asyncio.shield`: a cancel that arrives meanwhile is re-raised after step 5, unless the workflow raised its own exception (then the cancels are given back with `uncancel()` and that exception propagates). A failed engine shutdown becomes a reason; errors inside verification can still escape (F11, open).
-   1. **Shutdown:** `await flow.shutdown()`, which joins a shutdown the core, a signal or an engine error already started, and returns when it has finished. Backends kept with `skip_execution_backend=True` stay running.
-   2. **Exit barrier:** if telemetry is no longer running, record `stopped_before_exit`; otherwise emit the barrier and wait for it.
-   3. Emit `RunEnded`.
-   4. Call `telemetry.stop()`. This always runs, inside a `finally`.
-   5. Verify the checkpoint, write the report file and log one line.
+2. **Inside the block:** the core runs. It no longer shuts the engine down; a third-party core that still does is fine (the script's shutdown joins it).
+3. **`__aexit__`** runs on normal exit, on exception, on a cancel and after a signal. It records `ended_by` (a cancel from outside has `Task.cancelling() > 0`; AsyncFlow's own shutdown cancels the awaited futures, not the task) and, if telemetry still runs, queues `RunEnded`. It awaits nothing, so a cancel cannot interrupt it, and an error inside it becomes a reason, never an exception over the workflow's.
+4. **The script's nested `finally`:**
+   1. `await flow.shutdown()`, which joins a shutdown a signal, an engine error or the core already started. Backends kept with `skip_execution_backend=True` stay running.
+   2. In the inner `finally`, so also when the shutdown failed: `await telemetry.stop()`, which writes out the queue (`RunEnded` first, then the shutdown's events, then `SessionEnded`).
+   3. `app.verify()`: telemetry still running → a report saying so, nothing counted; no `SessionEnded` seen → "did not finish writing its queue"; `RunEnded` not queued → a note if the engine was shutting down when `SessionEnded` was seen, else `stopped_before_exit`; then the checkpoint is counted, the report file written and one line logged. It never raises.
 
-**Signals (E3):** AsyncFlow's own handler shuts the engine down and cancels the awaited futures, so `CancelledError` reaches `__aexit__`. The ordered stop completes, the checkpoint gets `RunEnded` and `SessionEnded`, and the exit stays 1 with a traceback, as before. On the Concurrent backend the exit waits for the running thread task to finish (Phase 2 Q5).
+**Signals (E3):** AsyncFlow's own handler starts the engine's shutdown and cancels the awaited futures, so `CancelledError` reaches `__aexit__` (`ended_by` `engine_shutdown`). The script's `finally` waits for that same shutdown, stops telemetry and verifies; the checkpoint gets `RunEnded` (or, if the engine's shutdown stopped telemetry first, the report notes it) and `SessionEnded`, and the exit stays 1 with a traceback, as before. On the Concurrent backend the shutdown waits for the running thread task to finish (Phase 2 Q5).
 
 ### 6.4 The report
 
@@ -227,7 +253,10 @@ The same change applies to motif_2, motif_3 (both), motif_6 and dragon-mpi; only
 - exactly one checkpoint file exists for the session;
 - for each `wfminiapi` event type, emitted = seen by the subscriber = written;
 - every AsyncFlow event type the subscriber saw is in the file;
-- telemetry was not stopped before the block exited.
+- telemetry finished writing its queue (`SessionEnded` seen);
+- telemetry was not stopped by hand while the engine still ran.
+
+**Notes** are reported but do not make it incomplete, for example `RunEnded` lost because the engine's shutdown stopped telemetry before `MiniApp`'s exit.
 
 **Task counts** are reported, not judged:
 - `created`, `completed`, `failed`, `canceled`;
@@ -246,10 +275,11 @@ class MiniApp:
     """Thin coordinator over user-built components. Never constructs or hides flow, backend or telemetry."""
     def __init__(self, flow, telemetry, /, *, backends=None): ...
     async def __aenter__(self) -> "MiniApp": ...
-    async def __aexit__(self, et, ev, tb) -> bool: ...   # False; re-raises a cancel that arrived during the exit
+    async def __aexit__(self, et, ev, tb) -> bool: ...   # False; records ended_by, queues RunEnded, awaits nothing
+    def verify(self) -> "MiniAppReport": ...   # after flow.shutdown() and telemetry.stop(); never raises
     flow: "WorkflowEngine"
     telemetry: "MiniAppTelemetry"       # the telemetry capability (wraps the user's TelemetryManager)
-    report: "MiniAppReport | None"      # valid after the block
+    report: "MiniAppReport | None"      # set by verify()
 
 class MiniAppReport:                    # frozen dataclass
     session_id: str
@@ -258,7 +288,8 @@ class MiniAppReport:                    # frozen dataclass
     ended_by: str                       # normal | exception | cancelled | engine_shutdown
     tasks: "TaskCounts"                 # created, completed, failed, canceled, abandoned, not_submitted
     events: dict[str, int]              # wfminiapi events written, by type
-    reasons: tuple[str, ...]
+    reasons: tuple[str, ...]            # why telemetry is incomplete
+    notes: tuple[str, ...]              # worth knowing; do not make it incomplete
     exit_hint: int                      # property: 0 complete, 3 incomplete
 
 class AttachError(RuntimeError): ...
@@ -295,8 +326,8 @@ A subprocess test asserts that importing L1 loads no AsyncFlow, RHAPSODY, OpenTe
 
 | Check | What it compares | Pass condition |
 |---|---|---|
-| **E1, static** | Core segments, located by anchors, are byte-identical to the baseline manifest. The diff lies only inside allowed edge lines (`tests/equivalence/edge.toml`). | identical |
-| **E2, contract** | AST check: `run_miniapp` builds `flow` and `telemetry`, and `async with MiniApp(flow, telemetry), flow.workflow_scope(...)` encloses `await miniapp_workflow(...)` | present in every edge |
+| **E1, static** | Core segments, located by anchors, are byte-identical to the manifest. The diff lies only inside allowed edge lines (`tests/equivalence/edge.toml`). The manifest was built from the baseline; on 2026-11-20 it was rebuilt from a tree that still passed against it, with the core ending before its `await flow.shutdown()`, just before that line moved to the script (X2). | identical |
+| **E2, contract** | AST check: `run_miniapp` builds `flow`, `telemetry` and `app = MiniApp(flow, telemetry)`; `async with app, flow.workflow_scope(...)` encloses `await miniapp_workflow(...)`, directly in a `try` whose `finally` is `try: await flow.shutdown()` / `finally: await telemetry.stop(); app.verify()`; `miniapp_workflow` no longer shuts down | present in every edge |
 | **Dynamic, Concurrent** (CI) | The baseline and the integrated tree in determinism mode (one-worker Concurrent, reseeded `random`, OTel neutralised in the test shim). Compared: task calls and dependency edges, top-level kernel calls, files, exit code, failure point; DeepDriveSim as multisets. Telemetry facts asserted on the integrated run. | identical; complete report |
 | **Dynamic, Dragon** (Phase 3, single node) | The same comparison under the `dragon` launcher, as multisets | identical; complete report |
 | **GPU node** (Phase 3, `tools/validate_node.sh`, run by the owner) | Real mode on Dragon with a GPU, where the hard-coded GPU calls succeed | identical; complete report |
@@ -360,7 +391,7 @@ Recorded, not fixed:
 | R1 | The two private reads (`_checkpoint_path`, `_running`) change upstream | Drift tests, commit pins; removed by U-H |
 | R2 | A user attaches late, stops telemetry early, or passes another flow's telemetry | `AttachError`; `stopped_before_exit` in the report; CI contract check |
 | R3 | Dragon 0.15.0 behaves differently from the Concurrent determinism mode | Phase 3 Dragon validation before release |
-| R4 | DeepDriveSim's pending-task sweep, if left before the block exit, discards telemetry | The patch moves it; the equivalence check asserts a complete report |
+| R4 | DeepDriveSim's pending-task sweep, if left before `telemetry.stop()`, discards telemetry | The patch moves it after the script's `finally`; the equivalence check asserts a complete report |
 | R5 | On signals, the exit waits for running tasks (Concurrent `executor.shutdown(wait=True)`) | Documented; framework behaviour (UP-03) |
 
 ---

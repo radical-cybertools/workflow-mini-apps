@@ -28,8 +28,16 @@ async def run_miniapp(cfg):
     backend = await DragonExecutionBackend()
     flow = await WorkflowEngine.create(backend=backend)
     telemetry = await flow.start_telemetry(checkpoint_path="telemetry")
-    async with MiniApp(flow, telemetry), flow.workflow_scope("dragon_mpi"):
-        await miniapp_workflow(cfg, flow, logger)
+    app = MiniApp(flow, telemetry)
+    try:
+        async with app, flow.workflow_scope("dragon_mpi"):
+            await miniapp_workflow(cfg, flow, logger)
+    finally:
+        try:
+            await flow.shutdown()
+        finally:
+            await telemetry.stop()
+            app.verify()
 
 async def miniapp_workflow(cfg, flow, logger):
     
@@ -151,8 +159,6 @@ async def miniapp_workflow(cfg, flow, logger):
     stage2_t = stage2(stage1_t)
     stage3_t = stage3(stage1_t)
     stage4_t = await stage4(stage2_t, stage3_t)
-
-    await flow.shutdown()
 
 if __name__ == "__main__":
     ap = argparse.ArgumentParser(description="MPI with Dragon Mini-App")

@@ -32,7 +32,8 @@ print(wf.list_kernels())
 
 ## Attach a workflow to MiniApp
 
-Build the RADICAL components explicitly, then enter `MiniApp` around the workflow:
+Build the RADICAL components explicitly, enter `MiniApp` around the workflow, and shut
+the components down yourself in a nested `finally`:
 
 ```python
 from rhapsody.backends import ConcurrentExecutionBackend
@@ -42,14 +43,21 @@ from wfMiniAPI.api import MiniApp
 backend   = await ConcurrentExecutionBackend()
 flow      = await WorkflowEngine.create(backend=backend)
 telemetry = await flow.start_telemetry(checkpoint_path="telemetry")
-async with MiniApp(flow, telemetry) as app, flow.workflow_scope("my_workflow"):
-    ...                       # tasks, task graph, steering
-    await flow.shutdown()
+app = MiniApp(flow, telemetry)
+try:
+    async with app, flow.workflow_scope("my_workflow"):
+        ...                   # tasks, task graph, steering
+finally:
+    try:
+        await flow.shutdown()
+    finally:
+        await telemetry.stop()
+        app.verify()
 print(app.report.telemetry_complete)
 ```
 
 `MiniApp` records the run and verifies that AsyncFlow's task telemetry reached the
-checkpoint. It records nothing inside a task: in-task telemetry is yours. See
+checkpoint; it never shuts anything down. It records nothing inside a task: in-task telemetry is yours. See
 [MiniApp](api/miniapp.md).
 
 ## Plot a run

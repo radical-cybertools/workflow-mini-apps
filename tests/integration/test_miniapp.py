@@ -141,6 +141,8 @@ def test_attach_errors(scenario, needle, tmp_path, backend):
         pytest.skip("two telemetry managers on Dragon can hang at exit (upstream)")
     _, res = run(scenario, tmp_path, backend)
     assert res["attach_error"] and needle in res["attach_error"]
+    # the script's finally still verifies: the report says MiniApp did not attach
+    assert res["report"]["reasons"][0].startswith("not attached: AttachError")
 
 
 @pytest.mark.parametrize("scenario", ["outer_cancel", "ddsim_outer_cancel"])
@@ -153,28 +155,6 @@ def test_outer_cancel_is_not_a_signal(scenario, tmp_path, backend):
     assert res["report"]["telemetry_complete"], res["report"]["reasons"]
     if backend == "concurrent":
         assert res["elapsed"] < 20
-
-
-def test_cancel_during_exit_is_delivered_after_the_ordered_stop(tmp_path, backend):
-    # F2: the cancel lands while MiniApp's exit shuts the backend down
-    proc, res = run("cancel_in_exit", tmp_path, backend)
-    assert res["cancel_at"] >= res["exit_started"]
-    assert proc.returncode == 1 and res["raised"] == "CancelledError"
-    report = res["report"]
-    assert report["ended_by"] == "normal"
-    assert report["telemetry_complete"], report["reasons"]
-    assert res["backend_state"] == "SHUTDOWN"
-    events = checkpoint_events(tmp_path)
-    assert "wfminiapi.RunEnded" in events and "SessionEnded" in events
-
-
-def test_workflow_exception_wins_over_a_cancel_during_exit(tmp_path, backend):
-    proc, res = run("cancel_in_exit_after_error", tmp_path, backend)
-    assert res["cancel_at"] >= res["exit_started"]
-    assert proc.returncode == 1 and res["raised"] == "ValueError"
-    assert res["report"]["ended_by"] == "exception"
-    assert res["cancelling_after"] == 0  # the absorbed cancel was given back
-    assert res["backend_state"] == "SHUTDOWN"
 
 
 def test_a_kept_backend_stays_running(tmp_path, backend):
@@ -192,3 +172,49 @@ def test_miniapp_does_not_draw_from_global_random(tmp_path, backend):
     assert res["random_unchanged_by_enter"] and res["random_unchanged_by_exit"]
     if backend == "concurrent":  # the Dragon runtime itself draws from `random`
         assert "RANDOM_UNCHANGED True" in proc.stdout
+
+
+def test_a_core_that_still_shuts_down_is_complete(tmp_path, backend):
+    _, res = run("core_shuts_down", tmp_path, backend)
+    assert res["report"]["ended_by"] == "normal"
+    assert res["report"]["telemetry_complete"], res["report"]["reasons"]
+    assert res["report"]["events"]["wfminiapi.RunEnded"] == 1
+
+
+def test_telemetry_stopped_by_the_engine_shutdown_is_a_note(tmp_path, backend):
+    # what AsyncFlow #125's shutdown() will do: RunEnded cannot reach the checkpoint,
+    # but no task event is lost
+    _, res = run("engine_stopped_telemetry", tmp_path, backend)
+    report = res["report"]
+    assert report["telemetry_complete"], report["reasons"]
+    assert "engine shutdown stopped telemetry" in report["notes"][0]
+    assert "wfminiapi.RunEnded" not in report["events"]
+
+
+def test_a_stop_by_hand_before_the_shutdown_is_incomplete(tmp_path, backend):
+    _, res = run("hand_stop_then_shutdown", tmp_path, backend)
+    assert not res["report"]["telemetry_complete"]
+    assert res["report"]["reasons"][0].startswith("stopped_before_exit")
+
+
+def test_verify_too_early_reports_and_does_not_raise(tmp_path, backend):
+    proc, res = run("verify_too_early", tmp_path, backend)
+    assert proc.returncode == 0
+    assert res["early_report"]["reasons"] == [
+        "telemetry still running: call verify() after flow.shutdown() and telemetry.stop()"
+    ]
+    assert res["report"]["telemetry_complete"], res["report"]["reasons"]
+
+
+def test_a_failed_shutdown_still_stops_telemetry_and_writes_the_report(tmp_path, backend):
+    # the nested finally: stop() and verify() run although flow.shutdown() raised
+    proc, res = run("shutdown_fails", tmp_path, backend)
+    assert proc.returncode == 1 and res["raised"] == "RuntimeError"
+    assert res["report"]["telemetry_complete"], res["report"]["reasons"]
+    assert "SessionEnded" in checkpoint_events(tmp_path)
+
+
+def test_a_script_that_skips_verify_is_warned_at_exit(tmp_path, backend):
+    proc, res = run("no_verify", tmp_path, backend)
+    assert proc.returncode == 0 and res["report"] is None
+    assert "verify() was never called" in proc.stderr

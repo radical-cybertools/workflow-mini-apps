@@ -100,7 +100,7 @@ def pair(pairs: list[tuple[str, str]], keep: bool) -> int:
         if base["exit_code"] == "timeout" and summary["exit_code"] != "timeout":
             # Known difference: after a task failure the baseline core never reaches its
             # own flow.shutdown(), and on Dragon nothing else shuts the backend down, so
-            # the process never exits.  MiniApp's exit shuts the engine down.
+            # the process never exits.  The integrated script shuts it down in a finally.
             note += "; baseline hangs after the failure, integrated exits"
             base = {**base, "exit_code": summary["exit_code"]}
         diff = compare.first_difference(base, summary)
