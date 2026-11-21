@@ -1,0 +1,6 @@
+python: Python 3.12.3
+workflow-mini-apps: 55cd20f (+ KR-01 guard, uncommitted)
+radical.asyncflow: d97585e
+rhapsody: 142f396
+DeepDriveSim baseline: 0c4f0c2 (git archive)
+host: Linux 7.0.0-28-generic x86_64, 64 cores

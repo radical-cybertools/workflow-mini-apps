@@ -1,0 +1,414 @@
+{
+ "calls": [
+  {
+   "args": [],
+   "call": "simulate#0",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  },
+  {
+   "args": [
+    {
+     "future_of": "simulate#0"
+    }
+   ],
+   "call": "train#1",
+   "comp": "function",
+   "kwargs": {},
+   "name": "train"
+  },
+  {
+   "args": [],
+   "call": "simulate#2",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  },
+  {
+   "args": [
+    {
+     "future_of": "simulate#2"
+    }
+   ],
+   "call": "train#3",
+   "comp": "function",
+   "kwargs": {},
+   "name": "train"
+  },
+  {
+   "args": [],
+   "call": "simulate#4",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulate"
+  },
+  {
+   "args": [
+    {
+     "future_of": "simulate#4"
+    }
+   ],
+   "call": "train#5",
+   "comp": "function",
+   "kwargs": {},
+   "name": "train"
+  }
+ ],
+ "error_tail": null,
+ "executions": [
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulate",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 512
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    }
+   ],
+   "name": "train",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulate",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 512
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    }
+   ],
+   "name": "train",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulate",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 512
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    }
+   ],
+   "name": "train",
+   "outcome": "ok"
+  }
+ ],
+ "exit_code": 0,
+ "files": [],
+ "manager_kernels": [],
+ "mode": "dry",
+ "workflow": "motif_3_simple"
+}

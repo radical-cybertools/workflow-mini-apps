@@ -1,7 +1,0 @@
-numpy
-h5py
-mpi4py
-radical-pilot
-radical-asyncflow
-dragonhpc
-rhapsody-py[all]

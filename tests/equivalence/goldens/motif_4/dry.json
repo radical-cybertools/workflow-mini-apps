@@ -1,0 +1,5562 @@
+{
+ "calls": [
+  {
+   "args": [],
+   "call": "experiment#0",
+   "comp": "function",
+   "kwargs": {},
+   "name": "experiment"
+  },
+  {
+   "args": [
+    0,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#1",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    1,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#2",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    2,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#3",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    3,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#4",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    4,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#5",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    5,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#6",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    6,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#7",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    7,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#8",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    8,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#9",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    9,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#10",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    10,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#11",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    11,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#12",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    12,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#13",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    13,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#14",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    14,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#15",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    15,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#16",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    16,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#17",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    17,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#18",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    18,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#19",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    19,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#20",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    20,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#21",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    21,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#22",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    22,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#23",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    23,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#24",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    24,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#25",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    25,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#26",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    26,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#27",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    27,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#28",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    28,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#29",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    29,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#30",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    30,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#31",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    31,
+    {
+     "future_of": "experiment#0"
+    }
+   ],
+   "call": "simulation#32",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [],
+   "call": "training#33",
+   "comp": "function",
+   "kwargs": {},
+   "name": "training"
+  },
+  {
+   "args": [
+    {
+     "future_of": "training#33"
+    }
+   ],
+   "call": "inference#34",
+   "comp": "function",
+   "kwargs": {},
+   "name": "inference"
+  },
+  {
+   "args": [],
+   "call": "experiment#35",
+   "comp": "function",
+   "kwargs": {},
+   "name": "experiment"
+  },
+  {
+   "args": [
+    0,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#36",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    1,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#37",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    2,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#38",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    3,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#39",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    4,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#40",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    5,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#41",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    6,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#42",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    7,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#43",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    8,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#44",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    9,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#45",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    10,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#46",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    11,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#47",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    12,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#48",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    13,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#49",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    14,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#50",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    15,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#51",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    16,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#52",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    17,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#53",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    18,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#54",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    19,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#55",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    20,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#56",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    21,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#57",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    22,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#58",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    23,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#59",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    24,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#60",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    25,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#61",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    26,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#62",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    27,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#63",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    28,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#64",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    29,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#65",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    30,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#66",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    31,
+    {
+     "future_of": "experiment#35"
+    }
+   ],
+   "call": "simulation#67",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [],
+   "call": "training#68",
+   "comp": "function",
+   "kwargs": {},
+   "name": "training"
+  },
+  {
+   "args": [
+    {
+     "future_of": "training#68"
+    }
+   ],
+   "call": "inference#69",
+   "comp": "function",
+   "kwargs": {},
+   "name": "inference"
+  },
+  {
+   "args": [],
+   "call": "experiment#70",
+   "comp": "function",
+   "kwargs": {},
+   "name": "experiment"
+  },
+  {
+   "args": [
+    0,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#71",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    1,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#72",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    2,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#73",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    3,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#74",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    4,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#75",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    5,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#76",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    6,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#77",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    7,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#78",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    8,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#79",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    9,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#80",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    10,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#81",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    11,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#82",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    12,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#83",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    13,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#84",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    14,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#85",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    15,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#86",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    16,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#87",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    17,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#88",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    18,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#89",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    19,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#90",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    20,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#91",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    21,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#92",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    22,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#93",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    23,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#94",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    24,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#95",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    25,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#96",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    26,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#97",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    27,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#98",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    28,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#99",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    29,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#100",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    30,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#101",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [
+    31,
+    {
+     "future_of": "experiment#70"
+    }
+   ],
+   "call": "simulation#102",
+   "comp": "function",
+   "kwargs": {},
+   "name": "simulation"
+  },
+  {
+   "args": [],
+   "call": "training#103",
+   "comp": "function",
+   "kwargs": {},
+   "name": "training"
+  },
+  {
+   "args": [
+    {
+     "future_of": "training#103"
+    }
+   ],
+   "call": "inference#104",
+   "comp": "function",
+   "kwargs": {},
+   "name": "inference"
+  }
+ ],
+ "error_tail": null,
+ "executions": [
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    }
+   ],
+   "name": "experiment",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 512
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "training",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    }
+   ],
+   "name": "inference",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    }
+   ],
+   "name": "experiment",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 512
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "training",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    }
+   ],
+   "name": "inference",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    }
+   ],
+   "name": "experiment",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "simulation",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 512
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    }
+   ],
+   "name": "training",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "gpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "name": "dataCopyH2D",
+     "outcome": "dry"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "writeNonMPI",
+     "outcome": "dry"
+    }
+   ],
+   "name": "inference",
+   "outcome": "ok"
+  }
+ ],
+ "exit_code": 0,
+ "files": [],
+ "manager_kernels": [],
+ "mode": "dry",
+ "workflow": "motif_4"
+}
