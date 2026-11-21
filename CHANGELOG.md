@@ -2,6 +2,24 @@
 
 ## 0.2.0 (unreleased)
 
+### Runs of many engines and components
+
+- **`app.part(name)`** hands another engine of the run a picklable `PartRef`; that
+  engine's own `MiniApp(flow, telemetry, part_of=ref)`, in any process, reports into
+  the run. The run's `verify()` requires a complete report from every part it handed out.
+- **`app.component(name, files, verify=...)`** registers a component's files and a
+  verifier returning a `ComponentReport`; **`app.check(name, verify=... | ok=...)`**
+  registers a check across the run (a `Run`); **`app.parameters(...)`** records the
+  run's configuration (`wfminiapi.Parameters` and the report).
+- **The report** gains `run_id`, `part`, `parameters`, `completed_by_executable`,
+  `parts`, `components`, `checks` and `checks_pass`. `exit_hint` is `4` when telemetry is
+  complete but a check failed (`3` still means incomplete telemetry).
+- **`wfminiapi.RunStarted`** gains `run_id` and `part`.
+- **`python -m wfMiniAPI.verify <dir> [--session <id>]`** verifies a run again offline
+  from its manifest (`<session>.wfminiapi.manifest.json`, written only for runs that use
+  the above; its paths are relative to it, so a run directory can be moved).
+- A run of one engine that uses none of this sees no change.
+
 ### Design B: the script owns the shutdown; MiniApp records and verifies
 
 - **Breaking: new script shape.** The script that builds the engine and telemetry now
