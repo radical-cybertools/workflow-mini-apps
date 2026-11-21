@@ -15,8 +15,9 @@
   `parts`, `components`, `checks` and `checks_pass`. `exit_hint` is `4` when telemetry is
   complete but a check failed (`3` still means incomplete telemetry).
 - **`wfminiapi.RunStarted`** gains `run_id` and `part`.
-- **`python -m wfMiniAPI.verify <dir>`** verifies a run again offline from its manifest
-  (`<session>.wfminiapi.manifest.json`, written only for runs that use the above).
+- **`python -m wfMiniAPI.verify <dir> [--session <id>]`** verifies a run again offline
+  from its manifest (`<session>.wfminiapi.manifest.json`, written only for runs that use
+  the above; its paths are relative to it, so a run directory can be moved).
 - A run of one engine that uses none of this sees no change.
 
 ### Design B: the script owns the shutdown; MiniApp records and verifies

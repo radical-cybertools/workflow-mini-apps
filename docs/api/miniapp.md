@@ -127,22 +127,29 @@ app = MiniApp(flow, telemetry, part_of=ref)  # same script shape and nested fina
 ```
 
 - **Parts.** Each part's `verify()` writes its report into the run's parts directory
-  (`<checkpoint>/<run_id>.parts/<name>.json`). The run's `verify()` requires one complete
-  report from every part it handed out: a part that never reported, reported incomplete
-  telemetry, or belongs to another run makes the run's telemetry incomplete
-  (`part <name>: …`). The run's report lists each part's report under `parts`.
+  (`<checkpoint>/<run_id>.parts/<name>.<session>.json`, an absolute path taken when the
+  run's `MiniApp` attached). The run's `verify()` requires exactly one complete report
+  from every part it handed out: a part that never reported, reported incomplete
+  telemetry, was reported by two engines, or belongs to another run makes the run's
+  telemetry incomplete (`part <name>: …`). Give each engine its own part; part names use
+  letters, digits, `_` and `-`. The run's report lists each part's report under `parts`,
+  and a part whose own checks failed adds a failed check `part <name>` to the run's.
 - **Components.** A verifier takes the component's files and returns a
   `ComponentReport` (or a bool). An incomplete component makes the run's telemetry
   incomplete (`component <name>: …`); its `counts` are there for checks.
 - **Checks.** A check takes a `Run` (parameters, parts, components, the run's own
   report) and returns a bool or `(bool, detail)`; `app.check(name, ok=..., detail=...)`
   records a result computed in the run. Failed checks set `checks_pass` to `False` and
-  `exit_hint` to `4`: they never make telemetry incomplete.
-- **Offline.** The run's `verify()` also writes `<session>.wfminiapi.manifest.json`.
+  `exit_hint` to `4`: they never make telemetry incomplete. Details, counts and
+  parameters are written as plain JSON: keys become strings, sets and tuples lists,
+  anything else its `str()`.
+- **Offline.** The run's `verify()` also writes `<session>.wfminiapi.manifest.json`, with
+  paths relative to its directory, so the run directory can be moved.
   `python -m wfMiniAPI.verify <checkpoint dir>` verifies the run again from its files;
   verifiers and checks named as `"module:function"` run again, the others keep the
-  verdict recorded in the run. A run of one engine with none of the above writes no
-  manifest and sees no change.
+  verdict recorded in the run. When the directory holds several runs, pass
+  `--session <run engine's session id>`. A run of one engine with none of the above
+  writes no manifest and sees no change.
 
 ## What the telemetry covers
 

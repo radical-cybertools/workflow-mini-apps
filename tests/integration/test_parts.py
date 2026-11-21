@@ -5,6 +5,7 @@ Each scenario runs in its own process (``parts_scenarios.py``).
 
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -32,16 +33,17 @@ def events(directory, event_type):
     return [r for r in records if r.get("event_type") == event_type]
 
 
-def offline(tmp_path):
+def offline(tmp_path, cwd=None, *args):
     env = dict(
         os.environ, PYTHONPATH=os.pathsep.join([str(HERE), os.environ.get("PYTHONPATH", "")])
     )
     return subprocess.run(
-        [sys.executable, "-m", "wfMiniAPI.verify", str(tmp_path / "launcher")],
+        [sys.executable, "-m", "wfMiniAPI.verify", str(tmp_path / "launcher"), *args],
         capture_output=True,
         text=True,
         env=env,
         timeout=120,
+        cwd=cwd,
     )
 
 
@@ -105,7 +107,45 @@ def test_the_run_verifies_again_offline(tmp_path):
     assert set(again["parts"]) == {"p0", "p1", "p2"}
     assert again["checks_pass"] and again["components"]["results"]["complete"]
 
-    (tmp_path / "launcher" / f"{res['run_id']}.parts" / "p1.json").unlink()
+    for f in (tmp_path / "launcher" / f"{res['run_id']}.parts").glob("p1.*.json"):
+        f.unlink()
     out = offline(tmp_path)
     assert out.returncode == 3
     assert any(r.startswith("part p1:") for r in json.loads(out.stdout)["reasons"])
+
+
+def test_relative_checkpoint_paths_verify_from_anywhere_and_after_a_move(tmp_path):
+    work = tmp_path / "run"
+    work.mkdir()
+    proc, res = run("relative", work)  # the scenario's working directory is `work`
+    assert res["report"]["exit_hint"] == 0, res["report"]["reasons"]
+    out = offline(work, cwd="/")  # another working directory
+    assert out.returncode == 0, out.stdout[-2000:] + out.stderr[-2000:]
+    moved = tmp_path / "moved"
+    shutil.copytree(work, moved)
+    shutil.rmtree(work)
+    out = offline(moved, cwd="/")
+    assert out.returncode == 0, out.stdout[-2000:] + out.stderr[-2000:]
+    assert set(json.loads(out.stdout)["parts"]) == {"p0", "p1", "p2"}
+
+
+def test_details_and_counts_that_are_not_json_do_not_break_verify(tmp_path):
+    proc, res = run("odd_details", tmp_path)
+    assert proc.returncode == 0, proc.stderr[-2000:]
+    report = res["report"]
+    assert report["exit_hint"] == 0, report["reasons"]
+    odd = next(c for c in report["checks"] if c["name"] == "odd")
+    assert odd["detail"]["('p0', 1)"] == 3
+    assert report["components"]["odd"]["counts"]["('rank', 0)"] == 1
+    (written,) = (tmp_path / "launcher").glob("*.wfminiapi.report.json")
+    assert json.loads(written.read_text())["exit_hint"] == 0
+
+
+def test_two_runs_in_one_checkpoint_directory_verify_by_session(tmp_path):
+    _, first = run("parts_ok", tmp_path)
+    _, second = run("parts_ok", tmp_path)
+    out = offline(tmp_path)
+    assert out.returncode == 3 and first["run_id"] in out.stdout  # which run? it says
+    for res in (first, second):
+        out = offline(tmp_path, None, "--session", res["run_id"])
+        assert out.returncode == 0, out.stdout[-2000:] + out.stderr[-2000:]

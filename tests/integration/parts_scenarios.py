@@ -12,6 +12,7 @@ import asyncio
 import json
 import multiprocessing
 import sys
+import threading
 from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 
@@ -25,7 +26,9 @@ from wfMiniAPI.api import MiniApp
 async def main(scenario: str, workdir: Path) -> dict:
     backend = await ConcurrentExecutionBackend()
     flow = await WorkflowEngine.create(backend=backend)
-    telemetry = await flow.start_telemetry(checkpoint_path=str(workdir / "launcher"))
+    # "relative": checkpoint paths relative to the working directory, as the docs show
+    base = Path(".") if scenario == "relative" else workdir
+    telemetry = await flow.start_telemetry(checkpoint_path=str(base / "launcher"))
     app = MiniApp(flow, telemetry)
     try:
         async with app, flow.workflow_scope("parts"):
@@ -33,7 +36,7 @@ async def main(scenario: str, workdir: Path) -> dict:
             refs = [app.part(f"p{i}") for i in range(3)]
             ran = refs[:2] if scenario == "part_missing" else refs
             for ref in ran[:2]:
-                await run_part(ref, str(workdir / "parts" / ref.name))
+                await run_part(ref, str(base / "parts" / ref.name))
             if len(ran) == 3:
                 ctx = multiprocessing.get_context("spawn")
                 with ProcessPoolExecutor(1, mp_context=ctx) as pool:
@@ -41,13 +44,16 @@ async def main(scenario: str, workdir: Path) -> dict:
                         pool, run_part_in_process, ran[2], str(workdir / "parts" / "p2")
                     )
             results = workdir / "results"
-            results.mkdir()
+            results.mkdir(exist_ok=True)
             (results / "results.json").write_text(json.dumps(list(range(3 * SIMS_PER_PART))))
             app.component("results", results, verify="parts_helpers:verify_results")
             app.check("sims_match_results", verify="parts_helpers:sims_match_results")
             if scenario == "check_fails":
                 app.check("always_fails", verify=always_fails)
                 app.check("static", ok=True, detail="computed in the run")
+            if scenario == "odd_details":  # details and counts that are not plain JSON
+                app.check("odd", ok=True, detail={("p0", 1): 3, "lock": threading.Lock()})
+                app.component("odd", results, verify="parts_helpers:verify_odd_counts")
     finally:
         try:
             await flow.shutdown()

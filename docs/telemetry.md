@@ -146,7 +146,7 @@ gap. The common reasons are:
 | `telemetry did not finish writing its queue …` | `stop()` stalled or was interrupted | Check for a blocked event loop or a second Ctrl-C |
 | `not attached: …` | `MiniApp` refused the telemetry (`AttachError`) | Follow the error message: pass the manager the latest `flow.start_telemetry()` returned, right after creating it |
 | `<event>: emitted N, written M` | events were lost on the way to the file | Report it: this is a bug |
-| `part <name>: …` | a part handed out with `app.part()` left no report, an incomplete one, or one of another run | Check that engine: it must build its `MiniApp` with `part_of=` and call `app.verify()` |
+| `part <name>: …` | a part handed out with `app.part()` left no report, an incomplete one, two (two engines given one part), or one of another run | Check that engine: it must build its `MiniApp` with `part_of=` and call `app.verify()` |
 | `component <name>: …` | the component's verifier found its records incomplete, or raised | Follow the verifier's reason |
 
 ## Settings

@@ -59,3 +59,7 @@ def sims_match_results(run):
 
 def always_fails(run):
     return False, "on purpose"
+
+
+def verify_odd_counts(files) -> ComponentReport:
+    return ComponentReport(True, counts={("rank", 0): 1, "steps": {3, 4}})
