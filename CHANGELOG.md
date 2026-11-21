@@ -1,6 +1,8 @@
 # Changelog
 
-## 0.2.0 (unreleased)
+## 0.2.0 (2026-11-21)
+
+The previous `main` is tagged `v0.1.0` (`55cd20f`).
 
 ### Design B: the script owns the shutdown; MiniApp records and verifies
 
@@ -43,9 +45,8 @@
 ### Hardening: the exit and attach fixes of the SOE review (F1, F2, F3, F9, F10)
 
 - **`MiniApp`'s exit joins AsyncFlow's shutdown.** It is now one `await flow.shutdown()`,
-  relying on AsyncFlow's joinable `shutdown()` (radical.asyncflow `fix/joinable-shutdown`,
-  pinned by commit until merged): a shutdown the workflow, a signal or an engine error
-  already started is waited for, not repeated. No more polling of backend states.
+  relying on AsyncFlow's joinable `shutdown()` (radical.asyncflow #139): a shutdown the
+  workflow, a signal or an engine error already started is waited for, not repeated. No more polling of backend states.
   - **F1:** a cancel from outside (`asyncio.timeout`, a `TaskGroup`, a supervisor) no
     longer waits 60 s for a signal shutdown that never started, and is no longer
     reported as a signal.
@@ -67,8 +68,8 @@
   AsyncFlow without the joinable shutdown is refused with an install hint.
 - **Python ≥ 3.12** (was 3.11): the exit runs in the caller's Context
   (`Task.get_context()`), which RHAPSODY's OTel context detach needs.
-- **Pins:** AsyncFlow `fix/joinable-shutdown` (on v0.7.0); RHAPSODY `142f396` (in
-  v0.7.0). Both projects now tag releases.
+- **Pins:** AsyncFlow `3f18cc8` (`main`, the merge of #139, after v0.7.0); RHAPSODY
+  `142f396` (in v0.7.0). Both projects now tag releases.
 
 ### Phase 3: real backends, packaging, release
 
