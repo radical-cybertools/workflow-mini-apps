@@ -37,11 +37,23 @@ class MiniAppReport:
     events: dict[str, int] = field(default_factory=dict)  # wfminiapi events written, by type
     reasons: tuple[str, ...] = ()  # why telemetry is incomplete
     notes: tuple[str, ...] = ()  # worth knowing, but telemetry is still complete
+    # a run of many engines and components (see run.py); empty for a run of one engine
+    run_id: str = ""  # the run's engine session id
+    part: str = ""  # which part of the run this engine is; "" for the run's engine
+    parameters: dict = field(default_factory=dict)  # the run's configuration
+    completed_by_executable: dict[str, int] = field(default_factory=dict)
+    parts: dict = field(default_factory=dict)  # part name -> its engine's report
+    components: dict = field(default_factory=dict)  # component name -> its verifier's verdict
+    checks: tuple = ()  # each {name, ok, detail, verify}
+    checks_pass: bool = True  # the results' validity, apart from telemetry completeness
 
     @property
     def exit_hint(self) -> int:
-        """0 if telemetry is complete, 3 if not. wfMiniAPI never exits by itself."""
-        return 0 if self.telemetry_complete else 3
+        """0 if telemetry is complete and the checks pass, 3 if telemetry is incomplete,
+        4 if it is complete but a check failed. wfMiniAPI never exits by itself."""
+        if not self.telemetry_complete:
+            return 3
+        return 0 if self.checks_pass else 4
 
     def to_dict(self) -> dict:
         return {**asdict(self), "exit_hint": self.exit_hint}
@@ -95,7 +107,7 @@ def verify_checkpoint(
         )
 
     written: Counter[str] = Counter()
-    created, submitted, terminal = set(), set(), {}
+    created, submitted, terminal, executable = set(), set(), {}, {}
     for rec in _events(path):
         etype, uid = rec.get("event_type", ""), rec.get("task_id")
         written[etype] += 1
@@ -103,12 +115,14 @@ def verify_checkpoint(
             continue
         if etype == "TaskCreated":
             created.add(uid)
+            executable[uid] = (rec.get("attributes") or {}).get("executable") or "?"
         elif etype == "TaskSubmitted":
             submitted.add(uid)
         elif etype in _TERMINAL:
             terminal.setdefault(uid, etype)  # first terminal state wins
 
     ended = Counter(terminal[u] for u in created if u in terminal)
+    by_executable = Counter(executable[u] for u in created if terminal.get(u) == "TaskCompleted")
     open_tasks = created - terminal.keys()
     tasks = TaskCounts(
         created=len(created),
@@ -136,4 +150,5 @@ def verify_checkpoint(
         events=dict(sorted(ours.items())),
         reasons=tuple(reasons),
         notes=tuple(notes),
+        completed_by_executable=dict(sorted(by_executable.items())),
     )

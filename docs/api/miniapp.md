@@ -96,7 +96,53 @@ orphaned `_dragon_native_python_process_main` processes.
 | `ended_by` | how the block ended: `normal`; `exception` (any exception other than a cancel); `cancelled` (cancelled from outside: `asyncio.timeout`, a `TaskGroup`, `asyncio.run`, a supervisor); `engine_shutdown` (the engine was shut down under the block: a signal, an engine error, or a `flow.shutdown()` call that cancelled what the workflow awaited). A workflow that catches the cancel and returns ends `normal`, even after a signal. |
 | `reasons` | why telemetry is incomplete |
 | `notes` | facts worth knowing that do not make it incomplete, e.g. "RunEnded not in the checkpoint: the engine shutdown stopped telemetry before MiniApp's exit" (Ctrl-C with an AsyncFlow whose `shutdown()` stops telemetry) |
-| `exit_hint` | `0` if complete, `3` if not. wfMiniAPI never exits by itself; a script may do `sys.exit(app.report.exit_hint)`. |
+| `run_id`, `part`, `parameters`, `completed_by_executable` | the run this engine belongs to, its part name, the run's configuration, completed tasks by function name |
+| `parts`, `components`, `checks`, `checks_pass` | a run of many engines and components: see below |
+| `exit_hint` | `0` if complete and every check passes, `3` if telemetry is incomplete, `4` if it is complete but a check failed. wfMiniAPI never exits by itself; a script may do `sys.exit(app.report.exit_hint)`. |
+
+## A run of many engines and components
+
+A run can use more than one engine (an engine per population of agents, for example),
+each in its own process, and components besides the engines that record their own
+telemetry (an agent library's OpenTelemetry export, the application's results). The
+run's `MiniApp` assembles them:
+
+```python
+app = MiniApp(flow, telemetry)               # the run's engine, as above
+try:
+    async with app, flow.workflow_scope("campaign"):
+        app.parameters(cfg)                   # the run's configuration
+        ref = app.part("p0")                  # picklable: pass it to any process
+        await run_population(ref, ...)        # builds its engine and its own MiniApp
+        app.component("agents", run_dir / "otel", verify="mylib.telemetry:verify_export")
+        app.check("simulations_match", verify="myapp.checks:simulations_match")
+finally:
+    ...                                       # the same nested finally
+```
+
+and, in each part, whatever process it runs in:
+
+```python
+app = MiniApp(flow, telemetry, part_of=ref)  # same script shape and nested finally
+```
+
+- **Parts.** Each part's `verify()` writes its report into the run's parts directory
+  (`<checkpoint>/<run_id>.parts/<name>.json`). The run's `verify()` requires one complete
+  report from every part it handed out: a part that never reported, reported incomplete
+  telemetry, or belongs to another run makes the run's telemetry incomplete
+  (`part <name>: …`). The run's report lists each part's report under `parts`.
+- **Components.** A verifier takes the component's files and returns a
+  `ComponentReport` (or a bool). An incomplete component makes the run's telemetry
+  incomplete (`component <name>: …`); its `counts` are there for checks.
+- **Checks.** A check takes a `Run` (parameters, parts, components, the run's own
+  report) and returns a bool or `(bool, detail)`; `app.check(name, ok=..., detail=...)`
+  records a result computed in the run. Failed checks set `checks_pass` to `False` and
+  `exit_hint` to `4`: they never make telemetry incomplete.
+- **Offline.** The run's `verify()` also writes `<session>.wfminiapi.manifest.json`.
+  `python -m wfMiniAPI.verify <checkpoint dir>` verifies the run again from its files;
+  verifiers and checks named as `"module:function"` run again, the others keep the
+  verdict recorded in the run. A run of one engine with none of the above writes no
+  manifest and sees no change.
 
 ## What the telemetry covers
 
@@ -123,5 +169,13 @@ It never starts a Dragon runtime.
 ::: wfMiniAPI.telemetry.verify.MiniAppReport
 
 ::: wfMiniAPI.telemetry.verify.verify_checkpoint
+
+::: wfMiniAPI.telemetry.run.PartRef
+
+::: wfMiniAPI.telemetry.run.ComponentReport
+
+::: wfMiniAPI.telemetry.run.Run
+
+::: wfMiniAPI.telemetry.run.verify_run
 
 ::: wfMiniAPI.api.preflight.require_dragon

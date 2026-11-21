@@ -65,7 +65,8 @@ Events are the timeline of the run. Every event has:
 | Event | When | Extra fields |
 |---|---|---|
 | `SessionStarted` | telemetry starts | – |
-| `wfminiapi.RunStarted` | the `async with app` block is entered | `wfminiapi_version`, `asyncflow_version`, `rhapsody_version` (with the git commit when known), `backends` |
+| `wfminiapi.RunStarted` | the `async with app` block is entered | `wfminiapi_version`, `asyncflow_version`, `rhapsody_version` (with the git commit when known), `backends`, `run_id` (the run engine's session id), `part` (this engine's part name in a run of many engines, else empty) |
+| `wfminiapi.Parameters` | `app.parameters(...)` is called, or the block is entered after it | `parameters`: the run's configuration, as JSON |
 | `TaskCreated` | a task or block is called | attributes: `executable` (the function's name), `task_type`, `depends_on`, `asyncflow.workflow_id` (the scope name) |
 | `asyncflow.TaskResolved` | all its dependencies have finished | same attributes |
 | `TaskQueued` | it is ready to be handed to the backend | same attributes |
@@ -129,7 +130,11 @@ and `parent_span_id`. A task span's attributes are `task_id`, `executable`,
 | `events` | MiniApp's own events in the file, by type |
 | `reasons` | why the record is incomplete, if it is |
 | `notes` | things worth knowing that do not make it incomplete |
-| `exit_hint` | `0` if complete, `3` if not; use `sys.exit(app.report.exit_hint)` if you want the exit code to reflect it |
+| `run_id`, `part` | the run this engine belongs to, and its part name (empty for the run's own engine) |
+| `parameters` | the run's configuration, from `app.parameters(...)` |
+| `completed_by_executable` | completed tasks, by function name |
+| `parts`, `components`, `checks`, `checks_pass` | for a run of many engines and components: see [MiniApp](api/miniapp.md#a-run-of-many-engines-and-components) |
+| `exit_hint` | `0` if complete and every check passes, `3` if telemetry is incomplete, `4` if it is complete but a check failed; use `sys.exit(app.report.exit_hint)` if you want the exit code to reflect it |
 
 An incomplete report does not mean the workflow failed: it means the *record* has a
 gap. The common reasons are:
@@ -141,6 +146,8 @@ gap. The common reasons are:
 | `telemetry did not finish writing its queue …` | `stop()` stalled or was interrupted | Check for a blocked event loop or a second Ctrl-C |
 | `not attached: …` | `MiniApp` refused the telemetry (`AttachError`) | Follow the error message: pass the manager the latest `flow.start_telemetry()` returned, right after creating it |
 | `<event>: emitted N, written M` | events were lost on the way to the file | Report it: this is a bug |
+| `part <name>: …` | a part handed out with `app.part()` left no report, an incomplete one, or one of another run | Check that engine: it must build its `MiniApp` with `part_of=` and call `app.verify()` |
+| `component <name>: …` | the component's verifier found its records incomplete, or raised | Follow the verifier's reason |
 
 ## Settings
 

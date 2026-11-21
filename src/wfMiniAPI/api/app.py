@@ -19,6 +19,12 @@ replaces or shuts them down: the script that created the engine and telemetry sh
 them down, and the nested ``finally`` stops telemetry and verifies even when the
 engine's shutdown fails.  MiniApp records the run and verifies its telemetry
 (``app.verify()``, ``app.report``).
+
+A run of many engines and components (``wfMiniAPI.telemetry.run``): the run's MiniApp
+hands each other engine a ``PartRef`` (``app.part(name)``), and that engine's own
+``MiniApp(flow, telemetry, part_of=ref)`` reports into the run, from any process.
+Components register their files and a verifier (``app.component``), checks across them
+read the whole run (``app.check``), and ``app.parameters`` records the configuration.
 """
 
 from __future__ import annotations
@@ -30,9 +36,10 @@ import logging
 import sys
 
 from ..telemetry.capability import AttachError, MiniAppTelemetry
+from ..telemetry.run import ComponentReport, PartRef, Run
 from ..telemetry.verify import MiniAppReport
 
-__all__ = ["AttachError", "MiniApp", "MiniAppReport"]
+__all__ = ["AttachError", "ComponentReport", "MiniApp", "MiniAppReport", "PartRef", "Run"]
 
 log = logging.getLogger("wfMiniAPI.telemetry")
 
@@ -78,10 +85,10 @@ class MiniApp:
     checkpoint and sets ``report``.
     """
 
-    def __init__(self, flow, telemetry, /, *, backends=None):
+    def __init__(self, flow, telemetry, /, *, backends=None, part_of: PartRef | None = None):
         self.flow = flow
         self.backends = list(backends) if backends is not None else [flow.backend]
-        self.telemetry = MiniAppTelemetry(flow, telemetry)
+        self.telemetry = MiniAppTelemetry(flow, telemetry, part_of=part_of)
         # one stored object (atexit.unregister compares by equality) holding only a
         # string, so nothing of the run is kept alive until interpreter exit
         session = getattr(telemetry, "session_id", None) or getattr(flow, "uid", "")
@@ -111,6 +118,41 @@ class MiniApp:
         except Exception as err:
             self.telemetry.reasons.append(f"run-end event failed: {type(err).__name__}: {err}")
         return False
+
+    # ------------------------------------------------------------------ a run of many parts
+    def part(self, name: str) -> PartRef:
+        """Hand another engine of this run a reference to report into it.
+
+        Pass the reference to that engine's ``MiniApp(flow, telemetry, part_of=ref)``, in
+        this process or another.  This run's ``verify()`` then requires that part's report:
+        a part handed out that never reports makes the run's telemetry incomplete.  Call it
+        inside ``async with app``.
+        """
+        return self.telemetry.add_part(name)
+
+    def component(self, name: str, files, *, verify) -> None:
+        """Register a component's files and its verifier.
+
+        ``verify`` is ``"module:function"`` or a callable taking the files' path and
+        returning a ``ComponentReport`` or a bool.  It runs in ``verify()``; named by
+        import path, it also runs when the run is verified again offline.
+        """
+        self.telemetry.add_component(name, files, verify)
+
+    def check(self, name: str, *, verify=None, ok: bool | None = None, detail=None) -> None:
+        """Register a check on the run's results.
+
+        Either ``verify``, ``"module:function"`` or a callable taking a ``Run`` and
+        returning a bool or ``(bool, detail)``, run in ``verify()`` after the parts and
+        components; or ``ok`` (and ``detail``), a result computed in the run.  Failed
+        checks set ``report.checks_pass`` to False; they never make telemetry incomplete.
+        """
+        self.telemetry.add_check(name, verify, ok, detail)
+
+    def parameters(self, values) -> None:
+        """Record the run's configuration: in the checkpoint (a ``wfminiapi.Parameters``
+        event, if telemetry runs) and in the report."""
+        self.telemetry.set_parameters(values)
 
     def verify(self) -> MiniAppReport:
         """Verify the telemetry checkpoint and set ``report``; never raises.
