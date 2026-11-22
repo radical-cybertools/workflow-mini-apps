@@ -26,13 +26,12 @@ gpu = ["cupy-cuda12x"]
 mpi = ["mpi4py"]
 io = ["h5py"]
 # The workflow examples run on AsyncFlow and RHAPSODY, pinned by commit.  AsyncFlow:
-# v0.7.0 plus the joinable shutdown() and the public `telemetry`/`is_shutting_down`
-# MiniApp relies on.  TEMPORARY: the fix branch until its PR merges, then the full SHA
-# of the merge commit (or a tag), before tagging wfMiniAPI v0.2.0.  RHAPSODY: 142f396
-# (in v0.7.0).
+# main at the merge of #139 (after v0.7.0): the joinable shutdown() and the public
+# `telemetry`/`is_shutting_down` MiniApp relies on.  Move to a tag once AsyncFlow
+# releases one with #139.  RHAPSODY: 142f396 (in v0.7.0).
 workflow = [
     "pyyaml",
-    "radical.asyncflow @ git+https://github.com/radical-cybertools/radical.asyncflow@fix/joinable-shutdown",
+    "radical.asyncflow @ git+https://github.com/radical-cybertools/radical.asyncflow@3f18cc86596aaafa6a7efff20b7fefb8e11e9fc9",
     "rhapsody-py[telemetry] @ git+https://github.com/radical-cybertools/rhapsody@142f396",
 ]
 # Dragon backend (dragonhpc 0.15.0 through RHAPSODY); run the examples under `dragon`.
