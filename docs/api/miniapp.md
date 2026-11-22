@@ -128,7 +128,10 @@ app = MiniApp(flow, telemetry, part_of=ref)  # same script shape and nested fina
 
 - **Parts.** Each part's `verify()` writes its report into the run's parts directory
   (`<checkpoint>/<run_id>.parts/<name>.<session>.json`, an absolute path taken when the
-  run's `MiniApp` attached). The run's `verify()` requires exactly one complete report
+  run's `MiniApp` attached). Every part's process must reach that path: with parts on
+  other nodes, keep the run's checkpoint on a shared file system. Reports are written
+  whole (a temporary file, then a rename), so the run never reads half of one. The run's
+  `verify()` requires exactly one complete report
   from every part it handed out: a part that never reported, reported incomplete
   telemetry, was reported by two engines, or belongs to another run makes the run's
   telemetry incomplete (`part <name>: …`). Give each engine its own part; part names use
