@@ -20,6 +20,14 @@
   the above; its paths are relative to it, so a run directory can be moved).
 - A run of one engine that uses none of this sees no change.
 
+### Examples
+
+- **`examples/agentic-screening/`:** a synthetic materials-screening campaign of agents in
+  populations, each population an AsyncFlow node with an engine of its own, assembled and
+  verified by `MiniApp` as a run of many engines and components. Its agents run on the AUTONMI
+  framework, installed separately. The contract check covers it; its run tests skip without the
+  framework.
+
 ## 0.2.0 (2026-11-21)
 
 The previous `main` is tagged `v0.1.0` (`55cd20f`).

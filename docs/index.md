@@ -13,7 +13,9 @@ complex workflow without the deployment constraints of the full application.
   `MiniApp`, which records each run and verifies its telemetry;
 - **example workflows** built on [AsyncFlow](https://github.com/radical-cybertools/radical.asyncflow)
   and [RHAPSODY](https://github.com/radical-cybertools/rhapsody): `motif_2`, `motif_3`,
-  `motif_4`, `motif_6` and `dragon-mpi`, plus standalone task scripts in `examples/tutorial/`.
+  `motif_4`, `motif_6` and `dragon-mpi`, plus standalone task scripts in `examples/tutorial/`;
+  and `agentic-screening`, a campaign of agents in populations, each with its own engine, whose
+  agents run on the AUTONMI framework (installed separately).
 
 The AI-steered simulation mini-app lives in
 [DeepDriveSim](https://github.com/radical-collaboration/DeepDriveSim).

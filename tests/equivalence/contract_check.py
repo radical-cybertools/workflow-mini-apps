@@ -210,7 +210,7 @@ def main(argv: list[str]) -> int:
     )
     args = ap.parse_args(argv)
     problems = []
-    for wf, rel in harness.EXAMPLES.items():
+    for wf, rel in {**harness.EXAMPLES, **harness.AGENT_EXAMPLES}.items():
         problems += [f"{wf}: {p}" for p in check_example(Path(args.repo) / rel)]
     ddsim_root = Path(args.ddsim) if args.ddsim else harness.integrated_ddsim()
     ddsim = ddsim_root / harness.WORKFLOWS["ddsim"].script
