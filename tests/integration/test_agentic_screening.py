@@ -154,7 +154,7 @@ def test_each_workload_flag_reaches_the_benchmark():
 
 
 @needs_framework
-def test_the_system_flags_reach_the_campaign_and_the_gist_s_names_work():
+def test_the_system_flags_reach_the_campaign_and_their_short_names_work():
     m = script()
     cfg = m.parse(
         [
