@@ -238,6 +238,40 @@ def test_a_decision_call_carries_the_agent_s_thinking_budget(monkeypatch, tmp_pa
 
 
 @needs_framework
+def test_a_budget_that_rounds_to_0_is_never_sent(monkeypatch, tmp_path):
+    """vLLM 0.19 does not stop a thinking call with a budget of 0: that call keeps thinking off."""
+    knobs = dict(think_budget=1, think_policy="proportional", sim_cost_sigma=1.0)
+    a, bench = agent(monkeypatch, tmp_path, **knobs)
+    from screening import physics
+
+    for i in range(4):
+        cid = f"mat-{i:06d}"
+        kwargs = a.model_kwargs(cid, after_lookup(cid))
+        if physics.think_budget(i, bench) == 0:
+            assert kwargs == {}
+        else:
+            assert kwargs["extra_body"]["thinking_token_budget"] >= 1
+    assert any(physics.think_budget(i, bench) == 0 for i in range(4))
+
+
+@needs_framework
+def test_each_decision_call_is_recorded_with_its_budget_and_thinking(tmp_path):
+    rc, summary = run(
+        tmp_path, "--agents", "12", "--think-budget", "256", "--stub-decode-rate", "1000000"
+    )
+    assert rc == 0 and summary["exit_hint"] == 0, summary["checks"]
+    rows = [
+        json.loads(line)
+        for f in (tmp_path / "run" / "app").glob("agents-p*.jsonl")
+        for line in f.read_text().splitlines()
+    ]
+    calls = [c for r in rows for c in r["think_calls"]]
+    assert len(calls) == sum(r["simulations"] + 1 for r in rows)  # one per decision point
+    assert all(c["budget"] == 256 and 0 < c["thinking"] <= 256 and c["tool_calls"] for c in calls)
+    assert sum(c["thinking"] for c in calls) == sum(r["thinking_tokens"] for r in rows)
+
+
+@needs_framework
 def test_the_policy_scales_each_agent_s_budget_by_its_cost_and_clips_it(monkeypatch, tmp_path):
     from screening import physics
 

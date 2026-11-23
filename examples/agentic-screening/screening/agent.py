@@ -76,6 +76,7 @@ class Record:
     )  # simulate call id -> the budget its gain counts
     sim_budgets: dict = field(default_factory=dict)  # result key -> the same, for its analysis
     thinking_tokens: int = 0
+    think_calls: list = field(default_factory=list)  # each decision call with a budget, in order
 
 
 class Screening:
@@ -300,6 +301,15 @@ class Screening:
             rec = records[call.agent_id]
             used = thinking_tokens(reply, tokenizer)
             rec.thinking_tokens += used
+            rec.think_calls.append(
+                {
+                    "budget": b,
+                    "thinking": used,
+                    "completion_tokens": reply.usage.completion_tokens,
+                    "reasoning_chars": len(reply.reasoning or ""),
+                    "tool_calls": len(reply.tool_calls),
+                }
+            )
             gain = physics.gain_budget(b, used, bench)
             for c in reply.tool_calls:
                 if c.name == "simulate" and gain:
@@ -339,6 +349,7 @@ class Screening:
                     {
                         "think_budget": physics.think_budget(physics.index_of(rec.cid), bench),
                         "thinking_tokens": rec.thinking_tokens,
+                        "think_calls": rec.think_calls,
                         "cost_scale": round(
                             physics.cost_scale(physics.index_of(rec.cid), bench), 4
                         ),
