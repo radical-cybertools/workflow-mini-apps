@@ -18,7 +18,9 @@ and the analysis of that simulation's result reads it. On vLLM, whose chat API d
 thinking tokens apart, they are counted from the reasoning text: with a tokenizer when given,
 otherwise as the reasoning's share of the reply's characters.
 
-Not yet here: the nudge to an agent that ends without a report.
+An agent that ends without calling `report` (Qwen3-8B now and then answers in text after a forced
+end of thinking) is told once to report (`prompts.NUDGE`), as the benchmark's agents are. Each nudge
+is one model call more than the script's, and the check of the calls counts it.
 """
 
 from __future__ import annotations
@@ -36,7 +38,7 @@ from pydantic import BaseModel, Field
 
 from . import physics
 from .benchmark import Benchmark
-from .prompts import system_prompt, task_message
+from .prompts import NUDGE, system_prompt, task_message
 from .sim import run_simulation
 from .stub import ScreeningStub, decision_call
 from .tools import Budget, SimulateArgs
@@ -77,6 +79,7 @@ class Record:
     sim_budgets: dict = field(default_factory=dict)  # result key -> the same, for its analysis
     thinking_tokens: int = 0
     think_calls: list = field(default_factory=list)  # each decision call with a budget, in order
+    nudges: int = 0  # times told to report after ending without a report
 
 
 class Screening:
@@ -315,6 +318,13 @@ class Screening:
                 if c.name == "simulate" and gain:
                     rec.call_budgets[c.id] = gain
 
+        def nudge(agent_id: str) -> str | None:
+            rec = records[agent_id]
+            if rec.report is not None:
+                return None
+            rec.nudges += 1
+            return NUDGE
+
         return ToolAgent(
             system_prompt=system_prompt(bench),
             tools=tools,
@@ -326,6 +336,7 @@ class Screening:
             on_task=on_task,
             on_call=on_call,
             model_kwargs=model_kwargs,
+            nudge=nudge,
         )
 
     # --- results and checks ----------------------------------------------------------------------
@@ -345,6 +356,7 @@ class Screening:
                 "finished": rec.report is not None,
                 "population": pop.index,
                 **({"notes": rec.notes} if bench.plan_calls else {}),
+                **({"nudges": rec.nudges} if rec.nudges else {}),
                 **(
                     {
                         "think_budget": physics.think_budget(physics.index_of(rec.cid), bench),
@@ -368,13 +380,14 @@ class Screening:
                 row["error"] = row["status"]
         v = verify(bench, read_reports(store, bench.agents), rows)
         calls = sum(r.get("model_calls", 0) for r in rows)
-        scripted = sum(bench.model_calls_per_agent(len(r["sims"])) for r in rows)
+        nudges = sum(r.get("nudges", 0) for r in rows)
+        scripted = sum(bench.model_calls_per_agent(len(r["sims"])) for r in rows) + nudges
         return [
             Check("every_agent_finishes_and_verifies", v["verified"] == bench.agents, v),
             Check(
                 "model_calls_as_scripted",
                 calls == scripted,
-                {"model_calls": calls, "scripted": scripted},
+                {"model_calls": calls, "scripted": scripted, "nudges": nudges},
             ),
             Check(
                 "tensors_to_store_and_back",

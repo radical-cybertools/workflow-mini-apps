@@ -74,6 +74,7 @@ The script puts `screening/` first on `PYTHONPATH`, so that the processes the ru
 - **The gain.** With `--think-gain` above 0, the analysis of a simulation points closer to the optimum the more its decision call thought, so the agent needs fewer simulations. `--think-gain-on used` counts the thinking tokens used, when fewer than the budget; `asked` counts the budget.
 - **With the stub,** a decision call thinks for min(budget, a seeded natural length): median `--stub-think-median`, shape `--stub-think-sigma`, at `--stub-decode-rate` tokens per second.
 - **With vLLM,** a decision call turns the model's thinking on (Qwen3's `enable_thinking`) and sends `thinking_token_budget`, with room for it in `max_tokens`. The servers need a reasoning parser and a thinking budget enabled. vLLM's chat API doesn't count thinking tokens apart, so they are counted from the reasoning text the parser splits out: with the model's tokenizer when `--tokenizer` gives it, otherwise as the reasoning's share of the reply's characters, times its completion tokens.
+- **The nudge.** A model sometimes answers in text where it should call `report`, more often when its thinking was cut at a small budget. Such an agent is told once to report, as the benchmark's agents are; the row counts its `nudges`, and the check of the model calls counts each nudge as one call more than the script's.
 
 **Not in this example yet: cache-first admission.** `--admission` accepts only `fcfs`, and says so otherwise.
 

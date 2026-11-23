@@ -333,3 +333,52 @@ def test_the_gain_cuts_simulations_and_counts_tokens_used_or_asked(tmp_path):
     asked = sims("asked", "--think-gain", "1", "--think-gain-on", "asked")
     assert asked < without  # the gain: closer points, fewer simulations
     assert used != asked  # the gain on 60 tokens used, or on the 1,024 asked
+
+
+@needs_framework
+def test_an_agent_that_ends_without_its_report_is_nudged_once(monkeypatch, tmp_path):
+    """As the benchmark's original agents: a model that answers in text where it should report (as
+    Qwen3-8B does now and then after a forced end of thinking) is told once to report."""
+    import asyncio
+
+    monkeypatch.syspath_prepend(str(EXAMPLE))
+    from autonmi.population import PopulationConfig, run_population
+    from autonmi.store import forget_store, open_store
+    from screening import physics
+    from screening.agent import Screening
+    from screening.benchmark import Benchmark
+    from screening.prompts import NUDGE
+    from screening.stub import CID, ScreeningStub
+
+    class Forgetful(ScreeningStub):
+        """Ends every third agent once without calling report, where the workflow reports."""
+
+        def next_call(self, messages):
+            call = super().next_call(messages)
+            nudged = messages[-1].get("role") == "user" and messages[-1].get("content") == NUDGE
+            task = next(m for m in messages if m.get("role") == "user")
+            index = physics.index_of(CID.search(str(task.get("content"))).group(0))
+            if call and call[0] == "report" and not nudged and index % 3 == 0:
+                return None  # "DONE", no tool call: the agent ends without its report
+            return call
+
+    bench = Benchmark(agents=9, lookup_calls=0, sim_median_s=0.01, sim_burn=False)
+    app = Screening(bench)
+    monkeypatch.setattr(app, "stub", lambda replica: Forgetful(bench))
+    spec = "memory:nudge"
+    store = open_store(spec)
+    cfg = PopulationConfig(workers=2, stagger_interval_s=0.0)
+    try:
+        result = asyncio.run(run_population(app, 0, list(app.agents()), tmp_path, cfg, store, spec))
+        checks = {c.name: c for c in app.verify(result.rows, store)}
+    finally:
+        forget_store(spec)
+    rows = {r["agent_id"]: r for r in result.rows}
+    assert {a for a, r in rows.items() if r.get("nudges")} == {
+        "mat-000000",
+        "mat-000003",
+        "mat-000006",
+    }
+    assert all(r["finished"] for r in rows.values())
+    assert all(c.ok for c in checks.values()), {n: c.detail for n, c in checks.items() if not c.ok}
+    assert checks["model_calls_as_scripted"].detail["nudges"] == 3
