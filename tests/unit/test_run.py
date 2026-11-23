@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from wfMiniAPI.composition import Component
 from wfMiniAPI.telemetry.run import (
     ComponentReport,
     PartRef,
@@ -110,9 +111,8 @@ def test_component_verifiers(tmp_path):
     def boom(files):
         raise ValueError("unreadable")
 
-    components = {name: (str(tmp_path), fn) for name, fn in {"good": good, "bad": bad}.items()}
-    components["boom"] = (str(tmp_path), boom)
-    components["bool"] = (str(tmp_path), lambda files: True)
+    verifiers = {"good": good, "bad": bad, "boom": boom, "bool": lambda files: True}
+    components = {name: Component(name, str(tmp_path), fn) for name, fn in verifiers.items()}
     summaries, reasons = verify_components(components)
     assert summaries["good"]["complete"] and summaries["good"]["counts"] == {"rows": 3}
     assert summaries["bool"]["complete"]
@@ -229,7 +229,8 @@ def test_any_detail_or_count_becomes_plain_json():
     run = Run(run_id="r", parameters={}, parts={}, components={}, report={})
     (result,) = run_checks([{"name": "c", "target": lambda r: (True, odd)}], run)
     json.dumps(result)
-    verdicts, _ = verify_components({"c": ("/x", lambda f: ComponentReport(True, counts=odd))})
+    component = Component("c", "/x", lambda f: ComponentReport(True, counts=odd))
+    verdicts, _ = verify_components({"c": component})
     json.dumps(verdicts)
 
 

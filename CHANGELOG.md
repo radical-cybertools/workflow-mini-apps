@@ -4,13 +4,18 @@
 
 ### Runs of many engines and components
 
+- **A run's composition is declared on its `MiniApp`** (`app.composition`, a
+  `Composition`: its parameters, parts, components and checks); telemetry records and
+  verifies it. `MiniApp(..., parameters=...)` declares the configuration at
+  construction.
 - **`app.part(name)`** hands another engine of the run a picklable `PartRef`; that
   engine's own `MiniApp(flow, telemetry, part_of=ref)`, in any process, reports into
   the run. The run's `verify()` requires a complete report from every part it handed out.
-- **`app.component(name, files, verify=...)`** registers a component's files and a
-  verifier returning a `ComponentReport`; **`app.check(name, verify=... | ok=...)`**
-  registers a check across the run (a `Run`); **`app.parameters(...)`** records the
-  run's configuration (`wfminiapi.Parameters` and the report).
+- **`app.component(name, files, verify=...)`** registers a component (a `Component`:
+  its files and a verifier returning a `ComponentReport`);
+  **`app.check(name, verify=... | ok=...)`** registers a check across the run (a `Run`);
+  **`app.parameters(...)`** records the run's configuration (`wfminiapi.Parameters` and
+  the report).
 - **The report** gains `run_id`, `part`, `parameters`, `completed_by_executable`,
   `parts`, `components`, `checks` and `checks_pass`. `exit_hint` is `4` when telemetry is
   complete but a check failed (`3` still means incomplete telemetry).
