@@ -28,7 +28,8 @@
   framework, installed separately. The contract check covers it; its run tests skip without the
   framework.
   Every knob of the benchmark's recipes is a flag, with its default in `--help`, and the
-  README runs each recipe; the reasoning knob and cache-first admission are not in it yet.
+  README runs each recipe, the reasoning trade-off included (a thinking budget on each decision
+  call, and its gain on the simulations); cache-first admission is not in it yet.
 
 ## 0.2.0 (2026-11-21)
 

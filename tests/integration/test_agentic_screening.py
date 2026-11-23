@@ -105,13 +105,15 @@ def test_lookups_go_through_the_example_s_own_mcp_servers(tmp_path):
 # --- the knobs and the recipes -------------------------------------------------------------
 
 # The README's recipes, as their knobs; each test runs one small (`run`: 12 agents in two
-# populations, short simulations that sleep). The reasoning trade-off runs its cost spread and
-# policy: its thinking budget and gain are not in this example yet.
+# populations, short simulations that sleep). The stub thinks fast here (--stub-decode-rate).
 RECIPES = {
     "cpu-heavy": (),
     "gpu-heavy": ("--plan-calls", "2", "--tool-result-tokens", "2000"),
     "model-traffic-heavy": ("--plan-calls", "4", "--lookup-calls", "3"),
-    "reasoning-trade-off": ("--sim-cost-sigma", "0.5", "--think-policy", "proportional"),
+    "reasoning-trade-off": (
+        "--think-budget", "256", "--think-gain", "1", "--sim-cost-sigma", "0.5",
+        "--think-policy", "proportional", "--stub-decode-rate", "100000",
+    ),
     "no-gpus": (
         "--model", "stub", "--stub-latency", "0.001", "--stub-replicas", "2",
         "--stub-kv-tokens", "100000", "--stub-decode-rate", "30", "--stub-think-median", "320",
@@ -170,20 +172,16 @@ def test_the_system_flags_reach_the_campaign_and_their_short_names_work():
     assert (cfg.managers, cfg.manager_gib, cfg.mcp_clients, cfg.mcp_per_client) == (2, 1.5, 4, 8)
 
 
-@pytest.mark.parametrize(
-    "args, why",
-    [
-        (("--think-budget", "256"), "reasoning knob is not in this example yet"),
-        (("--think-gain", "1"), "reasoning knob is not in this example yet"),
-        (("--admission", "cache"), "cache-first admission is not in this example yet"),
-    ],
-)
 @needs_framework
-def test_knobs_not_in_this_example_yet_say_so(args, why):
+def test_cache_first_admission_is_not_in_this_example_yet_and_says_so():
     proc = subprocess.run(
-        [sys.executable, str(SCRIPT), *args], capture_output=True, text=True, timeout=120
+        [sys.executable, str(SCRIPT), "--admission", "cache"],
+        capture_output=True,
+        text=True,
+        timeout=120,
     )
-    assert proc.returncode == 2 and why in proc.stderr, proc.stderr[-1000:]
+    assert proc.returncode == 2, proc.stderr[-1000:]
+    assert "cache-first admission is not in this example yet" in proc.stderr
 
 
 @pytest.mark.parametrize("recipe", sorted(RECIPES))
@@ -192,3 +190,112 @@ def test_each_recipe_runs_with_the_stub(tmp_path, recipe):
     rc, summary = run(tmp_path, "--agents", "12", *RECIPES[recipe])
     assert rc == 0 and summary["exit_hint"] == 0, summary["checks"]
     assert summary["agents"] == 12 and all(c["ok"] for c in summary["checks"])
+
+
+# --- the reasoning knob ---------------------------------------------------------------
+
+
+def agent(monkeypatch, tmp_path, **knobs):
+    """One population's agent of the example, built as the framework builds it."""
+    monkeypatch.syspath_prepend(str(EXAMPLE))
+    from autonmi.agent import PopulationContext
+    from autonmi.store import MemoryStore
+    from screening.agent import Screening
+    from screening.benchmark import Benchmark
+
+    bench = Benchmark(agents=4, **knobs)
+    ids = [f"mat-{i:06d}" for i in range(bench.agents)]
+    pop = PopulationContext(0, ids, MemoryStore(), "memory:t", tmp_path, bench)
+    return Screening(bench).build(pop), bench
+
+
+def after_lookup(cid: str) -> list[dict]:
+    """A conversation at a decision point: the task, then a reference lookup and its result."""
+    call = {"id": "c0", "type": "function", "function": {"name": "lookup_reference"}}
+    call["function"]["arguments"] = json.dumps({"material": cid})
+    data = {"synthesis_temperature_k": 900.0, "dopant_fraction": 0.1}
+    return [
+        {"role": "user", "content": f"Candidate material: {cid}."},
+        {"role": "assistant", "content": "", "tool_calls": [call]},
+        {"role": "tool", "tool_call_id": "c0", "content": json.dumps(data)},
+    ]
+
+
+@needs_framework
+def test_a_decision_call_carries_the_agent_s_thinking_budget(monkeypatch, tmp_path):
+    a, bench = agent(monkeypatch, tmp_path, think_budget=256)
+    kwargs = a.model_kwargs("mat-000001", after_lookup("mat-000001"))
+    assert kwargs["extra_body"]["thinking_token_budget"] == 256
+    assert kwargs["extra_body"]["chat_template_kwargs"] == {"enable_thinking": True}
+    assert kwargs["max_tokens"] == 512 + 256 and kwargs["reserve"] == 256
+    simulated = after_lookup("mat-000001")[:2] + [
+        {"role": "tool", "tool_call_id": "c0", "content": json.dumps({"result_key": "k"})}
+    ]
+    simulated[1]["tool_calls"][0]["function"]["name"] = "simulate"
+    assert a.model_kwargs("mat-000001", simulated) == {}  # after a simulation: not a decision
+    a, _ = agent(monkeypatch, tmp_path)
+    assert a.model_kwargs("mat-000001", after_lookup("mat-000001")) == {}  # no budget, no knob
+
+
+@needs_framework
+def test_the_policy_scales_each_agent_s_budget_by_its_cost_and_clips_it(monkeypatch, tmp_path):
+    from screening import physics
+
+    knobs = dict(think_budget=256, think_policy="proportional", sim_cost_sigma=1.0)
+    a, bench = agent(monkeypatch, tmp_path, **knobs)
+    budgets = [
+        a.model_kwargs(c, after_lookup(c))["extra_body"]["thinking_token_budget"]
+        for c in (f"mat-{i:06d}" for i in range(4))
+    ]
+    scales = [physics.cost_scale(i, bench) for i in range(4)]
+    assert budgets == [round(256 * s) for s in scales] and len(set(budgets)) > 1
+    a, _ = agent(monkeypatch, tmp_path, think_budget_max=200, **knobs)
+    clipped = [
+        a.model_kwargs(c, after_lookup(c))["extra_body"]["thinking_token_budget"]
+        for c in (f"mat-{i:06d}" for i in range(4))
+    ]
+    assert clipped == [min(b, 200) for b in budgets]
+
+
+@needs_framework
+def test_the_stub_thinks_within_the_budget_at_its_decode_rate(monkeypatch):
+    import asyncio
+    import time
+
+    monkeypatch.syspath_prepend(str(EXAMPLE))
+    from screening.benchmark import Benchmark
+    from screening.stub import ScreeningStub
+
+    bench = Benchmark(agents=4, think_budget=256)
+    messages = after_lookup("mat-000002")
+
+    def ask(stub, budget):
+        kw = {"extra_body": {"thinking_token_budget": budget}} if budget else {}
+        t0 = time.monotonic()
+        reply = asyncio.run(stub.complete(messages, **kw))
+        return reply.usage, time.monotonic() - t0
+
+    usage, _ = ask(ScreeningStub(bench, decode_rate=1e9), 0)
+    assert usage.reasoning_tokens is None  # no budget, no thinking
+    usage, _ = ask(ScreeningStub(bench, decode_rate=1e9, think_median=40), 256)
+    assert 0 < usage.reasoning_tokens < 256  # its natural length, under the budget
+    usage, seconds = ask(ScreeningStub(bench, decode_rate=1000, think_median=0), 200)
+    assert usage.reasoning_tokens == 200 and seconds >= 0.2  # the whole budget, at 1,000 tokens/s
+
+
+@needs_framework
+def test_the_gain_cuts_simulations_and_counts_tokens_used_or_asked(tmp_path):
+    def sims(name, *args):
+        (tmp_path / name).mkdir()
+        rc, summary = run(
+            tmp_path / name, "--agents", "40", "--think-budget", "1024",
+            "--stub-decode-rate", "1000000", "--stub-think-median", "60", *args,
+        )  # fmt: skip
+        assert rc == 0 and summary["exit_hint"] == 0, summary["checks"]
+        return summary["simulations"]
+
+    without = sims("gain0", "--think-gain", "0")
+    used = sims("used", "--think-gain", "1", "--think-gain-on", "used")
+    asked = sims("asked", "--think-gain", "1", "--think-gain-on", "asked")
+    assert asked < without  # the gain: closer points, fewer simulations
+    assert used != asked  # the gain on 60 tokens used, or on the 1,024 asked

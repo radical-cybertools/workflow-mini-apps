@@ -158,7 +158,7 @@ def parse(argv=None) -> argparse.Namespace:
     g.add_argument("--no-suspend", action="store_true", help="never suspend: --suspend-fraction 0")
     g.add_argument(
         "--think-budget", type=int, default=d.think_budget,
-        help="the thinking budget, tokens per decision call (not in this example yet: only 0)",
+        help="the thinking budget: tokens a decision call may think (0: thinking off, the knob off)",
     )  # fmt: skip
     g.add_argument(
         "--think-policy", choices=["fixed", "proportional"], default=d.think_policy,
@@ -170,7 +170,7 @@ def parse(argv=None) -> argparse.Namespace:
     )  # fmt: skip
     g.add_argument(
         "--think-gain", type=float, default=d.think_gain,
-        help="the reasoning gain: the modeled cut in simulations that reasoning buys (not in this example yet: only 0)",
+        help="the reasoning gain: the modeled cut in simulations that reasoning buys (0: cost only)",
     )  # fmt: skip
     g.add_argument(
         "--think-gain-on", choices=["used", "asked"], default=d.think_gain_on,
@@ -189,11 +189,15 @@ def parse(argv=None) -> argparse.Namespace:
     )  # fmt: skip
     g.add_argument(
         "--stub-decode-rate", type=float, default=30.0,
-        help="the stub's thinking tokens per second (with a thinking budget, not in this example yet)",
+        help="the stub's thinking tokens per second, with a thinking budget",
     )  # fmt: skip
     g.add_argument(
         "--stub-think-median", type=float, default=320.0,
-        help="the median length of the stub's thinking, tokens (with a thinking budget, not in this example yet)",
+        help="the median natural length of the stub's thinking, tokens (0: the whole budget)",
+    )  # fmt: skip
+    g.add_argument(
+        "--stub-think-sigma", type=float, default=0.25,
+        help="the lognormal shape of the stub's natural thinking length",
     )  # fmt: skip
     g.add_argument("--endpoints-file", default=None, help="the model job's base URLs, one per line")
     g.add_argument("--api-key-file", default=None, help="the model servers' key, in a file")
@@ -201,6 +205,11 @@ def parse(argv=None) -> argparse.Namespace:
     g.add_argument(
         "--max-tokens", type=int, default=512, help="answer length: the ceiling on a reply, tokens"
     )
+    g.add_argument(
+        "--tokenizer", default=None,
+        help="with vLLM and a thinking budget: the model's tokenizer (its directory or tokenizer.json), "
+        "to count thinking tokens; without it they are counted as the reasoning's share of the reply",
+    )  # fmt: skip
     g.add_argument(
         "--model-wait", type=float, default=1800.0, help="seconds to wait for the model servers"
     )
@@ -264,8 +273,6 @@ def parse(argv=None) -> argparse.Namespace:
     cfg = p.parse_args(argv)
     if cfg.no_suspend:
         cfg.suspend_fraction = 0.0
-    if cfg.think_budget or cfg.think_gain:
-        p.error("--think-budget and --think-gain: the reasoning knob is not in this example yet")
     if cfg.admission != "fcfs":
         p.error("--admission cache: cache-first admission is not in this example yet")
     return cfg
@@ -347,7 +354,16 @@ async def miniapp_workflow(cfg, flow, run_dir: Path, logger, app) -> bool:
         )
     campaign = Campaign(
         flow,
-        Screening(bench, stub_latency_s=cfg.stub_latency, stub_kv_tokens=cfg.stub_kv_tokens),
+        Screening(
+            bench,
+            stub_latency_s=cfg.stub_latency,
+            stub_kv_tokens=cfg.stub_kv_tokens,
+            stub_decode_rate=cfg.stub_decode_rate,
+            stub_think_median=cfg.stub_think_median,
+            stub_think_sigma=cfg.stub_think_sigma,
+            max_tokens=cfg.max_tokens,
+            tokenizer=cfg.tokenizer,
+        ),
         CampaignConfig(
             run_dir=str(run_dir),
             populations=cfg.populations,

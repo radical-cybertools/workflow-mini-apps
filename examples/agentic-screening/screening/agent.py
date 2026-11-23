@@ -10,8 +10,15 @@ simulation's body and the verification, as the benchmark's original LangGraph ag
 the agent runs on Flowgentic's loop (OpenAI-format messages), the stub model is a Flowgentic
 transport, and each simulation is an AsyncFlow task. With `plan_calls` the agent has a `note` tool
 (in its process), and with `tool_result_tokens` lookups and analyses return that much more text.
-Not yet here: the reasoning knob (`think_budget`) and the nudge to an agent that ends without a
-report.
+The reasoning knob (`think_budget`): a decision call (`stub.decision_call`) gets the agent's
+thinking budget (`physics.think_budget`) through the loop's `model_kwargs`, as vLLM takes it, with
+thinking on and room in `max_tokens`. For each simulation the reply asks for, the agent keeps the
+budget the gain counts (`physics.gain_budget`: the budget, or the thinking tokens used if fewer),
+and the analysis of that simulation's result reads it. On vLLM, whose chat API does not count the
+thinking tokens apart, they are counted from the reasoning text: with a tokenizer when given,
+otherwise as the reasoning's share of the reply's characters.
+
+Not yet here: the nudge to an agent that ends without a report.
 """
 
 from __future__ import annotations
@@ -31,7 +38,7 @@ from . import physics
 from .benchmark import Benchmark
 from .prompts import system_prompt, task_message
 from .sim import run_simulation
-from .stub import ScreeningStub
+from .stub import ScreeningStub, decision_call
 from .tools import Budget, SimulateArgs
 from .verify import read_reports, verify
 
@@ -64,6 +71,11 @@ class Record:
     report: dict | None = None
     notes: int = 0
     note_k: int = 0  # notes at the current decision point
+    call_budgets: dict = field(
+        default_factory=dict
+    )  # simulate call id -> the budget its gain counts
+    sim_budgets: dict = field(default_factory=dict)  # result key -> the same, for its analysis
+    thinking_tokens: int = 0
 
 
 class Screening:
@@ -77,11 +89,25 @@ class Screening:
         stub_latency_s: float = 0.0,
         stub_tool_retries: int = 3,
         stub_kv_tokens: int = 0,
+        stub_decode_rate: float = 30.0,
+        stub_think_median: float = 320.0,
+        stub_think_sigma: float = 0.25,
+        max_tokens: int = 512,
+        thinking_on: dict | None = None,
+        tokenizer: str | None = None,
     ) -> None:
         self.knobs = bench
         self.stub_latency_s = stub_latency_s
         self.stub_tool_retries = stub_tool_retries
         self.stub_kv_tokens = stub_kv_tokens
+        self.stub_decode_rate = stub_decode_rate
+        self.stub_think_median = stub_think_median
+        self.stub_think_sigma = stub_think_sigma
+        self.max_tokens = max_tokens  # a reply's ceiling, as the fleet's settings give it
+        self.thinking_on = dict(thinking_on or {"enable_thinking": True})  # Qwen3's switch
+        self.tokenizer = (
+            tokenizer  # a model directory or its tokenizer.json, to count thinking tokens
+        )
 
     # --- the campaign's agents and services ------------------------------------------------------
 
@@ -101,7 +127,13 @@ class Screening:
 
     def stub(self, replica: int) -> ScreeningStub:
         return ScreeningStub(
-            self.knobs, self.stub_latency_s, self.stub_tool_retries, self.stub_kv_tokens
+            self.knobs,
+            self.stub_latency_s,
+            self.stub_tool_retries,
+            self.stub_kv_tokens,
+            decode_rate=self.stub_decode_rate,
+            think_median=self.stub_think_median,
+            think_sigma=self.stub_think_sigma,
         )
 
     # --- one population's agent ------------------------------------------------------------------
@@ -116,9 +148,13 @@ class Screening:
             rec = records[agent_id]
             rec.asked += 1
             rec.note_k = 0  # a simulation: the decision point's notes are done
+            key = f"res/{agent_id}/{_UNSAFE.sub('_', call_id)}"
+            budget = rec.call_budgets.pop(call_id, 0)  # of the decision call that chose it
+            if budget:
+                rec.sim_budgets[key] = budget
             return {
                 "store_spec": pop.store_spec,
-                "key": f"res/{agent_id}/{_UNSAFE.sub('_', call_id)}",
+                "key": key,
                 "index": physics.index_of(agent_id),
                 "temperature": float(args["temperature"]),
                 "doping": float(args["doping"]),
@@ -177,7 +213,10 @@ class Screening:
             temperature, doping = round(float(tensor[0]), 3), round(float(tensor[1]), 5)
             s = float(tensor[2:].max())
             n = 1 + [k for _, _, k in rec.sims].index(result_key)
-            _, done, nxt = physics.analysis(c, temperature, doping, n, bench, 0)
+            budget = rec.sim_budgets.get(
+                result_key, 0
+            )  # of the decision call that chose its conditions
+            _, done, nxt = physics.analysis(c, temperature, doping, n, bench, budget)
             out = {
                 "result_key": result_key,
                 "temperature": temperature,
@@ -233,6 +272,39 @@ class Screening:
             tools.insert(0, LOOKUP)
         if bench.plan_calls:
             tools.append(note)
+        tokenizer = _tokenizer(self.tokenizer) if bench.think_budget and self.tokenizer else None
+        thinking_on, max_tokens = self.thinking_on, self.max_tokens
+
+        def model_kwargs(agent_id: str, messages: list[dict]) -> dict:
+            """A decision call's thinking budget, as vLLM takes it; the other calls nothing."""
+            if not bench.think_budget or not decision_call(messages, bench):
+                return {}
+            b = physics.think_budget(physics.index_of(agent_id), bench)
+            if not b:
+                return {}
+            return {
+                "extra_body": {
+                    "chat_template_kwargs": dict(thinking_on),
+                    "thinking_token_budget": b,
+                },
+                "max_tokens": max_tokens + b,
+                "reserve": b,  # admission counts the thinking, which stays out of the context
+                "meta": {"think_budget": b},
+            }
+
+        def on_call(call, reply) -> None:
+            """A decision call's reply: the budget its gain counts, kept for each simulation it asks for."""
+            b = (call.meta or {}).get("think_budget") if isinstance(call.meta, dict) else None
+            if not b:
+                return
+            rec = records[call.agent_id]
+            used = thinking_tokens(reply, tokenizer)
+            rec.thinking_tokens += used
+            gain = physics.gain_budget(b, used, bench)
+            for c in reply.tool_calls:
+                if c.name == "simulate" and gain:
+                    rec.call_budgets[c.id] = gain
+
         return ToolAgent(
             system_prompt=system_prompt(bench),
             tools=tools,
@@ -242,6 +314,8 @@ class Screening:
             + bench.plan_calls * (bench.max_sims + 1),
             order=Budget(bench.max_sims),
             on_task=on_task,
+            on_call=on_call,
+            model_kwargs=model_kwargs,
         )
 
     # --- results and checks ----------------------------------------------------------------------
@@ -261,6 +335,17 @@ class Screening:
                 "finished": rec.report is not None,
                 "population": pop.index,
                 **({"notes": rec.notes} if bench.plan_calls else {}),
+                **(
+                    {
+                        "think_budget": physics.think_budget(physics.index_of(rec.cid), bench),
+                        "thinking_tokens": rec.thinking_tokens,
+                        "cost_scale": round(
+                            physics.cost_scale(physics.index_of(rec.cid), bench), 4
+                        ),
+                    }
+                    if bench.think_budget or bench.sim_cost_sigma
+                    else {}
+                ),
             }
             for rec in pop.state["records"].values()
         ]
@@ -287,3 +372,33 @@ class Screening:
                 None,
             ),
         ]
+
+
+def thinking_tokens(reply, tokenizer=None) -> int:
+    """Thinking tokens of a reply: the server's count when it gives one; else the reasoning text's
+    tokens with a tokenizer; else the reasoning's share of the reply's characters (with its tool
+    calls), times the completion tokens. vLLM's chat API does not count them apart."""
+    usage = reply.usage
+    if usage.reasoning_tokens is not None:
+        return int(usage.reasoning_tokens)
+    text = reply.reasoning or ""
+    if not text:
+        return 0
+    if tokenizer is not None:
+        return len(tokenizer.encode(text, add_special_tokens=False).ids)
+    visible = len(reply.content or "") + sum(
+        len(c.name) + len(json.dumps(c.args)) for c in reply.tool_calls
+    )
+    completion = usage.completion_tokens or 0
+    return round(completion * len(text) / (len(text) + visible)) if completion else 0
+
+
+def _tokenizer(path: str):
+    """A Hugging Face fast tokenizer from a model directory or its `tokenizer.json`."""
+    import os
+
+    from tokenizers import Tokenizer
+
+    return Tokenizer.from_file(
+        os.path.join(path, "tokenizer.json") if os.path.isdir(path) else path
+    )

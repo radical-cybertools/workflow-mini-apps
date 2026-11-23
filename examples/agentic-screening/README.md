@@ -64,14 +64,18 @@ The script puts `screening/` first on `PYTHONPATH`, so that the processes the ru
   - simulation output (`--sim-out-elems`), reference lookups (`--lookup-calls`), MCP latency (`--mcp-latency-ms`);
   - planning calls (`--plan-calls`), long tool results (`--tool-result-tokens`), suspension (`--suspend-fraction`, `--no-suspend`);
   - the thinking knobs (`--think-budget`, `--think-policy`, `--think-budget-max`, `--think-gain`, `--think-gain-on`);
-- **the model:** `--model`, the stub's `--stub-latency`, `--stub-replicas`, `--stub-kv-tokens`, `--stub-decode-rate` and `--stub-think-median`, the servers' `--endpoints-file`, `--model-name` and `--max-tokens`;
+- **the model:** `--model`, the stub's `--stub-latency`, `--stub-replicas`, `--stub-kv-tokens`, `--stub-decode-rate`, `--stub-think-median` and `--stub-think-sigma`, the servers' `--endpoints-file`, `--model-name`, `--max-tokens` and `--tokenizer`;
 - **admission:** the request cap (`--cap`), the token cap (`--cap-tokens`, `--reply-reserve`), `--admission`;
 - **the system's processes:** `--workers`, the staggered start (`--start-batch`, `--start-interval`), `--mcp-servers`, `--toolservices`, `--mcp-clients`, `--mcp-per-client`, and RaDEX's `--managers` and `--manager-gib`;
 - **telemetry:** `--span-ratio` (1 keeps every span), `--metrics-interval`.
 
-**Not in this example yet:**
-- **The reasoning knob:** decision calls with a thinking budget, the stub's thinking, and the gain on simulations. `--think-budget` and `--think-gain` accept only 0, and say so otherwise. `--think-policy` and `--think-budget-max` change nothing without a budget, and the stub's `--stub-decode-rate` and `--stub-think-median` nothing without thinking.
-- **Cache-first admission:** `--admission` accepts only `fcfs`, and says so otherwise.
+**The reasoning knob.** A decision call follows a reference lookup or an analysis (with planning calls, after its N-th note), and chooses the next simulation or the report.
+- **The budget.** With `--think-budget` B, each decision call may think for B tokens; with `--think-policy proportional`, for B times the candidate's cost scale, clipped at `--think-budget-max`. The other calls keep thinking off.
+- **The gain.** With `--think-gain` above 0, the analysis of a simulation points closer to the optimum the more its decision call thought, so the agent needs fewer simulations. `--think-gain-on used` counts the thinking tokens used, when fewer than the budget; `asked` counts the budget.
+- **With the stub,** a decision call thinks for min(budget, a seeded natural length): median `--stub-think-median`, shape `--stub-think-sigma`, at `--stub-decode-rate` tokens per second.
+- **With vLLM,** a decision call turns the model's thinking on (Qwen3's `enable_thinking`) and sends `thinking_token_budget`, with room for it in `max_tokens`. The servers need a reasoning parser and a thinking budget enabled. vLLM's chat API doesn't count thinking tokens apart, so they are counted from the reasoning text the parser splits out: with the model's tokenizer when `--tokenizer` gives it, otherwise as the reasoning's share of the reply's characters, times its completion tokens.
+
+**Not in this example yet: cache-first admission.** `--admission` accepts only `fcfs`, and says so otherwise.
 
 ## Recipes
 
@@ -91,7 +95,7 @@ Each recipe loads one resource more than the others. The command lines run as th
       --plan-calls 2 --tool-result-tokens 2000 --sim-median 1
   ```
 
-  The recipe can add a thinking budget (`--think-budget 256`) and cache-first admission (`--admission cache`), neither in this example yet.
+  The recipe can add a thinking budget (`--think-budget 256`), and cache-first admission (`--admission cache`), which is not in this example yet.
 
 - **Model-traffic-heavy.** Planning calls without long results, more lookups and short simulations: many short requests, so the request cap (`--cap`) binds before the token cap, and the agents' own CPU per call starts to count.
 
@@ -101,11 +105,11 @@ Each recipe loads one resource more than the others. The command lines run as th
       --plan-calls 4 --lookup-calls 3 --sim-median 1
   ```
 
-- **The reasoning trade-off.** A thinking budget B on every decision call, a gain that cuts simulations for the tokens spent, and a cost spread across the candidates, with the budget proportional to each candidate's cost; sweep B against `--sim-median`. The thinking budget and the gain are not in this example yet: today it runs the cost spread and the policy.
+- **The reasoning trade-off.** A thinking budget B on every decision call, a gain that cuts simulations for the tokens spent, and a cost spread across the candidates, with the budget proportional to each candidate's cost; sweep B against `--sim-median`. More thinking costs model work and cuts simulations: the best B depends on how long the simulations are.
 
   ```shell
-  python examples/agentic-screening/miniapp_screening.py --sim-cost-sigma 0.5 \
-      --think-policy proportional   # later: --think-budget B --think-gain 1
+  python examples/agentic-screening/miniapp_screening.py --think-budget 256 --think-gain 1 \
+      --sim-cost-sigma 0.5 --think-policy proportional
   ```
 
 - **No GPUs.** The stub model keeps the workflow's shape on CPUs only: its latency per call, replicas per population and a prefix cache.
@@ -115,7 +119,7 @@ Each recipe loads one resource more than the others. The command lines run as th
       --stub-replicas 2 --stub-kv-tokens 200000
   ```
 
-  `--stub-decode-rate` and `--stub-think-median` shape the stub's thinking, once the reasoning knob is here.
+  With a thinking budget, `--stub-decode-rate`, `--stub-think-median` and `--stub-think-sigma` shape the stub's thinking.
 
 With the stub, every recipe's per-agent results are those of the benchmark's original LangGraph agents with the same knobs.
 
