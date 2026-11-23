@@ -1,11 +1,12 @@
-"""A run of many engines and components: its parts, its components' verifiers, its checks.
+"""Verifying a run of many engines and components: its parts, its components, its checks.
 
-A run's ``MiniApp`` can hand each other engine of the run a ``PartRef`` (``app.part(name)``).
-That engine gets a ``MiniApp`` of its own, ``MiniApp(flow, telemetry, part_of=ref)``, in
-whatever process it runs, and its ``verify()`` writes its report into the run's parts
-directory. Components other than engines (an agent library's OpenTelemetry export, a model
-server's log, the application's results) register their files and a verifier
-(``app.component``). Checks across all of them (``app.check``) read a ``Run``.
+What the run is made of is declared on its ``MiniApp`` (``wfMiniAPI.composition``): each
+other engine of the run is a part, handed a ``PartRef`` (``app.part(name)``); that engine gets
+a ``MiniApp`` of its own, ``MiniApp(flow, telemetry, part_of=ref)``, in whatever process it
+runs, and its ``verify()`` writes its report into the run's parts directory. Components other
+than engines (an agent library's OpenTelemetry export, a model server's log, the
+application's results) register their files and a verifier (``app.component``). Checks across
+all of them (``app.check``) read a ``Run``. This module only verifies and records them.
 
 The run's ``verify()`` collects the parts' reports, runs each component's verifier over its
 files, then runs the checks. Its report keeps two verdicts apart: ``telemetry_complete``
@@ -20,29 +21,29 @@ from __future__ import annotations
 
 import dataclasses
 import functools
-import importlib
 import json
 import os
-import re
-from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
+# What the run is made of; imported here too, where they have always been importable from.
+from ..composition import Component, PartRef, jsonable, resolve, valid_name
 from .verify import MiniAppReport, verify_checkpoint
 
+__all__ = [
+    "Component",
+    "ComponentReport",
+    "PartRef",
+    "Run",
+    "assemble",
+    "jsonable",
+    "resolve",
+    "valid_name",
+    "verify_run",
+]
+
 MANIFEST_SUFFIX = ".wfminiapi.manifest.json"
-_NAME = re.compile(r"^[A-Za-z0-9_-]+$")
-
-
-@dataclass(frozen=True)
-class PartRef:
-    """What another engine of the run needs to report into it. Picklable: pass it to a
-    process or a task that builds that engine. Give each engine its own part."""
-
-    run_id: str  # the run's engine session id
-    name: str  # the part's name, unique in the run
-    parts_dir: str  # where the part's report goes: an absolute path
 
 
 @dataclass(frozen=True)
@@ -64,58 +65,6 @@ class Run:
     parts: dict  # part name -> its engine's report (a dict, as in its report file)
     components: dict  # component name -> its verdict (complete, reasons, counts, files)
     report: dict  # the run's own engine's report
-
-
-def valid_name(name: str, what: str) -> str:
-    if not isinstance(name, str) or not _NAME.match(name):
-        raise ValueError(f"{what} name {name!r}: use letters, digits, '_' or '-'")
-    return name
-
-
-def jsonable(obj: Any) -> Any:
-    """``obj`` as plain JSON data: keys become strings, sets and tuples lists, and anything
-    else its ``str()``. Details and counts come from user code; reports must always write."""
-    if obj is None or isinstance(obj, (bool, int, float, str)):
-        return obj
-    if isinstance(obj, dict):
-        return {k if isinstance(k, str) else str(k): jsonable(v) for k, v in obj.items()}
-    if isinstance(obj, (set, frozenset)):
-        return [jsonable(v) for v in sorted(obj, key=repr)]
-    if isinstance(obj, (list, tuple)):
-        return [jsonable(v) for v in obj]
-    if dataclasses.is_dataclass(obj) and not isinstance(obj, type):
-        return {f.name: jsonable(getattr(obj, f.name)) for f in dataclasses.fields(obj)}
-    return str(obj)
-
-
-def resolve(target: str | Callable) -> tuple[str, Callable]:
-    """``(import path, callable)`` for ``"module:function"`` or a callable.
-
-    The path is ``""`` for a callable that cannot be imported again by name (a lambda, a
-    local function, one defined in ``__main__``): it runs in the run, not offline.
-    """
-    if isinstance(target, str):
-        module, sep, name = target.partition(":")
-        if not (sep and module and name):
-            raise ValueError(f"expected 'module:function', got {target!r}")
-        obj: Any = importlib.import_module(module)
-        for attr in name.split("."):
-            obj = getattr(obj, attr)
-        if not callable(obj):
-            raise TypeError(f"{target} is not callable")
-        return target, obj
-    if not callable(target):
-        raise TypeError(f"expected 'module:function' or a callable, got {target!r}")
-    module = getattr(target, "__module__", None)
-    qualname = getattr(target, "__qualname__", "")
-    if not module or module == "__main__" or "<" in qualname:
-        return "", target
-    path = f"{module}:{qualname}"
-    try:
-        _, found = resolve(path)
-    except Exception:  # noqa: BLE001 - not importable by name: run it, but not offline
-        return "", target
-    return (path if found is target else ""), target
 
 
 def _write_json(path: Path, data: Any) -> None:
@@ -179,15 +128,16 @@ def part_check_failures(parts: dict) -> list[dict]:
 
 
 # ---------------------------------------------------------------------------- components
-def verify_components(components: dict) -> tuple[dict, list[str]]:
-    """Run each component's verifier over its files: ``{name: (files, target)}``.
+def verify_components(components: dict[str, Component]) -> tuple[dict, list[str]]:
+    """Run each component's verifier over its files: ``{name: Component}``.
 
     A verifier takes the files' path and returns a ``ComponentReport`` or a bool. One that
     raises makes its component incomplete; it never stops the others.
     """
     verdicts: dict[str, dict] = {}
     reasons: list[str] = []
-    for name, (files, target) in components.items():
+    for name, component in components.items():
+        files, target = component.files, component.verify
         path = target if isinstance(target, str) else ""
         try:
             path, fn = resolve(target)
@@ -252,7 +202,7 @@ def assemble(
     parameters: dict | None = None,
     parts_dir: str | Path | None = None,
     parts=(),
-    components: dict | None = None,
+    components: dict[str, Component] | None = None,
     checks: list[dict] | None = None,
 ) -> MiniAppReport:
     """The run's report: its engine's report, with its parts, components and checks."""
@@ -339,7 +289,8 @@ def verify_run(directory: str | Path, session: str | None = None) -> MiniAppRepo
     components = {}
     for name, c in (m.get("components") or {}).items():
         target = c.get("verify") or functools.partial(_recorded, c.get("verdict") or {})
-        components[name] = (_where(d, c.get("files"), c.get("files_abs")), target)
+        files = _where(d, c.get("files"), c.get("files_abs"))
+        components[name] = Component(name, str(files), target)
     return assemble(
         base,
         run_id=m["run_id"],

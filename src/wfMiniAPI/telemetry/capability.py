@@ -1,5 +1,8 @@
 """The telemetry capability of a MiniApp: attaches to the user's AsyncFlow telemetry.
 
+What the run is made of (its ``Composition``) belongs to the MiniApp; this capability records
+it in the checkpoint and verifies it.
+
 It never creates, configures, replaces or stops the user's components: the script
 shuts the engine down and stops telemetry, then calls ``verify()``.  From AsyncFlow it
 uses the public ``flow.telemetry`` (the manager the engine emits into).  It reads two
@@ -22,17 +25,9 @@ from urllib.parse import unquote, urlparse
 
 from rhapsody.telemetry.events import make_event
 
+from ..composition import Composition, PartRef, jsonable
 from .events import PREFIX, SCHEMA, Barrier, Parameters, RunEnded, RunStarted
-from .run import (
-    MANIFEST_SUFFIX,
-    PartRef,
-    assemble,
-    jsonable,
-    resolve,
-    valid_name,
-    write_manifest,
-    write_part,
-)
+from .run import MANIFEST_SUFFIX, assemble, write_manifest, write_part
 from .verify import MiniAppReport, find_checkpoint, verify_checkpoint
 
 log = logging.getLogger("wfMiniAPI.telemetry")
@@ -93,17 +88,28 @@ def _package(dist: str) -> str:
 class MiniAppTelemetry:
     """Attach-time checks, run events and the end-of-run verification."""
 
-    def __init__(self, flow, telemetry, *, part_of: PartRef | None = None) -> None:
+    def __init__(
+        self,
+        flow,
+        telemetry,
+        *,
+        composition: Composition | None = None,
+        part_of: PartRef | None = None,
+    ) -> None:
         self.flow = flow
         self.manager = telemetry  # the user's RHAPSODY TelemetryManager, as passed in
         if part_of is not None and not isinstance(part_of, PartRef):
             raise TypeError("part_of: pass the PartRef that the run's app.part(name) returned")
         self.part_of = part_of
-        # a run of many engines and components (run.py)
-        self.parameters: dict = {}
-        self.parts: list[str] = []
-        self.components: dict[str, tuple[str, object]] = {}
-        self.checks: list[dict] = []
+        # what the run is made of: its MiniApp's, read here when the run is verified
+        self.composition = composition if composition is not None else Composition()
+        # the run this engine belongs to, known once the engine's telemetry exists: the run
+        # engine's session, or for a part the run its PartRef names
+        self.run_id = (
+            part_of.run_id
+            if part_of is not None
+            else str(getattr(telemetry, "session_id", "") or getattr(flow, "uid", ""))
+        )
         self._engine_reasons: tuple[str, ...] = ()
         self.checkpoint_dir: Path | None = None
         self._checkpoint_abs: Path | None = None  # as resolved at attach: cwd may change later
@@ -191,16 +197,10 @@ class MiniAppTelemetry:
             part=self.part_of.name if self.part_of else "",
         )
         self.started = True
-        if self.parameters:
+        if self.composition.parameters:
             self._emit_parameters()
 
     # ------------------------------------------------------------------ the run
-    @property
-    def run_id(self) -> str:
-        if self.part_of is not None:
-            return self.part_of.run_id
-        return str(getattr(self.manager, "session_id", "") or getattr(self.flow, "uid", ""))
-
     @property
     def parts_dir(self) -> Path | None:
         """Absolute: a part may run in another process, with another working directory."""
@@ -208,44 +208,14 @@ class MiniAppTelemetry:
             return None
         return self._checkpoint_abs / f"{self.run_id}.parts"
 
-    def set_parameters(self, values) -> None:
-        self.parameters = jsonable(dict(values))
+    def record_parameters(self) -> None:
+        """Record the composition's parameters in the checkpoint, if telemetry runs; before
+        the block, ``start()`` records them after ``RunStarted``."""
         if self.started and getattr(self.manager, "_running", False):  # PRIVATE (drift-tested)
             self._emit_parameters()
 
     def _emit_parameters(self) -> None:
-        self._emit(Parameters, parameters=json.dumps(self.parameters, sort_keys=True))
-
-    def add_part(self, name: str) -> PartRef:
-        valid_name(name, "part")
-        if self.part_of is not None:
-            raise RuntimeError("a part cannot hand out parts: call part() on the run's MiniApp")
-        if self.parts_dir is None:
-            raise RuntimeError("enter the MiniApp (async with app) before handing out parts")
-        if name in self.parts:
-            raise ValueError(f"part {name!r} was already handed out")
-        self.parts.append(name)
-        return PartRef(run_id=self.run_id, name=name, parts_dir=str(self.parts_dir))
-
-    def add_component(self, name: str, files, verify) -> None:
-        valid_name(name, "component")
-        if name in self.components:
-            raise ValueError(f"component {name!r} is already registered")
-        resolve(verify)  # fail now, in the script, not at the end of the run
-        self.components[name] = (str(Path(files).resolve()), verify)
-
-    def add_check(self, name: str, verify=None, ok=None, detail=None) -> None:
-        if not name or any(c["name"] == name for c in self.checks):
-            raise ValueError(f"check {name!r}: give each check its own name")
-        if name.startswith("part "):
-            raise ValueError(f"check {name!r}: names starting 'part ' are the parts' checks")
-        if (verify is None) == (ok is None):
-            raise ValueError(f"check {name!r}: pass verify= (run at verify()) or ok= (a result)")
-        if verify is not None:
-            resolve(verify)
-            self.checks.append({"name": name, "target": verify})
-        else:
-            self.checks.append({"name": name, "ok": bool(ok), "detail": jsonable(detail)})
+        self._emit(Parameters, parameters=json.dumps(self.composition.parameters, sort_keys=True))
 
     # ------------------------------------------------------------------ events
     def _on_event(self, event) -> None:  # O(1): runs in RHAPSODY's dispatch loop
@@ -296,15 +266,16 @@ class MiniAppTelemetry:
         try:
             self.report = self._verify()
             self._engine_reasons = self.report.reasons
+            c = self.composition
             self.report = assemble(
                 self.report,
                 run_id=self.run_id,
                 part=self.part_of.name if self.part_of else "",
-                parameters=self.parameters,
+                parameters=c.parameters,
                 parts_dir=self.parts_dir,
-                parts=self.parts,
-                components=self.components,
-                checks=self.checks,
+                parts=c.parts,
+                components=c.components,
+                checks=c.checks,
             )
         except Exception as exc:  # last resort: verify() never raises
             self.report = MiniAppReport(
@@ -354,8 +325,7 @@ class MiniAppTelemetry:
                 )
             else:
                 reasons.append(
-                    "stopped_before_exit: telemetry was stopped while the engine was still "
-                    "running"
+                    "stopped_before_exit: telemetry was stopped while the engine was still running"
                 )
         try:
             return verify_checkpoint(
@@ -399,12 +369,12 @@ class MiniAppTelemetry:
     def _write_manifest(self) -> None:
         """What the run is made of, to verify it again offline; only for a run of more than
         one engine, or with components, checks or parameters."""
-        here = self._checkpoint_abs
-        if here is None or not (self.parts or self.components or self.checks or self.parameters):
+        here, c = self._checkpoint_abs, self.composition
+        if here is None or not c.declared:
             return
         try:
             r = self.report
-            registered = {c["name"] for c in self.checks}
+            registered = {check["name"] for check in c.checks}
 
             def rel(path) -> str:  # relative to the manifest: the run directory can move
                 return os.path.relpath(path, here)
@@ -415,21 +385,21 @@ class MiniAppTelemetry:
                 "session_id": r.session_id,
                 "part": r.part,
                 "engine_reasons": list(self._engine_reasons),
-                "parameters": self.parameters,
-                "parts": list(self.parts),
+                "parameters": c.parameters,
+                "parts": list(c.parts),
                 "parts_dir": rel(self.parts_dir),
                 "parts_dir_abs": str(self.parts_dir),
                 "components": {
                     name: {
-                        "files": rel(files),
-                        "files_abs": files,
+                        "files": rel(component.files),
+                        "files_abs": component.files,
                         "verify": r.components.get(name, {}).get("verify", ""),
                         "verdict": r.components.get(name, {}),
                     }
-                    for name, (files, _) in self.components.items()
+                    for name, component in c.components.items()
                 },
                 # the checks registered; the parts' failed checks are found again from the parts
-                "checks": [dict(c) for c in r.checks if c["name"] in registered],
+                "checks": [dict(check) for check in r.checks if check["name"] in registered],
             }
             write_manifest(here / f"{r.session_id}{MANIFEST_SUFFIX}", manifest)
         except Exception as exc:  # noqa: BLE001 - verify() never raises
@@ -445,7 +415,8 @@ class MiniAppTelemetry:
         )
         if r.parts or r.components or r.checks:
             msg += (
-                f"; parts={len(r.parts)}/{len(self.parts)} components={len(r.components)} "
+                f"; parts={len(r.parts)}/{len(self.composition.parts)} "
+                f"components={len(r.components)} "
                 f"checks {'pass' if r.checks_pass else 'FAIL'}"
             )
         if r.reasons:
