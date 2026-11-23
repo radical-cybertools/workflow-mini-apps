@@ -8,9 +8,10 @@ agent's best is known and the run verifies itself.
 The workload is the benchmark's: its knobs (`benchmark.Benchmark`), the physics, the prompt, the
 simulation's body and the verification, as the benchmark's original LangGraph agents run them. Here
 the agent runs on Flowgentic's loop (OpenAI-format messages), the stub model is a Flowgentic
-transport, and each simulation is an AsyncFlow task. Not yet here: notes (`plan_calls`), the
-reasoning knob (`think_budget`), the nudge to an agent that ends without a report, and longer tool
-results.
+transport, and each simulation is an AsyncFlow task. With `plan_calls` the agent has a `note` tool
+(in its process), and with `tool_result_tokens` lookups and analyses return that much more text.
+Not yet here: the reasoning knob (`think_budget`) and the nudge to an agent that ends without a
+report.
 """
 
 from __future__ import annotations
@@ -61,6 +62,8 @@ class Record:
     store_misses: int = 0
     wrong_keys: list = field(default_factory=list)
     report: dict | None = None
+    notes: int = 0
+    note_k: int = 0  # notes at the current decision point
 
 
 class Screening:
@@ -69,11 +72,16 @@ class Screening:
     name = "screening"
 
     def __init__(
-        self, bench: Benchmark, stub_latency_s: float = 0.0, stub_tool_retries: int = 3
+        self,
+        bench: Benchmark,
+        stub_latency_s: float = 0.0,
+        stub_tool_retries: int = 3,
+        stub_kv_tokens: int = 0,
     ) -> None:
         self.knobs = bench
         self.stub_latency_s = stub_latency_s
         self.stub_tool_retries = stub_tool_retries
+        self.stub_kv_tokens = stub_kv_tokens
 
     # --- the campaign's agents and services ------------------------------------------------------
 
@@ -92,7 +100,9 @@ class Screening:
         return start_servers(servers, self.knobs, run_dir)
 
     def stub(self, replica: int) -> ScreeningStub:
-        return ScreeningStub(self.knobs, self.stub_latency_s, self.stub_tool_retries)
+        return ScreeningStub(
+            self.knobs, self.stub_latency_s, self.stub_tool_retries, self.stub_kv_tokens
+        )
 
     # --- one population's agent ------------------------------------------------------------------
 
@@ -105,6 +115,7 @@ class Screening:
         def prepare(agent_id: str, call_id: str, args: dict) -> dict:
             rec = records[agent_id]
             rec.asked += 1
+            rec.note_k = 0  # a simulation: the decision point's notes are done
             return {
                 "store_spec": pop.store_spec,
                 "key": f"res/{agent_id}/{_UNSAFE.sub('_', call_id)}",
@@ -176,7 +187,12 @@ class Screening:
             }
             if nxt is not None:
                 out["next"] = {"temperature": nxt[0], "doping": nxt[1]}
+            if bench.tool_result_tokens:
+                out["spectrum"] = physics.spectrum_sample(
+                    tensor[2:], bench.tool_result_tokens, f"{bench.seed}/{result_key}"
+                )
             rec.analyses += 1
+            rec.note_k = 0  # a new decision point
             return json.dumps(out)
 
         async def report(temperature: float, doping: float, score: float) -> str:
@@ -197,13 +213,33 @@ class Screening:
             rec.report = value
             return json.dumps({"saved": f"report/{cid}"})
 
+        async def note(text: str) -> str:
+            """Record a note in your notebook: your plan, or your reflection on a result."""
+            rec = records[current_agent()]
+            rec.notes += 1
+            rec.note_k += 1
+            out = {"saved": f"note {rec.note_k} of {bench.plan_calls}"}
+            if rec.report is not None:  # the work is done: a model can add closing notes
+                out["hint"] = "Your report is saved. Reply with the single word DONE."
+            elif rec.note_k > bench.plan_calls:  # at temperature 0 a model can keep noting
+                out["hint"] = (
+                    "The notes for this step are written. Go on with the next step: "
+                    "call simulate or report."
+                )
+            return json.dumps(out)
+
         tools = [simulate, analyze, report]
         if bench.lookup_calls:
             tools.insert(0, LOOKUP)
+        if bench.plan_calls:
+            tools.append(note)
         return ToolAgent(
             system_prompt=system_prompt(bench),
             tools=tools,
-            max_model_calls=bench.lookup_calls + 4 * bench.max_sims + 10,
+            max_model_calls=bench.lookup_calls
+            + 4 * bench.max_sims
+            + 10
+            + bench.plan_calls * (bench.max_sims + 1),
             order=Budget(bench.max_sims),
             on_task=on_task,
         )
@@ -211,6 +247,7 @@ class Screening:
     # --- results and checks ----------------------------------------------------------------------
 
     def rows(self, pop: PopulationContext) -> list[dict]:
+        bench = self.knobs
         return [
             {
                 "agent_id": rec.cid,
@@ -223,6 +260,7 @@ class Screening:
                 "report": rec.report,
                 "finished": rec.report is not None,
                 "population": pop.index,
+                **({"notes": rec.notes} if bench.plan_calls else {}),
             }
             for rec in pop.state["records"].values()
         ]

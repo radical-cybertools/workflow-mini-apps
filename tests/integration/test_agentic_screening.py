@@ -100,3 +100,95 @@ def test_lookups_go_through_the_example_s_own_mcp_servers(tmp_path):
     assert len(list(services.glob("mcp-server-*.log"))) == 4
     done = sorted(services.glob("toolservice-?.json"))
     assert sum(json.loads(p.read_text())["received"] for p in done) == 30  # one lookup per agent
+
+
+# --- the knobs and the recipes -------------------------------------------------------------
+
+# The README's recipes, as their knobs; each test runs one small (`run`: 12 agents in two
+# populations, short simulations that sleep). The reasoning trade-off runs its cost spread and
+# policy: its thinking budget and gain are not in this example yet.
+RECIPES = {
+    "cpu-heavy": (),
+    "gpu-heavy": ("--plan-calls", "2", "--tool-result-tokens", "2000"),
+    "model-traffic-heavy": ("--plan-calls", "4", "--lookup-calls", "3"),
+    "reasoning-trade-off": ("--sim-cost-sigma", "0.5", "--think-policy", "proportional"),
+    "no-gpus": (
+        "--model", "stub", "--stub-latency", "0.001", "--stub-replicas", "2",
+        "--stub-kv-tokens", "100000", "--stub-decode-rate", "30", "--stub-think-median", "320",
+    ),
+}  # fmt: skip
+
+
+def script():
+    """The example's script as a module, for its command line."""
+    spec = importlib.util.spec_from_file_location("miniapp_screening", SCRIPT)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+@needs_framework
+def test_each_workload_flag_reaches_the_benchmark():
+    m = script()
+    cfg = m.parse(
+        [
+            "--agents", "7", "--seed", "3", "--max-sims", "5", "--sims-per-agent", "2",
+            "--lookup-calls", "3", "--sim-distribution", "uniform", "--sim-median", "2.5",
+            "--sim-sigma", "0.7", "--sim-range", "1", "4", "--sim-out-elems", "64", "--no-burn",
+            "--mcp-latency-ms", "1", "2", "--no-suspend", "--sim-cost-sigma", "0.4",
+            "--think-policy", "proportional", "--think-budget-max", "4096", "--think-gain-on",
+            "asked", "--plan-calls", "2", "--tool-result-tokens", "500",
+        ]
+    )  # fmt: skip
+    b = m.benchmark(cfg)
+    assert (b.agents, b.seed, b.max_sims, b.sims_per_agent, b.lookup_calls) == (7, 3, 5, 2, 3)
+    assert (b.sim_distribution, b.sim_median_s, b.sim_sigma) == ("uniform", 2.5, 0.7)
+    assert b.sim_range_s == (1.0, 4.0) and b.sim_out_elems == 64 and b.sim_burn is False
+    assert b.mcp_latency_ms == (1.0, 2.0) and b.suspend_fraction == 0.0
+    assert b.sim_cost_sigma == 0.4 and (b.think_policy, b.think_budget_max) == (
+        "proportional",
+        4096,
+    )
+    assert b.think_gain_on == "asked" and (b.plan_calls, b.tool_result_tokens) == (2, 500)
+    assert m.benchmark(m.parse([])) == m.Benchmark()  # every default is the knob's
+
+
+@needs_framework
+def test_the_system_flags_reach_the_campaign_and_the_gist_s_names_work():
+    m = script()
+    cfg = m.parse(
+        [
+            "--cap", "32", "--cap-tokens", "1000", "--reply-reserve", "16", "--start-batch", "5",
+            "--start-interval", "0.2", "--stub-replicas", "3", "--stub-kv-tokens", "50",
+            "--managers", "2", "--manager-gib", "1.5", "--mcp-clients", "4",
+            "--mcp-per-client", "8",
+        ]
+    )  # fmt: skip
+    assert (cfg.cap_requests, cfg.cap_tokens, cfg.reply_reserve) == (32, 1000, 16)
+    assert (cfg.stagger_batch, cfg.stagger_interval) == (5, 0.2)
+    assert (cfg.stub_replicas, cfg.stub_kv_tokens) == (3, 50)
+    assert (cfg.managers, cfg.manager_gib, cfg.mcp_clients, cfg.mcp_per_client) == (2, 1.5, 4, 8)
+
+
+@pytest.mark.parametrize(
+    "args, why",
+    [
+        (("--think-budget", "256"), "reasoning knob is not in this example yet"),
+        (("--think-gain", "1"), "reasoning knob is not in this example yet"),
+        (("--admission", "cache"), "cache-first admission is not in this example yet"),
+    ],
+)
+@needs_framework
+def test_knobs_not_in_this_example_yet_say_so(args, why):
+    proc = subprocess.run(
+        [sys.executable, str(SCRIPT), *args], capture_output=True, text=True, timeout=120
+    )
+    assert proc.returncode == 2 and why in proc.stderr, proc.stderr[-1000:]
+
+
+@pytest.mark.parametrize("recipe", sorted(RECIPES))
+@needs_framework
+def test_each_recipe_runs_with_the_stub(tmp_path, recipe):
+    rc, summary = run(tmp_path, "--agents", "12", *RECIPES[recipe])
+    assert rc == 0 and summary["exit_hint"] == 0, summary["checks"]
+    assert summary["agents"] == 12 and all(c["ok"] for c in summary["checks"])

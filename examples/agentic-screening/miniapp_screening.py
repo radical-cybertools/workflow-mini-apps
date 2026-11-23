@@ -59,58 +59,243 @@ from screening.benchmark import Benchmark  # noqa: E402
 from wfMiniAPI.api import MiniApp  # noqa: E402
 
 
+class _Help(argparse.RawDescriptionHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
+    """The module's docstring as it is, and each flag's default after its help."""
+
+
 def parse(argv=None) -> argparse.Namespace:
+    """The command line: the campaign, the workload's knobs (`Benchmark`), the model, admission,
+    the system's processes, the telemetry. Each flag's default is the knob's default."""
     d = Benchmark()
-    p = argparse.ArgumentParser(
-        description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
+    p = argparse.ArgumentParser(description=__doc__, formatter_class=_Help)
+
+    g = p.add_argument_group("the campaign")
+    g.add_argument(
+        "--agents", type=int, default=d.agents, help="the campaign's agents, one per candidate"
     )
-    p.add_argument("--agents", type=int, default=d.agents)
-    p.add_argument("--seed", type=int, default=d.seed)
-    p.add_argument("--populations", type=int, default=1)
-    p.add_argument("--workers", type=int, default=8, help="simulation workers per population")
-    p.add_argument(
-        "--reuse-event-loop",
-        action="store_true",
-        help="one event loop per worker thread for simulation tasks (needs RHAPSODY with rhapsody#163)",
+    g.add_argument(
+        "--seed", type=int, default=d.seed, help="the seed of the candidates and every draw"
     )
-    p.add_argument("--runtime", choices=["local", "dragon"], default="local")
-    p.add_argument("--mcp-servers", type=int, default=4)
-    p.add_argument("--toolservices", type=int, default=8, help="at most one per population")
-    p.add_argument("--lookup-calls", type=int, default=d.lookup_calls)
-    p.add_argument("--sims-per-agent", type=int, default=d.sims_per_agent)
-    p.add_argument("--sim-median", type=float, default=d.sim_median_s)
-    p.add_argument("--suspend-fraction", type=float, default=d.suspend_fraction)
-    p.add_argument("--no-burn", dest="burn", action="store_false")
-    p.add_argument("--stub-latency", type=float, default=0.0)
-    p.add_argument("--stagger-batch", type=int, default=100)
-    p.add_argument("--stagger-interval", type=float, default=0.5)
-    p.add_argument("--model", choices=["stub", "openai"], default="stub")
-    p.add_argument("--endpoints-file", default=None, help="the model job's base URLs, one per line")
-    p.add_argument("--api-key-file", default=None)
-    p.add_argument("--model-name", default="Qwen3-8B")
-    p.add_argument("--max-tokens", type=int, default=512)
-    p.add_argument("--cap-tokens", type=int, default=235_000, help="admitted tokens per replica")
-    p.add_argument("--cap-requests", type=int, default=96, help="admitted requests per replica")
-    p.add_argument(
-        "--model-wait", type=float, default=1800.0, help="seconds to wait for the model servers"
+    g.add_argument(
+        "--populations", type=int, default=1, help="populations of agents, each with its own engine"
     )
-    p.add_argument(
-        "--vllm-interval", type=float, default=2.0, help="seconds between samples of the servers"
+    g.add_argument(
+        "--runtime",
+        choices=["local", "dragon"],
+        default="local",
+        help="threads, or Dragon processes",
     )
-    p.add_argument(
-        "--span-ratio",
-        type=float,
-        default=0.1,
-        help="share of the agents whose spans are exported (1: every span)",
-    )
-    p.add_argument(
-        "--metrics-interval", type=float, default=10.0, help="seconds between metric exports"
-    )
-    p.add_argument(
+    g.add_argument(
         "--timeout", type=float, default=None, help="seconds the populations may run, all together"
     )
-    p.add_argument("--run-dir", default=None)
-    return p.parse_args(argv)
+    g.add_argument(
+        "--run-dir",
+        default=None,
+        help="where the run writes (default: runs/screening-<agents>-<time>)",
+    )
+
+    g = p.add_argument_group("what the agents do (the workload's knobs)")
+    g.add_argument(
+        "--sim-median",
+        type=float,
+        default=d.sim_median_s,
+        help="a simulation's median duration, seconds",
+    )
+    g.add_argument(
+        "--sim-sigma",
+        type=float,
+        default=d.sim_sigma,
+        help="the lognormal shape of a simulation's duration",
+    )
+    g.add_argument(
+        "--sim-distribution", choices=["lognormal", "fixed", "uniform"], default=d.sim_distribution,
+        help="a simulation's duration: lognormal (median, sigma), fixed (the median) or uniform (--sim-range)",
+    )  # fmt: skip
+    g.add_argument(
+        "--sim-range", type=float, nargs=2, metavar=("LO", "HI"), default=list(d.sim_range_s),
+        help="the uniform distribution's bounds, seconds",
+    )  # fmt: skip
+    g.add_argument(
+        "--sim-cost-sigma", type=float, default=d.sim_cost_sigma,
+        help="the cost spread: the lognormal shape of a seeded cost scale per candidate (0: every candidate alike)",
+    )  # fmt: skip
+    g.add_argument(
+        "--sims-per-agent", type=int, default=d.sims_per_agent,
+        help="exactly k simulations per agent; 0 lets the physics decide (2-3)",
+    )  # fmt: skip
+    g.add_argument(
+        "--max-sims", type=int, default=d.max_sims, help="the most simulations an agent may run"
+    )
+    g.add_argument(
+        "--no-burn",
+        dest="burn",
+        action="store_false",
+        help="simulations sleep instead of spinning a core",
+    )
+    g.add_argument(
+        "--sim-out-elems", type=int, default=d.sim_out_elems,
+        help="float64 values a simulation writes to the store",
+    )  # fmt: skip
+    g.add_argument(
+        "--lookup-calls", type=int, default=d.lookup_calls, help="MCP reference lookups per agent"
+    )
+    g.add_argument(
+        "--mcp-latency-ms", type=float, nargs=2, metavar=("LO", "HI"), default=list(d.mcp_latency_ms),
+        help="the reference server's time per lookup, drawn between LO and HI, milliseconds",
+    )  # fmt: skip
+    g.add_argument(
+        "--plan-calls", type=int, default=d.plan_calls,
+        help="planning calls: notes (an in-process tool) at each decision point, more model calls with no HPC work",
+    )  # fmt: skip
+    g.add_argument(
+        "--tool-result-tokens", type=int, default=d.tool_result_tokens,
+        help="long tool results: about K tokens of padding in each lookup's and each analysis's result",
+    )  # fmt: skip
+    g.add_argument(
+        "--suspend-fraction", type=float, default=d.suspend_fraction,
+        help="the share of simulations an agent suspends (saves its state and leaves memory) before",
+    )  # fmt: skip
+    g.add_argument("--no-suspend", action="store_true", help="never suspend: --suspend-fraction 0")
+    g.add_argument(
+        "--think-budget", type=int, default=d.think_budget,
+        help="the thinking budget, tokens per decision call (not in this example yet: only 0)",
+    )  # fmt: skip
+    g.add_argument(
+        "--think-policy", choices=["fixed", "proportional"], default=d.think_policy,
+        help="the same budget for all, or the budget times the candidate's cost scale (with a budget)",
+    )  # fmt: skip
+    g.add_argument(
+        "--think-budget-max", type=int, default=d.think_budget_max,
+        help="the clip of a proportional budget (with a budget)",
+    )  # fmt: skip
+    g.add_argument(
+        "--think-gain", type=float, default=d.think_gain,
+        help="the reasoning gain: the modeled cut in simulations that reasoning buys (not in this example yet: only 0)",
+    )  # fmt: skip
+    g.add_argument(
+        "--think-gain-on", choices=["used", "asked"], default=d.think_gain_on,
+        help="the gain on the thinking tokens used, or on the budget asked (with a gain)",
+    )  # fmt: skip
+
+    g = p.add_argument_group("the model")
+    g.add_argument(
+        "--model", choices=["stub", "openai"], default="stub", help="the stub, or vLLM servers"
+    )
+    g.add_argument("--stub-latency", type=float, default=0.0, help="the stub's seconds per call")
+    g.add_argument("--stub-replicas", type=int, default=1, help="stub replicas per population")
+    g.add_argument(
+        "--stub-kv-tokens", type=int, default=0,
+        help="the stub's prefix cache, tokens per replica; it reports the prompt tokens it finds there (0: none)",
+    )  # fmt: skip
+    g.add_argument(
+        "--stub-decode-rate", type=float, default=30.0,
+        help="the stub's thinking tokens per second (with a thinking budget, not in this example yet)",
+    )  # fmt: skip
+    g.add_argument(
+        "--stub-think-median", type=float, default=320.0,
+        help="the median length of the stub's thinking, tokens (with a thinking budget, not in this example yet)",
+    )  # fmt: skip
+    g.add_argument("--endpoints-file", default=None, help="the model job's base URLs, one per line")
+    g.add_argument("--api-key-file", default=None, help="the model servers' key, in a file")
+    g.add_argument("--model-name", default="Qwen3-8B", help="the served model's name")
+    g.add_argument(
+        "--max-tokens", type=int, default=512, help="answer length: the ceiling on a reply, tokens"
+    )
+    g.add_argument(
+        "--model-wait", type=float, default=1800.0, help="seconds to wait for the model servers"
+    )
+    g.add_argument(
+        "--vllm-interval", type=float, default=2.0, help="seconds between samples of the servers"
+    )
+
+    g = p.add_argument_group("admission: how calls reach the model")
+    g.add_argument(
+        "--cap-requests", "--cap", type=int, default=96,
+        help="the request cap: requests in flight per replica, across the populations",
+    )  # fmt: skip
+    g.add_argument(
+        "--cap-tokens", type=int, default=235_000,
+        help="the token cap: tokens of live context in flight per replica (0: off)",
+    )  # fmt: skip
+    g.add_argument(
+        "--reply-reserve", type=int, default=64, help="tokens reserved for each reply in admission"
+    )
+    g.add_argument(
+        "--admission", choices=["fcfs", "cache"], default="fcfs",
+        help="admission order: first come, first served (cache-first is not in this example yet)",
+    )  # fmt: skip
+
+    g = p.add_argument_group("the system's processes")
+    g.add_argument("--workers", type=int, default=8, help="simulation workers per population")
+    g.add_argument(
+        "--reuse-event-loop", action="store_true",
+        help="one event loop per worker thread for simulation tasks (needs RHAPSODY with rhapsody#163)",
+    )  # fmt: skip
+    g.add_argument(
+        "--stagger-batch", "--start-batch", type=int, default=100, help="agents started per batch"
+    )
+    g.add_argument(
+        "--stagger-interval", "--start-interval", type=float, default=0.5,
+        help="seconds between batches of agents started",
+    )  # fmt: skip
+    g.add_argument("--mcp-servers", type=int, default=4, help="reference-data MCP server processes")
+    g.add_argument(
+        "--toolservices", type=int, default=8, help="tool services, at most one per population"
+    )
+    g.add_argument("--mcp-clients", type=int, default=8, help="MCP clients per tool service")
+    g.add_argument("--mcp-per-client", type=int, default=16, help="calls in flight per MCP client")
+    g.add_argument("--managers", type=int, default=4, help="RaDEX managers, under Dragon")
+    g.add_argument(
+        "--manager-gib",
+        type=float,
+        default=2.0,
+        help="each RaDEX manager's memory, GiB (at most 2)",
+    )
+
+    g = p.add_argument_group("telemetry")
+    g.add_argument(
+        "--span-ratio", type=float, default=0.1,
+        help="the share of agents whose spans are exported (1: every span)",
+    )  # fmt: skip
+    g.add_argument(
+        "--metrics-interval", type=float, default=10.0, help="seconds between metric exports"
+    )
+
+    cfg = p.parse_args(argv)
+    if cfg.no_suspend:
+        cfg.suspend_fraction = 0.0
+    if cfg.think_budget or cfg.think_gain:
+        p.error("--think-budget and --think-gain: the reasoning knob is not in this example yet")
+    if cfg.admission != "fcfs":
+        p.error("--admission cache: cache-first admission is not in this example yet")
+    return cfg
+
+
+def benchmark(cfg: argparse.Namespace) -> Benchmark:
+    """The workload's knobs, from the command line."""
+    return Benchmark(
+        agents=cfg.agents,
+        seed=cfg.seed,
+        max_sims=cfg.max_sims,
+        sims_per_agent=cfg.sims_per_agent,
+        lookup_calls=cfg.lookup_calls,
+        sim_distribution=cfg.sim_distribution,
+        sim_median_s=cfg.sim_median,
+        sim_sigma=cfg.sim_sigma,
+        sim_range_s=tuple(cfg.sim_range),
+        sim_out_elems=cfg.sim_out_elems,
+        sim_burn=cfg.burn,
+        mcp_latency_ms=tuple(cfg.mcp_latency_ms),
+        suspend_fraction=cfg.suspend_fraction,
+        sim_cost_sigma=cfg.sim_cost_sigma,
+        think_budget=cfg.think_budget,
+        think_policy=cfg.think_policy,
+        think_budget_max=cfg.think_budget_max,
+        think_gain=cfg.think_gain,
+        think_gain_on=cfg.think_gain_on,
+        plan_calls=cfg.plan_calls,
+        tool_result_tokens=cfg.tool_result_tokens,
+    )
 
 
 async def make_backend(cfg: argparse.Namespace):
@@ -150,15 +335,7 @@ async def run_miniapp(cfg: argparse.Namespace, run_dir: Path) -> int:
 
 
 async def miniapp_workflow(cfg, flow, run_dir: Path, logger, app) -> bool:
-    bench = Benchmark(
-        agents=cfg.agents,
-        seed=cfg.seed,
-        lookup_calls=cfg.lookup_calls,
-        sims_per_agent=cfg.sims_per_agent,
-        sim_median_s=cfg.sim_median,
-        sim_burn=cfg.burn,
-        suspend_fraction=cfg.suspend_fraction,
-    )
+    bench = benchmark(cfg)
     model = None
     if cfg.model == "openai":  # the model job's servers, once all answer: the fleet's settings
         model = await wait_for_servers(
@@ -170,13 +347,17 @@ async def miniapp_workflow(cfg, flow, run_dir: Path, logger, app) -> bool:
         )
     campaign = Campaign(
         flow,
-        Screening(bench, stub_latency_s=cfg.stub_latency),
+        Screening(bench, stub_latency_s=cfg.stub_latency, stub_kv_tokens=cfg.stub_kv_tokens),
         CampaignConfig(
             run_dir=str(run_dir),
             populations=cfg.populations,
             runtime=cfg.runtime,
             mcp_servers=cfg.mcp_servers,
             toolservices=cfg.toolservices,
+            mcp_clients=cfg.mcp_clients,
+            mcp_per_client=cfg.mcp_per_client,
+            store_managers=cfg.managers,
+            store_manager_gib=cfg.manager_gib,
             telemetry=Telemetry(span_ratio=cfg.span_ratio, interval_s=cfg.metrics_interval),
             timeout_s=cfg.timeout,
             population=PopulationConfig(
@@ -186,6 +367,8 @@ async def miniapp_workflow(cfg, flow, run_dir: Path, logger, app) -> bool:
                 reuse_event_loop=cfg.reuse_event_loop,
                 cap_tokens=cfg.cap_tokens,
                 cap_requests=cfg.cap_requests,
+                reply_reserve=cfg.reply_reserve,
+                stub_replicas=cfg.stub_replicas,
                 model=model,
             ),
         ),

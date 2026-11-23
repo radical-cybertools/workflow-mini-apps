@@ -56,13 +56,68 @@ python -m dragon -s examples/agentic-screening/miniapp_screening.py --runtime dr
 
 The script puts `screening/` first on `PYTHONPATH`, so that the processes the run starts import it too: the MCP servers and, under Dragon, the populations and their workers.
 
-`--help` lists the knobs, among them:
-- `--agents`, `--seed`, `--populations`, `--workers`;
-- the simulations' duration (`--sim-median`, `--no-burn` to sleep instead of using a CPU);
-- `--lookup-calls`;
-- the model servers' admission caps;
-- the telemetry's span sampling (`--span-ratio 1` keeps every span);
-- `--timeout`.
+`--help` lists every knob with its default, in groups:
+- **the campaign:** `--agents`, `--seed`, `--populations`, `--runtime`, `--timeout`;
+- **what the agents do:**
+  - simulation length (`--sim-median`, `--sim-sigma`, `--sim-distribution`, `--sim-range`);
+  - the cost spread (`--sim-cost-sigma`), simulations per agent (`--sims-per-agent`, `--max-sims`), burn or sleep (`--no-burn`);
+  - simulation output (`--sim-out-elems`), reference lookups (`--lookup-calls`), MCP latency (`--mcp-latency-ms`);
+  - planning calls (`--plan-calls`), long tool results (`--tool-result-tokens`), suspension (`--suspend-fraction`, `--no-suspend`);
+  - the thinking knobs (`--think-budget`, `--think-policy`, `--think-budget-max`, `--think-gain`, `--think-gain-on`);
+- **the model:** `--model`, the stub's `--stub-latency`, `--stub-replicas`, `--stub-kv-tokens`, `--stub-decode-rate` and `--stub-think-median`, the servers' `--endpoints-file`, `--model-name` and `--max-tokens`;
+- **admission:** the request cap (`--cap`), the token cap (`--cap-tokens`, `--reply-reserve`), `--admission`;
+- **the system's processes:** `--workers`, the staggered start (`--start-batch`, `--start-interval`), `--mcp-servers`, `--toolservices`, `--mcp-clients`, `--mcp-per-client`, and RaDEX's `--managers` and `--manager-gib`;
+- **telemetry:** `--span-ratio` (1 keeps every span), `--metrics-interval`.
+
+**Not in this example yet:**
+- **The reasoning knob:** decision calls with a thinking budget, the stub's thinking, and the gain on simulations. `--think-budget` and `--think-gain` accept only 0, and say so otherwise. `--think-policy` and `--think-budget-max` change nothing without a budget, and the stub's `--stub-decode-rate` and `--stub-think-median` nothing without thinking.
+- **Cache-first admission:** `--admission` accepts only `fcfs`, and says so otherwise.
+
+## Recipes
+
+Each recipe loads one resource more than the others. The command lines run as they are; add `--agents`, `--populations` and `--workers` for the size you want.
+
+- **CPU-heavy, the default setting.** Simulations of 10 s median, each spinning a core, two or three per agent; one lookup, and `lookups + 2 × simulations + 2` model calls per agent. The run is simulation-bound: cores set the time.
+
+  ```shell
+  python examples/agentic-screening/miniapp_screening.py --agents 1000 --populations 2 --workers 52
+  ```
+
+- **GPU-heavy.** Planning calls and long tool results, with short simulations: more model calls per agent, and long contexts that load the GPUs' prefill and KV cache. With vLLM servers:
+
+  ```shell
+  python examples/agentic-screening/miniapp_screening.py --model openai \
+      --endpoints-file FLEET/endpoints --api-key-file FLEET/api-key \
+      --plan-calls 2 --tool-result-tokens 2000 --sim-median 1
+  ```
+
+  The recipe can add a thinking budget (`--think-budget 256`) and cache-first admission (`--admission cache`), neither in this example yet.
+
+- **Model-traffic-heavy.** Planning calls without long results, more lookups and short simulations: many short requests, so the request cap (`--cap`) binds before the token cap, and the agents' own CPU per call starts to count.
+
+  ```shell
+  python examples/agentic-screening/miniapp_screening.py --model openai \
+      --endpoints-file FLEET/endpoints --api-key-file FLEET/api-key \
+      --plan-calls 4 --lookup-calls 3 --sim-median 1
+  ```
+
+- **The reasoning trade-off.** A thinking budget B on every decision call, a gain that cuts simulations for the tokens spent, and a cost spread across the candidates, with the budget proportional to each candidate's cost; sweep B against `--sim-median`. The thinking budget and the gain are not in this example yet: today it runs the cost spread and the policy.
+
+  ```shell
+  python examples/agentic-screening/miniapp_screening.py --sim-cost-sigma 0.5 \
+      --think-policy proportional   # later: --think-budget B --think-gain 1
+  ```
+
+- **No GPUs.** The stub model keeps the workflow's shape on CPUs only: its latency per call, replicas per population and a prefix cache.
+
+  ```shell
+  python examples/agentic-screening/miniapp_screening.py --model stub --stub-latency 0.05 \
+      --stub-replicas 2 --stub-kv-tokens 200000
+  ```
+
+  `--stub-decode-rate` and `--stub-think-median` shape the stub's thinking, once the reasoning knob is here.
+
+With the stub, every recipe's per-agent results are those of the benchmark's original LangGraph agents with the same knobs.
 
 ## What it writes
 
