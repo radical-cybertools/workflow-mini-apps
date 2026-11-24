@@ -74,6 +74,7 @@ nav:
       - Run on HPC: hpc.md
   - MiniApp:
       - Use MiniApp: api/miniapp.md
+      - Runs of many engines: runs.md
       - Telemetry: telemetry.md
       - Troubleshooting: troubleshooting.md
   - API reference:

@@ -16,6 +16,18 @@ fields, see [Telemetry](../telemetry.md#the-report).
     options:
       show_if_no_docstring: true
 
+::: wfMiniAPI.composition.Composition
+
+::: wfMiniAPI.composition.PartRef
+
+::: wfMiniAPI.composition.Component
+
+::: wfMiniAPI.telemetry.run.ComponentReport
+
+::: wfMiniAPI.telemetry.run.Run
+
+::: wfMiniAPI.telemetry.run.verify_run
+
 ::: wfMiniAPI.api.preflight.require_dragon
 
 ::: wfMiniAPI.api.preflight.BackendUnavailableError

@@ -42,6 +42,8 @@ mean the workflow failed.
 | `MiniApp was never entered` | `app.verify()` without an `async with app` block | Run the workflow inside the `MiniApp` block. |
 | `expected one checkpoint` | The checkpoint file is missing, or the directory holds two runs of the same session | Give each run its own `checkpoint_path` directory. |
 | `<event>: emitted N, written M` or `<event>: seen N, written M` | Events were lost between telemetry and the file | Please [open an issue](https://github.com/radical-cybertools/workflow-mini-apps/issues) with the checkpoint attached. |
+| `part <name>:` | A part handed out with `app.part()` left no report, an incomplete one, two (two engines given one part), or one of another run | Check that engine: it must build its `MiniApp` with `part_of=` and call `app.verify()`; see [Runs of many engines](runs.md). |
+| `component <name>:` | The component's verifier found its records incomplete, or raised | Follow the verifier's reason. |
 | `run-end event failed` or `verification failed` | An unexpected error inside `MiniApp` | Please open an issue with the message. |
 
 **A note, not a reason.** `RunEnded not in the checkpoint: the engine shutdown stopped

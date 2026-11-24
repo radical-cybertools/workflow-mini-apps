@@ -6,7 +6,27 @@ Importing this package imports AsyncFlow/RHAPSODY telemetry; task processes that
 need kernels import ``wfMiniAPI.kernel`` instead.
 """
 
-from .app import AttachError, MiniApp, MiniAppReport
+from .app import (
+    AttachError,
+    Component,
+    ComponentReport,
+    Composition,
+    MiniApp,
+    MiniAppReport,
+    PartRef,
+    Run,
+)
 from .preflight import BackendUnavailableError, require_dragon
 
-__all__ = ["AttachError", "BackendUnavailableError", "MiniApp", "MiniAppReport", "require_dragon"]
+__all__ = [
+    "AttachError",
+    "BackendUnavailableError",
+    "Component",
+    "ComponentReport",
+    "Composition",
+    "MiniApp",
+    "MiniAppReport",
+    "PartRef",
+    "Run",
+    "require_dragon",
+]

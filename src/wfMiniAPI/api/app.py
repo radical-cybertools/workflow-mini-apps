@@ -19,6 +19,14 @@ replaces or shuts them down: the script that created the engine and telemetry sh
 them down, and the nested ``finally`` stops telemetry and verifies even when the
 engine's shutdown fails.  MiniApp records the run and verifies its telemetry
 (``app.verify()``, ``app.report``).
+
+A run of many engines and components: what the run is made of is declared on its
+MiniApp, in ``app.composition`` (``wfMiniAPI.composition``), and its telemetry records and
+verifies it. ``app.parameters`` (or ``MiniApp(..., parameters=...)``) records the
+configuration. The run's MiniApp hands each other engine a ``PartRef`` (``app.part(name)``),
+and that engine's own ``MiniApp(flow, telemetry, part_of=ref)`` reports into the run, from
+any process. Components that are not engines register their files and a verifier
+(``app.component``), and checks across them read the whole run (``app.check``).
 """
 
 from __future__ import annotations
@@ -29,10 +37,21 @@ import functools
 import logging
 import sys
 
+from ..composition import Component, Composition, PartRef
 from ..telemetry.capability import AttachError, MiniAppTelemetry
+from ..telemetry.run import ComponentReport, Run
 from ..telemetry.verify import MiniAppReport
 
-__all__ = ["AttachError", "MiniApp", "MiniAppReport"]
+__all__ = [
+    "AttachError",
+    "Component",
+    "ComponentReport",
+    "Composition",
+    "MiniApp",
+    "MiniAppReport",
+    "PartRef",
+    "Run",
+]
 
 log = logging.getLogger("wfMiniAPI.telemetry")
 
@@ -76,12 +95,30 @@ class MiniApp:
     only records how the run ended; it awaits nothing and shuts nothing down.  After
     the script has shut the engine down and stopped telemetry, ``verify()`` checks the
     checkpoint and sets ``report``.
+
+    ``composition`` is what the run is made of beyond this engine's tasks: its
+    configuration, the other engines it hands out as parts, its components and its
+    checks. The methods below declare it; telemetry records and verifies it.
     """
 
-    def __init__(self, flow, telemetry, /, *, backends=None):
+    def __init__(
+        self,
+        flow,
+        telemetry,
+        /,
+        *,
+        backends=None,
+        part_of: PartRef | None = None,
+        parameters=None,
+    ):
         self.flow = flow
         self.backends = list(backends) if backends is not None else [flow.backend]
-        self.telemetry = MiniAppTelemetry(flow, telemetry)
+        self.composition = Composition()
+        self.telemetry = MiniAppTelemetry(
+            flow, telemetry, composition=self.composition, part_of=part_of
+        )
+        if parameters is not None:
+            self.parameters(parameters)
         # one stored object (atexit.unregister compares by equality) holding only a
         # string, so nothing of the run is kept alive until interpreter exit
         session = getattr(telemetry, "session_id", None) or getattr(flow, "uid", "")
@@ -111,6 +148,49 @@ class MiniApp:
         except Exception as err:
             self.telemetry.reasons.append(f"run-end event failed: {type(err).__name__}: {err}")
         return False
+
+    # ------------------------------------------------------------------ a run of many parts
+    def part(self, name: str) -> PartRef:
+        """Hand another engine of this run a reference to report into it.
+
+        Pass the reference to that engine's ``MiniApp(flow, telemetry, part_of=ref)``, in
+        this process or another.  This run's ``verify()`` then requires that part's report:
+        a part handed out that never reports makes the run's telemetry incomplete.  Call it
+        inside ``async with app``.
+        """
+        if self.telemetry.part_of is not None:
+            raise RuntimeError("a part cannot hand out parts: call part() on the run's MiniApp")
+        parts_dir = self.telemetry.parts_dir
+        if parts_dir is None:
+            raise RuntimeError("enter the MiniApp (async with app) before handing out parts")
+        self.composition.add_part(name)
+        return PartRef(run_id=self.telemetry.run_id, name=name, parts_dir=str(parts_dir))
+
+    def component(self, name: str, files, *, verify) -> None:
+        """Register a component's files and its verifier.
+
+        ``verify`` is ``"module:function"`` or a callable taking the files' path and
+        returning a ``ComponentReport`` or a bool.  It runs in ``verify()``; named by
+        import path, it also runs when the run is verified again offline.
+        """
+        self.composition.add_component(name, files, verify)
+
+    def check(self, name: str, *, verify=None, ok: bool | None = None, detail=None) -> None:
+        """Register a check on the run's results.
+
+        Either ``verify``, ``"module:function"`` or a callable taking a ``Run`` and
+        returning a bool or ``(bool, detail)``, run in ``verify()`` after the parts and
+        components; or ``ok`` (and ``detail``), a result computed in the run.  Failed
+        checks set ``report.checks_pass`` to False; they never make telemetry incomplete.
+        """
+        self.composition.add_check(name, verify, ok, detail)
+
+    def parameters(self, values) -> None:
+        """Record the run's configuration: in the composition, in the checkpoint (a
+        ``wfminiapi.Parameters`` event, once telemetry runs) and in the report. Also
+        ``MiniApp(..., parameters=values)``. A later call replaces the values."""
+        self.composition.set_parameters(values)
+        self.telemetry.record_parameters()
 
     def verify(self) -> MiniAppReport:
         """Verify the telemetry checkpoint and set ``report``; never raises.

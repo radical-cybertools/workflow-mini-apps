@@ -178,7 +178,7 @@ killing a run on Dragon, clean up as described in [Run on HPC](../hpc.md).
 
 ## Options
 
-`MiniApp(flow, telemetry, /, *, backends=None)`
+`MiniApp(flow, telemetry, /, *, backends=None, part_of=None, parameters=None)`
 
 `flow` and `telemetry` are positional-only: `MiniApp(flow=flow, telemetry=telemetry)`
 raises `TypeError`.
@@ -188,5 +188,7 @@ raises `TypeError`.
 | `flow` | The engine (`WorkflowEngine`). |
 | `telemetry` | The telemetry manager that `flow.start_telemetry()` returned, called right before. |
 | `backends` | The backends listed in `RunStarted`. Defaults to the engine's backend; pass them all if the engine has several. |
+| `part_of` | In a run of many engines, the `PartRef` this engine was handed; see [Runs of many engines](../runs.md). |
+| `parameters` | The run's configuration, recorded as a `wfminiapi.Parameters` event. |
 
 The full API is in the [API reference](reference.md).

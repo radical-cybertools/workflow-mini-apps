@@ -43,12 +43,13 @@ flowchart LR
 
 ## MiniApp's events
 
-`MiniApp` adds three events to the checkpoint. Their `event_type` starts with
+`MiniApp` adds four events to the checkpoint. Their `event_type` starts with
 `wfminiapi.`, their `backend` is `wfminiapi`, and their `schema` is `wfminiapi/1`.
 
 | Event | When | Fields |
 |---|---|---|
-| `wfminiapi.RunStarted` | the `MiniApp` block starts | `wfminiapi_version`, `asyncflow_version`, `rhapsody_version` (each with its git commit when known), `backends` (class names) |
+| `wfminiapi.RunStarted` | the `MiniApp` block starts | `wfminiapi_version`, `asyncflow_version`, `rhapsody_version` (each with its git commit when known), `backends` (class names), `run_id` (the run engine's session id), `part` (this engine's part name in a run of many engines, else empty) |
+| `wfminiapi.Parameters` | `app.parameters(...)` is called, or the block is entered after it | `parameters`: the run's configuration, as JSON |
 | `wfminiapi.Barrier` | the `MiniApp` block starts, just before `RunStarted` | `purpose`. A marker: `MiniApp` waits until telemetry has processed it, which shows telemetry is running. |
 | `wfminiapi.RunEnded` | the `MiniApp` block ends | `ended_by` ([how it is decided](api/miniapp.md#how-ended_by-is-decided)), `exception_type` (empty unless the block raised), `duration_s` (the block's duration, without the shutdown) |
 
@@ -76,7 +77,11 @@ A real `RunStarted` line:
 | `events` | `MiniApp`'s own events found in the checkpoint, by type. |
 | `reasons` | Why the record is incomplete. Empty when `telemetry_complete` is `true`. |
 | `notes` | Facts worth knowing that do not make the record incomplete. |
-| `exit_hint` | `0` if complete, `3` if not. wfMiniAPI never exits by itself; a script may end with `sys.exit(app.report.exit_hint)`. |
+| `run_id`, `part` | The run this engine belongs to, and its part name (empty for the run's own engine). |
+| `parameters` | The run's configuration, from `app.parameters(...)`. |
+| `completed_by_executable` | Completed tasks, by function name. |
+| `parts`, `components`, `checks`, `checks_pass` | For a run of many engines and components; see [Runs of many engines](runs.md). |
+| `exit_hint` | `0` if complete and every check passes, `3` if the record is incomplete, `4` if it is complete but a check failed. wfMiniAPI never exits by itself; a script may end with `sys.exit(app.report.exit_hint)`. |
 
 The report of the [Quick start](getting-started.md#quick-start) run:
 

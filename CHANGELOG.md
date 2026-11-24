@@ -2,6 +2,29 @@
 
 ## Unreleased
 
+### Runs of many engines and components
+
+- **A run's composition is declared on its `MiniApp`** (`app.composition`, a
+  `Composition`: its parameters, parts, components and checks); telemetry records and
+  verifies it. `MiniApp(..., parameters=...)` declares the configuration at
+  construction.
+- **`app.part(name)`** hands another engine of the run a picklable `PartRef`; that
+  engine's own `MiniApp(flow, telemetry, part_of=ref)`, in any process, reports into
+  the run. The run's `verify()` requires a complete report from every part it handed out.
+- **`app.component(name, files, verify=...)`** registers a component (a `Component`:
+  its files and a verifier returning a `ComponentReport`);
+  **`app.check(name, verify=... | ok=...)`** registers a check across the run (a `Run`);
+  **`app.parameters(...)`** records the run's configuration (`wfminiapi.Parameters` and
+  the report).
+- **The report** gains `run_id`, `part`, `parameters`, `completed_by_executable`,
+  `parts`, `components`, `checks` and `checks_pass`. `exit_hint` is `4` when telemetry is
+  complete but a check failed (`3` still means incomplete telemetry).
+- **`wfminiapi.RunStarted`** gains `run_id` and `part`.
+- **`python -m wfMiniAPI.verify <dir> [--session <id>]`** verifies a run again offline
+  from its manifest (`<session>.wfminiapi.manifest.json`, written only for runs that use
+  the above; its paths are relative to it, so a run directory can be moved).
+- A run of one engine that uses none of this sees no change.
+
 ### Fixed
 
 - **motif_2, motif_3, motif_4 and motif_6** now run from a fresh directory and on
