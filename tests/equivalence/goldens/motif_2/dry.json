@@ -211,6 +211,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulate_0",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -258,6 +259,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulate_1",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -305,6 +307,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulate_2",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -352,6 +355,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulate_3",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -399,6 +403,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulate_4",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -446,6 +451,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulate_5",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -493,6 +499,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulate_6",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -540,6 +547,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulate_7",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -609,6 +617,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "analyze",
       "num_bytes": 512
      },
      "name": "writeNonMPI",
@@ -656,6 +665,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulate_0",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -703,6 +713,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulate_3",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -750,6 +761,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulate_5",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -797,6 +809,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulate_6",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -866,6 +879,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "analyze",
       "num_bytes": 512
      },
      "name": "writeNonMPI",
@@ -913,6 +927,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulate_0",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -960,6 +975,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulate_5",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -1029,6 +1045,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "analyze",
       "num_bytes": 512
      },
      "name": "writeNonMPI",
@@ -1041,7 +1058,16 @@
  ],
  "exit_code": 0,
  "files": [],
- "manager_kernels": [],
+ "manager_kernels": [
+  {
+   "args": {
+    "data_root_dir": "./",
+    "num_bytes": 1024
+   },
+   "name": "writeNonMPI",
+   "outcome": "dry"
+  }
+ ],
  "mode": "dry",
  "workflow": "motif_2"
 }

@@ -1,7 +1,9 @@
 {
  "calls": [
   {
-   "args": [],
+   "args": [
+    0
+   ],
    "call": "simulate#0",
    "comp": "function",
    "kwargs": {},
@@ -20,6 +22,7 @@
   },
   {
    "args": [
+    1,
     {
      "future_of": "simulate#0"
     }
@@ -45,6 +48,7 @@
   },
   {
    "args": [
+    2,
     {
      "future_of": "train#1"
     }
@@ -101,6 +105,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulate_0",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -147,10 +152,27 @@
  "files": [
   [
    "data_0.h5",
+   3072
+  ],
+  [
+   "data_0_simulate_0.h5",
+   6144
+  ],
+  [
+   "data_0_simulate_1.h5",
    6144
   ]
  ],
- "manager_kernels": [],
+ "manager_kernels": [
+  {
+   "args": {
+    "data_root_dir": "./",
+    "num_bytes": 1024
+   },
+   "name": "writeNonMPI",
+   "outcome": "ok"
+  }
+ ],
  "mode": "real",
  "workflow": "motif_3_parallel"
 }
