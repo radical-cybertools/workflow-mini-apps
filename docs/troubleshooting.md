@@ -25,7 +25,8 @@ one of these:
 
 Your script's `finally` still runs after an `AttachError`: it shuts the engine down and
 stops telemetry, and `app.verify()` returns a report whose reason starts with
-`not attached:`.
+`not attached:`. Whether the report file is written depends on the message; see
+[No report file](#no-report-file).
 
 ## The report says incomplete
 
@@ -44,8 +45,10 @@ mean the workflow failed.
 | `run-end event failed` or `verification failed` | An unexpected error inside `MiniApp` | Please open an issue with the message. |
 
 **A note, not a reason.** `RunEnded not in the checkpoint: the engine shutdown stopped
-telemetry before MiniApp's exit` appears with AsyncFlow versions whose `shutdown()` also
-stops telemetry. The record is still complete; only `MiniApp`'s end event is missing.
+telemetry before MiniApp's exit` can appear only with AsyncFlow versions whose
+`shutdown()` also stops telemetry, and only when that shutdown starts before the
+`MiniApp` block ends (Ctrl-C, SIGTERM, an engine error). The record is still complete;
+only `MiniApp`'s end event is missing.
 
 ## Tasks counted as `abandoned` or `not_submitted`
 
@@ -60,9 +63,18 @@ See [how tasks are counted](telemetry.md#how-tasks-are-counted).
 
 ## No report file
 
-`app.verify()` was not called. A warning says so when the process exits:
-`verify() was never called; no report written`. Use the
-[script shape](api/miniapp.md#the-script), which calls it in the inner `finally`.
+There are two causes:
+
+- **`app.verify()` was not called.** A warning says so when the process exits:
+  `verify() was never called; no report written`. Use the
+  [script shape](api/miniapp.md#the-script), which calls it in the inner `finally`.
+- **`MiniApp` did not attach, before it knew the checkpoint directory.** `app.verify()`
+  still returns a report with a `not attached:` reason and logs it, but has no
+  directory to write the file to. This happens for every
+  [`AttachError`](#attacherror-when-the-miniapp-block-starts) except
+  `telemetry checkpoint not found`, `tasks were already submitted before MiniApp attached`,
+  `RHAPSODY telemetry lacks drain_on_stop` and `telemetry dispatch loop did not respond`.
+  Fix the `AttachError`.
 
 ## The process does not exit (Dragon)
 

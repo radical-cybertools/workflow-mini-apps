@@ -57,22 +57,8 @@ print(app.report.telemetry_complete, app.report.tasks)
 
 The order of the three calls in `finally` matters. The engine shuts down first, so its
 last task events are emitted. Telemetry stops next, so all of them reach the file.
-`app.verify()` comes last and reads the finished file.
-
-### Why the `finally` is nested
-
-If `flow.shutdown()` raises, for example because a backend fails to shut down, the
-inner `finally` still stops telemetry and writes the report, and then the error
-propagates. With a single, flat `finally`, that error would skip `telemetry.stop()`
-and `app.verify()`: the checkpoint would stay open, there would be no report, and on
-Dragon the process might not exit.
-
-??? note "Works whether or not `flow.shutdown()` stops telemetry itself"
-    With the pinned AsyncFlow, `flow.shutdown()` leaves telemetry running and your
-    script stops it. If a future AsyncFlow stops telemetry inside `shutdown()`, this
-    script still works: `telemetry.stop()` then does nothing, and the report gets a
-    note saying that `RunEnded` could not be written. Keep your own `telemetry`
-    variable rather than reading `flow.telemetry` in the `finally`.
+`app.verify()` comes last and reads the finished file. Why the `finally` is nested is
+explained in [When something fails](#when-something-fails).
 
 ## What MiniApp does during a run
 
@@ -115,7 +101,8 @@ wfMiniAPI, AsyncFlow and RHAPSODY and the backend classes.
 
 Your script's `finally` handles an `AttachError` like any other error: it shuts the
 engine down and stops telemetry, and `app.verify()` returns a report that says
-`MiniApp` did not attach.
+`MiniApp` did not attach. The report file is written only when `MiniApp` already knew
+the checkpoint directory; see [Troubleshooting](../troubleshooting.md#no-report-file).
 
 ### When the MiniApp block ends
 
@@ -156,7 +143,25 @@ report's fields are described in [Telemetry](../telemetry.md#the-report).
     - If a script never calls `app.verify()`, a warning is printed when the Python
       process exits: `verify() was never called; no report written`.
 
-## Ctrl-C, signals and time limits
+## When something fails
+
+### Why the `finally` is nested
+
+If `flow.shutdown()` raises, for example because a backend fails to shut down, the
+inner `finally` still stops telemetry and writes the report, and then the error
+propagates. With a single, flat `finally`, that error would skip `telemetry.stop()`
+and `app.verify()`: the checkpoint would stay open, there would be no report, and on
+Dragon the process might not exit.
+
+??? note "Works whether or not `flow.shutdown()` stops telemetry itself"
+    With the pinned AsyncFlow, `flow.shutdown()` leaves telemetry running and your
+    script stops it. If a future AsyncFlow stops telemetry inside `shutdown()`, this
+    script still works: `telemetry.stop()` then does nothing. If that shutdown starts
+    before the `MiniApp` block ends (Ctrl-C, SIGTERM, an engine error), `RunEnded`
+    cannot be written, and the report gets a note saying so. Keep your own `telemetry`
+    variable rather than reading `flow.telemetry` in the `finally`.
+
+### Ctrl-C, signals and time limits
 
 **Ctrl-C and SIGTERM** are handled by AsyncFlow, not by `MiniApp`
 ([AsyncFlow docs](https://radical-cybertools.github.io/radical.asyncflow/)). AsyncFlow
@@ -173,7 +178,10 @@ killing a run on Dragon, clean up as described in [Run on HPC](../hpc.md).
 
 ## Options
 
-`MiniApp(flow, telemetry, *, backends=None)`
+`MiniApp(flow, telemetry, /, *, backends=None)`
+
+`flow` and `telemetry` are positional-only: `MiniApp(flow=flow, telemetry=telemetry)`
+raises `TypeError`.
 
 | Argument | Meaning |
 |---|---|

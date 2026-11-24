@@ -73,7 +73,7 @@ Most kernels take a `device` argument:
 
 - `"cpu"` runs them with NumPy;
 - `"gpu"` runs them with CuPy, installed by the `gpu` extra (`cupy-cuda12x`, NVIDIA
-  GPUs). Without CuPy a GPU call raises
+  GPUs; for AMD GPUs, see [Run on HPC](hpc.md#install)). Without CuPy a GPU call raises
   `ImportError: CuPy is not installed. Install CuPy to use GPU capabilities.`
 
 `get_device_module(device)` returns the module a kernel uses (`numpy` or `cupy`), so a

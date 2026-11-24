@@ -9,14 +9,20 @@ The [examples](examples.md) use the Dragon backend, so the steps below show Drag
 
 ## Install
 
-On the node, with the site's Python, CUDA and MPI modules loaded:
+On the node, with the site's Python, MPI and GPU (CUDA or ROCm) modules loaded:
 
 ```shell
 pip install -e ".[workflow,io,mpi,dragon,gpu]"
 ```
 
-Leave out `gpu` on a node without an NVIDIA GPU. `gpu` installs `cupy-cuda12x`; for
-another CUDA version, install the matching CuPy package instead.
+`gpu` installs `cupy-cuda12x`, the CuPy build for NVIDIA GPUs with CUDA 12. On a node
+with another CUDA version, or with AMD GPUs (ROCm), leave out `gpu` and install the
+matching CuPy build instead, for example `cupy-rocm-7-0` for ROCm 7.0. The kernels use
+CuPy only when both of these imports work, so check once on the node:
+
+```shell
+python -c "import cupy; from cupy.cuda import nccl"
+```
 
 ## In the script
 
@@ -43,10 +49,12 @@ from wfMiniAPI.api import require_dragon
 require_dragon()
 ```
 
-**GPU kernels.** Several example tasks call kernels with `device="gpu"`. Without CuPy and
-a GPU, those tasks fail with
-`ImportError: CuPy is not installed. Install CuPy to use GPU capabilities.`, and the
-report counts them as `failed`.
+**GPU kernels.** Every example has tasks that call GPU kernels in their code
+(`device="gpu"`, `dataCopyH2D`). The `device` keys in `config.yaml` switch only some of
+the other tasks, so setting them to `"cpu"` does not make an example run without a GPU.
+Without CuPy and a GPU, the GPU tasks fail with
+`ImportError: CuPy is not installed. Install CuPy to use GPU capabilities.`; the report
+counts them as `failed`, and the tasks that depend on them as `not_submitted`.
 
 ## Launch
 
@@ -58,8 +66,9 @@ dragon -s miniapp_async.py      # one node
 dragon miniapp_async.py         # every node of the allocation
 ```
 
-Dragon reads the node count from SLURM. Outside a SLURM job, set it by hand:
-`export SLURM_JOB_NUM_NODES=1`.
+`dragon -s` runs on the current node and needs no workload manager. `dragon` without
+`-s` runs on every node of the SLURM allocation it is started in; on a machine with
+SLURM but outside an allocation, it stops with an error that suggests `-s`.
 
 ## Logging
 
@@ -72,7 +81,13 @@ warning is always printed.
 ## After a killed run
 
 A run killed from outside (walltime, `kill -9`) cannot shut Dragon down. Clean up before
-the next run on the same allocation. On one node:
+the next run on the same allocation.
+
+!!! warning "The cleanup stops all of your Dragon runs on those nodes"
+    `dragon-cleanup` ends every Dragon runtime you own on the node, not only the killed
+    run's. Do not run it while another of your Dragon runs is still active there.
+
+On one node:
 
 ```shell
 dragon-cleanup

@@ -10,17 +10,17 @@ wfMiniAPI needs Python 3.12 or newer.
 ```shell
 git clone https://github.com/radical-cybertools/workflow-mini-apps.git
 cd workflow-mini-apps
-pip install -e ".[workflow,io,mpi]"
+pip install -e ".[workflow]"
 ```
 
-Pick the extras you need:
+`workflow` is all the Quick start needs. Add other extras as you need them:
 
 | Extra | Installs | Needed for |
 |---|---|---|
 | `workflow` | AsyncFlow and RHAPSODY, with telemetry | `MiniApp` and every example |
 | `io` | `h5py` | the I/O kernels |
 | `mpi` | `mpi4py` | the I/O and communication kernels |
-| `gpu` | `cupy-cuda12x` | running kernels on an NVIDIA GPU |
+| `gpu` | `cupy-cuda12x` | running kernels on an NVIDIA GPU (for AMD, see [Run on HPC](hpc.md#install)) |
 | `dragon` | the Dragon backend, through RHAPSODY | the examples; see [Run on HPC](hpc.md) |
 | `plot` | `matplotlib` | `tools/plot_run.py` |
 | `test`, `docs`, `dev` | pytest; MkDocs; ruff and pre-commit | working on wfMiniAPI itself |
