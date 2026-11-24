@@ -65,38 +65,17 @@ def main(argv: list[str]) -> int:
     return 1 if failed else 0
 
 
-# The preserved shared-file bug (U5): parallel tasks read and write the same ./data_0.h5,
-# so on a parallel backend HDF5's file lock can make any of them fail, at random.
-RACE = "unable to lock file"
-ATTEMPTS = 3
-
-
-def raced(summary: dict) -> bool:
-    return any(RACE in (e.get("error") or "") for e in summary.get("failed_executions", []))
-
-
 def pair(pairs: list[tuple[str, str]], keep: bool) -> int:
     failed = 0
     for name, mode in pairs:
         last = harness.WORK / "last" / harness.BACKEND
-        for attempt in range(1, ATTEMPTS + 1):
-            base = harness.run(
-                name, mode, keep=last / f"{name}.{mode}.baseline" if keep else None, baseline=True
-            )
-            summary, facts = harness.run(
-                name, mode, keep=last / f"{name}.{mode}" if keep else None, telemetry=True
-            )
-            if not (raced(base) or raced(summary)):
-                break
-        else:
-            print(
-                f"{name:18s} {mode:4s} INCONCLUSIVE: the shared ./data_0.h5 lock race "
-                f"(preserved bug) hit all {ATTEMPTS} attempts",
-                flush=True,
-            )
-            failed += 1
-            continue
-        note = "" if attempt == 1 else f"; attempt {attempt}, earlier ones hit the h5 lock race"
+        base = harness.run(
+            name, mode, keep=last / f"{name}.{mode}.baseline" if keep else None, baseline=True
+        )
+        summary, facts = harness.run(
+            name, mode, keep=last / f"{name}.{mode}" if keep else None, telemetry=True
+        )
+        note = ""
         if base["exit_code"] == "timeout" and summary["exit_code"] != "timeout":
             # Known difference: after a task failure the baseline core never reaches its
             # own flow.shutdown(), and on Dragon nothing else shuts the backend down, so

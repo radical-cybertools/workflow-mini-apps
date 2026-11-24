@@ -42,8 +42,11 @@ TIMEOUT_S = int(os.environ.get("WFMINI_EQUIV_TIMEOUT", "900"))
 TREE = Path(os.environ.get("WFMINI_EQUIV_TREE", REPO)).resolve()
 # optional directory put first on PYTHONPATH so a different wfMiniAPI is imported
 LIB = os.environ.get("WFMINI_EQUIV_LIB")
-# goldens are captured on the baseline: workflow-mini-apps 55cd20f + the KR-01 guard
+# goldens are captured on the baseline: workflow-mini-apps 55cd20f + the KR-01 guard,
+# exported by hand, then BASELINE_PATCH (fixes the examples carry too) applied to a copy
 BASELINE = WORK / "wfmini-55cd20f"
+BASELINE_PATCH = HERE / "baseline" / "examples.patch"
+BASELINE_PATCHED = WORK / "wfmini-baseline"
 # "concurrent" (default): deterministic, compared with the goldens.  "dragon": the real
 # Dragon backend under the `dragon` launcher; parallel, so baseline and integrated runs
 # are compared with each other as multisets (run_equiv.py pair), not with goldens.
@@ -160,25 +163,38 @@ def example_path(workflow: Workflow, tree: Path = TREE) -> Path:
     return tree / workflow.script
 
 
+def _patched_copy(source: Path, patch: Path, target: Path) -> Path:
+    """``target`` = a copy of ``source`` with ``patch`` applied; rebuilt when the patch changes."""
+    stamp = target / ".patch.sha"
+    digest = __import__("hashlib").sha256(patch.read_bytes()).hexdigest()
+    if not (stamp.exists() and stamp.read_text() == digest):
+        shutil.rmtree(target, ignore_errors=True)
+        # symlinks=True: the wfMiniAPI export holds dangling example symlinks
+        shutil.copytree(source, target, symlinks=True)
+        # git, not `patch` (missing on some HPC nodes); the ceiling keeps git from finding
+        # this repository above WORK, so the paths apply to the copy as given
+        subprocess.run(
+            ["git", "apply", "-p1", str(patch)],
+            cwd=target,
+            env=dict(os.environ, GIT_CEILING_DIRECTORIES=str(target.parent)),
+            check=True,
+        )
+        stamp.write_text(digest)
+    return target
+
+
 def integrated_ddsim() -> Path:
     """The integrated DeepDriveSim tree, built from the baseline export and DDSIM_PATCH."""
     if "WFMINI_EQUIV_DDSIM" in os.environ or not DDSIM_BASELINE.exists():
         return DDSIM_INTEGRATED
-    stamp = DDSIM_INTEGRATED / ".patch.sha"
-    digest = __import__("hashlib").sha256(DDSIM_PATCH.read_bytes()).hexdigest()
-    if not (stamp.exists() and stamp.read_text() == digest):
-        shutil.rmtree(DDSIM_INTEGRATED, ignore_errors=True)
-        shutil.copytree(DDSIM_BASELINE, DDSIM_INTEGRATED)
-        # git, not `patch` (missing on some HPC nodes); the ceiling keeps git from finding
-        # this repository above WORK, so the paths apply to the copy as given
-        subprocess.run(
-            ["git", "apply", "-p1", str(DDSIM_PATCH)],
-            cwd=DDSIM_INTEGRATED,
-            env=dict(os.environ, GIT_CEILING_DIRECTORIES=str(DDSIM_INTEGRATED.parent)),
-            check=True,
-        )
-        stamp.write_text(digest)
-    return DDSIM_INTEGRATED
+    return _patched_copy(DDSIM_BASELINE, DDSIM_PATCH, DDSIM_INTEGRATED)
+
+
+def baseline_tree() -> Path:
+    """The workflow-mini-apps baseline: the hand-made export with BASELINE_PATCH applied."""
+    if not BASELINE.exists():
+        return BASELINE
+    return _patched_copy(BASELINE, BASELINE_PATCH, BASELINE_PATCHED)
 
 
 # ---------------------------------------------------------------------------- #
@@ -250,8 +266,8 @@ def run(
 
     ``baseline=True`` runs the pristine baseline tree and library (used to capture goldens).
     """
-    tree = BASELINE if baseline else TREE
-    lib = str(BASELINE / "wfMiniAPI" / "src") if baseline else LIB
+    tree = baseline_tree() if baseline else TREE
+    lib = str(tree / "wfMiniAPI" / "src") if baseline else LIB
     workflow = WORKFLOWS[name]
     WORK.mkdir(exist_ok=True)
     tmp = Path(tempfile.mkdtemp(prefix=f"{name}.{mode}.", dir=WORK))

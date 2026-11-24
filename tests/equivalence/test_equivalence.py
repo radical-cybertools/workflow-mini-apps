@@ -83,3 +83,36 @@ def test_harness_detects_behaviour_change(tmp_path):
     )
     golden = json.loads(harness.golden_path("motif_4", "dry").read_text())
     assert compare.first_difference(golden, json.loads(proc.stdout)) is not None
+
+
+def test_baseline_patch_applies_to_a_copy(tmp_path):
+    """The baseline fixes apply to a copy of the 55cd20f files; the source stays untouched."""
+    source = tmp_path / "export"
+    patched = [
+        line[len("+++ b/") :].strip()
+        for line in harness.BASELINE_PATCH.read_text().splitlines()
+        if line.startswith("+++ b/")
+    ]
+    originals = {}
+    for script in patched:
+        proc = subprocess.run(
+            ["git", "-C", str(harness.REPO), "show", f"55cd20f:{script}"],
+            capture_output=True,
+            text=True,
+        )
+        if proc.returncode:
+            pytest.skip("55cd20f is not in this clone's history")
+        (source / script).parent.mkdir(parents=True, exist_ok=True)
+        (source / script).write_text(proc.stdout)
+        originals[script] = proc.stdout
+    target = tmp_path / "patched"
+    assert harness._patched_copy(source, harness.BASELINE_PATCH, target) == target
+    for script, text in originals.items():
+        assert "filename_suffix=" in (target / script).read_text(), script
+        assert (source / script).read_text() == text
+    (target / "marker").write_text("")
+    harness._patched_copy(source, harness.BASELINE_PATCH, target)  # same patch: reused
+    assert (target / "marker").exists()
+    (target / ".patch.sha").write_text("stale")
+    harness._patched_copy(source, harness.BASELINE_PATCH, target)  # changed patch: rebuilt
+    assert not (target / "marker").exists()

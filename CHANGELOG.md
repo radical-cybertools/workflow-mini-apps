@@ -25,6 +25,16 @@
   the above; its paths are relative to it, so a run directory can be moved).
 - A run of one engine that uses none of this sees no change.
 
+### Fixed
+
+- **motif_2, motif_3, motif_4 and motif_6** now run from a fresh directory and on
+  parallel backends. Each script creates its input file `./data_0.h5` before the first
+  task; every task reads it and writes its own file, named after the task (e.g.
+  `data_0_simulate_3.h5`).
+- **Equivalence harness:** the baseline carries the same change
+  (`tests/equivalence/baseline/examples.patch`, applied to a copy of the export), and the
+  five workflows' goldens are re-captured.
+
 ## 0.2.0 (2026-11-21)
 
 The previous `main` is tagged `v0.1.0` (`55cd20f`).

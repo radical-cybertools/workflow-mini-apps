@@ -1,0 +1,199 @@
+Fixes applied to the baseline export (workflow-mini-apps 55cd20f + KR-01) before goldens
+are captured. harness.baseline_tree() applies this file to a copy of the export, so the
+goldens compare the integrated examples with a baseline that carries the same fixes.
+
+- HDF5 I/O (motif_2/3/4/6): every task reads ./data_0.h5, created first by the script
+  and sized to the largest read in the config, and writes its own file
+  (filename_suffix). This fixes motif_2's first stage failing in a fresh directory
+  and the shared-file lock race between parallel tasks.
+
+--- a/examples/motif_2/miniapp_pipeline.py
++++ b/examples/motif_2/miniapp_pipeline.py
+@@ -24,6 +24,8 @@
+     mp.set_start_method("dragon")
+     backend = await DragonExecutionBackendV3()
+     flow = await WorkflowEngine.create(backend=backend)
++    input_size = max(e["read_size_bytes"] for e in cfg["stages"] + [cfg["analysis"]])
++    kern.writeNonMPI(num_bytes=input_size, data_root_dir="./")
+ 
+     @flow.function_task
+     async def simulate(stage_idx, candidate):
+@@ -40,7 +42,7 @@
+         kern.generateRandomNumber(device=device, size=matmul_dim)
+         for _ in range(steps):
+             kern.matMulSimple2D(device=device, size=matmul_dim)
+-        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
++        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./", filename_suffix=f"simulate_{candidate}")
+         logger.info(f"Stage {stage_idx}: finished simulating candidate {candidate}...")
+         logger.info(time.strftime("%H:%M:%S", time.localtime()))
+         return random.random()
+@@ -62,7 +64,7 @@
+             kern.matMulSimple2D(device="gpu", size=matmul_dim)
+             kern.matMulSimple2D(device="cpu", size=matmul_dim)
+         kern.dataCopyD2H(data_size=copy_size)
+-        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
++        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./", filename_suffix="analyze")
+         logger.info(f"Stage {stage_idx}: finished analyzing candidates...")
+         logger.info(time.strftime("%H:%M:%S", time.localtime()))
+         return [random.random() for _ in range(num_candidates)]
+--- a/examples/motif_3/miniapp_simple.py
++++ b/examples/motif_3/miniapp_simple.py
+@@ -24,6 +24,8 @@
+     mp.set_start_method("dragon")
+     backend = await DragonExecutionBackendV3()
+     flow = await WorkflowEngine.create(backend=backend)
++    input_size = max(e["read_size_bytes"] for e in cfg.values() if "read_size_bytes" in e)
++    kern.writeNonMPI(num_bytes=input_size, data_root_dir="./")
+     
+     @flow.function_task
+     async def simulate():
+@@ -39,7 +41,7 @@
+         kern.generateRandomNumber(device=device, size=matmul_dim)
+         for i in range(steps):
+             kern.matMulSimple2D(device=device, size=matmul_dim)
+-        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
++        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./", filename_suffix="simulate")
+         kern.readNonMPI(num_bytes=read_size, data_root_dir="./")
+         logger.info(f"Finished simulating with params...")
+         logger.info(time.strftime("%H:%M:%S", time.localtime()))
+@@ -63,7 +65,7 @@
+             kern.matMulSimple2D(device="gpu", size=matmul_dim)
+             kern.matMulSimple2D(device="cpu", size=matmul_dim)
+         kern.dataCopyH2D(data_size=copy_size)
+-        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
++        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./", filename_suffix="train")
+         logger.info(f"Finished training model with evaluation results...")
+         logger.info(time.strftime("%H:%M:%S", time.localtime()))
+         return random.random()
+--- a/examples/motif_3/miniapp_parallel.py
++++ b/examples/motif_3/miniapp_parallel.py
+@@ -24,9 +24,11 @@
+     mp.set_start_method("dragon")
+     backend = await DragonExecutionBackendV3()
+     flow = await WorkflowEngine.create(backend=backend)
++    input_size = max(e["read_size_bytes"] for e in cfg.values() if "read_size_bytes" in e)
++    kern.writeNonMPI(num_bytes=input_size, data_root_dir="./")
+ 
+     @flow.function_task
+-    async def simulate(_train=None):
++    async def simulate(sim_idx, _train=None):
+         e = cfg["simulate"]
+         steps = e["steps"]
+         device = e["device"]
+@@ -39,7 +41,7 @@
+         kern.generateRandomNumber(device=device, size=matmul_dim)
+         for i in range(steps):
+             kern.matMulSimple2D(device=device, size=matmul_dim)
+-        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
++        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./", filename_suffix=f"simulate_{sim_idx}")
+         kern.readNonMPI(num_bytes=read_size, data_root_dir="./")
+         logger.info(f"Finished simulating with params...")
+         logger.info(time.strftime("%H:%M:%S", time.localtime()))
+@@ -63,18 +65,18 @@
+             kern.matMulSimple2D(device="gpu", size=matmul_dim)
+             kern.matMulSimple2D(device="cpu", size=matmul_dim)
+         kern.dataCopyH2D(data_size=copy_size)
+-        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
++        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./", filename_suffix="train")
+         logger.info(f"Finished training model with evaluation results...")
+         logger.info(time.strftime("%H:%M:%S", time.localtime()))
+         return random.random()
+ 
+-    simulate_t0= simulate()
++    simulate_t0= simulate(0)
+     
+     train_t1 = train(simulate_t0)
+-    simulate_t1 = simulate(simulate_t0)
++    simulate_t1 = simulate(1, simulate_t0)
+     
+     train_t2 = train(simulate_t1, train_t1)
+-    simulate_t2 = simulate(train_t1)
++    simulate_t2 = simulate(2, train_t1)
+     
+     train_t3 = await train(simulate_t2, train_t2)
+ 
+--- a/examples/motif_4/miniapp_async.py
++++ b/examples/motif_4/miniapp_async.py
+@@ -24,6 +24,8 @@
+     mp.set_start_method("dragon")
+     backend = await DragonExecutionBackendV3()
+     flow = await WorkflowEngine.create(backend=backend)
++    input_size = max(e["read_size_bytes"] for e in cfg.values() if "read_size_bytes" in e)
++    kern.writeNonMPI(num_bytes=input_size, data_root_dir="./")
+ 
+     @flow.function_task
+     async def experiment():
+@@ -39,7 +41,7 @@
+         kern.generateRandomNumber(device=device, size=matmul_dim)
+         for j in range(steps):
+             kern.matMulSimple2D(device=device, size=matmul_dim)
+-        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
++        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./", filename_suffix="experiment")
+         kern.readNonMPI(num_bytes=read_size, data_root_dir="./")
+         logger.info(f"Finished simulating...")
+         logger.info(time.strftime("%H:%M:%S", time.localtime()))
+@@ -61,7 +63,7 @@
+         for _ in range(steps):
+             kern.matMulSimple2D(device=device, size=matmul_dim)
+         if i == 0:
+-            kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
++            kern.writeNonMPI(num_bytes=write_size, data_root_dir="./", filename_suffix=f"simulation_{i}")
+         logger.info(f"Finished simulating...")
+         logger.info(time.strftime("%H:%M:%S", time.localtime()))
+         return random.random()
+@@ -77,7 +79,7 @@
+ 
+         logger.info(f"Training model with simulation results...")
+         logger.info(time.strftime("%H:%M:%S", time.localtime()))
+-        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
++        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./", filename_suffix="training")
+         kern.readNonMPI(num_bytes=read_size, data_root_dir="./")
+         kern.dataCopyH2D(data_size=copy_size)
+         for i in range(steps):
+@@ -105,7 +107,7 @@
+             kern.matMulSimple2D(device="gpu", size=matmul_dim)
+             kern.matMulSimple2D(device="cpu", size=matmul_dim)
+         kern.dataCopyH2D(data_size=copy_size)
+-        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
++        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./", filename_suffix="inference")
+         logger.info(f"Finished inferencing model with evaluation results...")
+         logger.info(time.strftime("%H:%M:%S", time.localtime()))
+         return random.random()
+--- a/examples/motif_6/miniapp_adaptive.py
++++ b/examples/motif_6/miniapp_adaptive.py
+@@ -24,6 +24,8 @@
+     mp.set_start_method("dragon")
+     backend = await DragonExecutionBackendV3()
+     flow = await WorkflowEngine.create(backend=backend)
++    input_size = max(e["read_size_bytes"] for e in cfg.values() if "read_size_bytes" in e)
++    kern.writeNonMPI(num_bytes=input_size, data_root_dir="./")
+ 
+     @flow.function_task
+     async def simulate(i):
+@@ -39,7 +41,7 @@
+         kern.generateRandomNumber(device=device, size=matmul_dim)
+         for _ in range(steps):
+             kern.matMulSimple2D(device=device, size=matmul_dim)
+-        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
++        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./", filename_suffix=f"simulate_{i}")
+         logger.info(f"Finished simulation {i}...")
+         logger.info(time.strftime("%H:%M:%S", time.localtime()))
+         return random.random()
+@@ -59,7 +61,7 @@
+             kern.matMulSimple2D(device="gpu", size=matmul_dim)
+             kern.matMulSimple2D(device="cpu", size=matmul_dim)
+         kern.dataCopyD2H(data_size=copy_size)
+-        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
++        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./", filename_suffix=f"train_{model_id}")
+         logger.info(f"Finished training model {model_id}...")
+         logger.info(time.strftime("%H:%M:%S", time.localtime()))
+         return random.random()
+@@ -81,7 +83,7 @@
+             kern.matMulSimple2D(device="gpu", size=matmul_dim)
+             kern.matMulSimple2D(device="cpu", size=matmul_dim)
+         kern.dataCopyD2H(data_size=copy_size)
+-        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
++        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./", filename_suffix="analyze")
+         logger.info(f"Finished analysis...")
+         logger.info(time.strftime("%H:%M:%S", time.localtime()))
+         return {"accuracy": [random.random() for _ in range(num_models)],
