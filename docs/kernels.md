@@ -1,9 +1,11 @@
 # Kernels
 
-`wfMiniAPI` provides small, portable functions that stand in for real application work
-inside workflow tasks: computation, file I/O, communication and host/device data
-movement. A mini-app task calls a few of them, with sizes that match the real
-application, instead of running the application itself.
+This page lists the emulation kernels, the building blocks of a mini-app's tasks.
+
+A kernel is a small, portable function that stands in for one kind of application
+work: computation, file I/O, communication or host/GPU data movement. A mini-app task
+calls a few of them, with sizes that match the real application, instead of running the
+application itself; see [Write the workflow](building.md).
 
 ## Kernel families
 
@@ -71,7 +73,7 @@ Most kernels take a `device` argument:
 
 - `"cpu"` runs them with NumPy;
 - `"gpu"` runs them with CuPy, installed by the `gpu` extra (`cupy-cuda12x`, NVIDIA
-  GPUs). Without CuPy a GPU call raises
+  GPUs; for AMD GPUs, see [Run on HPC](hpc.md#install)). Without CuPy a GPU call raises
   `ImportError: CuPy is not installed. Install CuPy to use GPU capabilities.`
 
 `get_device_module(device)` returns the module a kernel uses (`numpy` or `cupy`), so a
@@ -122,12 +124,11 @@ def my_stencil(device, size):
 ## The C++ kernels
 
 `cpp/include/wfMiniAPI/kernel.h` is a header-only C++ version of the kernels, using
-OpenMP target offloading, so it is meant for CPUs and NVIDIA, AMD and Intel GPUs. It is
-used by including the header; there is nothing to install. It needs OpenMP, MPI, HDF5
+OpenMP target offloading, so it is meant for CPUs and NVIDIA, AMD and Intel GPUs. The
+header is used by including it; there is nothing to install. Building with it needs OpenMP, MPI, HDF5
 and NCCL headers at build time.
 
-## Telemetry
+## Kernels and telemetry
 
-Kernels are not timed or recorded by the workflow telemetry: it records tasks, not what
-happens inside them. To time a kernel inside a task, use `time_kernel()` or your own
-timers. See [Telemetry](telemetry.md).
+A run's telemetry records tasks, not the kernels inside them. To time a kernel inside a
+task, use `time_kernel()` or your own timers. See [Telemetry](telemetry.md).

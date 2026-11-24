@@ -79,31 +79,478 @@
    "comp": "function",
    "kwargs": {},
    "name": "simulate"
+  },
+  {
+   "args": [
+    0,
+    8
+   ],
+   "call": "analyze#8",
+   "comp": "function",
+   "kwargs": {},
+   "name": "analyze"
   }
  ],
- "error_tail": "FileNotFoundError: [Errno 2] Unable to synchronously open file (unable to open file: name = './data_0.h5', errno = 2, error message = 'No such file or directory', flags = 0, o_flags = 0)",
+ "error_tail": "ImportError: CuPy is not installed. Install CuPy to use GPU capabilities.",
  "executions": [
   {
    "comp": "function",
-   "error": "FileNotFoundError: [Errno 2] Unable to synchronously open file (unable to open file: name = './data_0.h5', errno = 2, error message = 'No such file or directory', flags = 0, o_flags = 0)",
    "kernels": [
     {
      "args": {
       "data_root_dir": "./",
       "num_bytes": 1024
      },
-     "error": "FileNotFoundError: [Errno 2] Unable to synchronously open file (unable to open file: name = './data_0.h5', errno = 2, error message = 'No such file or directory', flags = 0, o_flags = 0)",
      "name": "readNonMPI",
-     "outcome": "error"
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "filename_suffix": "simulate_0",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "ok"
     }
    ],
    "name": "simulate",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "filename_suffix": "simulate_1",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "ok"
+    }
+   ],
+   "name": "simulate",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "filename_suffix": "simulate_2",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "ok"
+    }
+   ],
+   "name": "simulate",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "filename_suffix": "simulate_3",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "ok"
+    }
+   ],
+   "name": "simulate",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "filename_suffix": "simulate_4",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "ok"
+    }
+   ],
+   "name": "simulate",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "filename_suffix": "simulate_5",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "ok"
+    }
+   ],
+   "name": "simulate",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "filename_suffix": "simulate_6",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "ok"
+    }
+   ],
+   "name": "simulate",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "generateRandomNumber",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "device": "cpu",
+      "size": 16
+     },
+     "name": "matMulSimple2D",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_root_dir": "./",
+      "filename_suffix": "simulate_7",
+      "num_bytes": 4096
+     },
+     "name": "writeNonMPI",
+     "outcome": "ok"
+    }
+   ],
+   "name": "simulate",
+   "outcome": "ok"
+  },
+  {
+   "comp": "function",
+   "error": "ImportError: CuPy is not installed. Install CuPy to use GPU capabilities.",
+   "kernels": [
+    {
+     "args": {
+      "data_root_dir": "./",
+      "num_bytes": 1024
+     },
+     "name": "readNonMPI",
+     "outcome": "ok"
+    },
+    {
+     "args": {
+      "data_size": 256
+     },
+     "error": "ImportError: CuPy is not installed. Install CuPy to use GPU capabilities.",
+     "name": "dataCopyH2D",
+     "outcome": "error"
+    }
+   ],
+   "name": "analyze",
    "outcome": "error"
   }
  ],
  "exit_code": 1,
- "files": [],
- "manager_kernels": [],
+ "files": [
+  [
+   "data_0.h5",
+   3072
+  ],
+  [
+   "data_0_simulate_0.h5",
+   6144
+  ],
+  [
+   "data_0_simulate_1.h5",
+   6144
+  ],
+  [
+   "data_0_simulate_2.h5",
+   6144
+  ],
+  [
+   "data_0_simulate_3.h5",
+   6144
+  ],
+  [
+   "data_0_simulate_4.h5",
+   6144
+  ],
+  [
+   "data_0_simulate_5.h5",
+   6144
+  ],
+  [
+   "data_0_simulate_6.h5",
+   6144
+  ],
+  [
+   "data_0_simulate_7.h5",
+   6144
+  ]
+ ],
+ "manager_kernels": [
+  {
+   "args": {
+    "data_root_dir": "./",
+    "num_bytes": 1024
+   },
+   "name": "writeNonMPI",
+   "outcome": "ok"
+  }
+ ],
  "mode": "real",
  "workflow": "motif_2"
 }

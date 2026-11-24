@@ -1,7 +1,7 @@
 # Validation on an HPC node
 
-The equivalence suite in CI runs on the Concurrent backend on a CPU. Two things need a
-real node:
+This page is for wfMiniAPI maintainers. The [equivalence suite](equivalence.md) in CI
+runs on the Concurrent backend on a CPU. Two things need a real node:
 
 - **Dragon:** task bodies run in Dragon worker processes, in parallel;
 - **a GPU:** the examples' hard-coded GPU kernel calls succeed instead of failing.
@@ -70,19 +70,13 @@ Each line of the comparison reads `identical, report complete`:
 - **report complete:** the integrated run has one complete `MiniApp` report, one
   `RunStarted` and one `RunEnded`, and its tasks are tagged with the workflow scope.
 
-Two notes may follow a result; neither is a failure:
+One note may follow a result; it is not a failure:
 
 - **"baseline hangs after the failure, integrated exits":** when a task fails, the
   baseline core never reaches its own `flow.shutdown()`. On Dragon nothing else shuts the
   backend down, so the baseline process never exits and is stopped after
   `WFMINI_EQUIV_TIMEOUT` (300 s). The integrated run exits, because its script shuts
-  the engine down in a `finally`. motif_2 always fails this way: it reads `./data_0.h5` before anything
-  writes it (a preserved bug).
-- **"attempt N, earlier ones hit the h5 lock race":** motif_2 and motif_4 tasks share
-  `./data_0.h5` (a preserved bug), so on a parallel backend HDF5's file lock fails a task
-  at random. Such runs are retried. If all 3 attempts race, the result is
-  `INCONCLUSIVE`: rerun that workflow alone with
-  `WFMINI_EQUIV_BACKEND=dragon .equiv-work/venv-validate/bin/python tests/equivalence/run_equiv.py pair --workflow <name>`.
+  the engine down in a `finally`.
 
 ## How the comparison stays deterministic on Dragon
 

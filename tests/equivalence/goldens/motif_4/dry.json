@@ -1260,6 +1260,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "experiment",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -1627,6 +1628,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulation_0",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -2539,6 +2541,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "training",
       "num_bytes": 512
      },
      "name": "writeNonMPI",
@@ -2662,6 +2665,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "inference",
       "num_bytes": 1024
      },
      "name": "writeNonMPI",
@@ -2701,6 +2705,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "experiment",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -3848,6 +3853,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulation_0",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -3980,6 +3986,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "training",
       "num_bytes": 512
      },
      "name": "writeNonMPI",
@@ -4103,6 +4110,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "inference",
       "num_bytes": 1024
      },
      "name": "writeNonMPI",
@@ -4142,6 +4150,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "experiment",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -4509,6 +4518,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "simulation_0",
       "num_bytes": 4096
      },
      "name": "writeNonMPI",
@@ -5421,6 +5431,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "training",
       "num_bytes": 512
      },
      "name": "writeNonMPI",
@@ -5544,6 +5555,7 @@
     {
      "args": {
       "data_root_dir": "./",
+      "filename_suffix": "inference",
       "num_bytes": 1024
      },
      "name": "writeNonMPI",
@@ -5556,7 +5568,16 @@
  ],
  "exit_code": 0,
  "files": [],
- "manager_kernels": [],
+ "manager_kernels": [
+  {
+   "args": {
+    "data_root_dir": "./",
+    "num_bytes": 1024
+   },
+   "name": "writeNonMPI",
+   "outcome": "dry"
+  }
+ ],
  "mode": "dry",
  "workflow": "motif_4"
 }

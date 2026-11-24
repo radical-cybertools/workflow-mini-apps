@@ -1,236 +1,194 @@
-# MiniApp
+# Use MiniApp
 
-`MiniApp` is a workflow mini-app's single contact point. You build the RADICAL
-components yourself, and they stay visible and swappable: the execution backend,
-the AsyncFlow engine and AsyncFlow telemetry. You also shut them down. `MiniApp`
-records the run and verifies its telemetry; it never shuts anything down.
+This page shows how to attach `MiniApp` to a mini-app's script, and what `MiniApp`
+does during a run. For what the run records, see [Telemetry](../telemetry.md).
+
+`MiniApp` records each run of a mini-app and, at the end, checks that the run's
+telemetry is complete. `MiniApp` attaches to the engine and the telemetry that your script
+builds; it never builds, replaces or shuts down any of them.
+
+## Who does what
+
+| Part | Its role in a run | Documentation |
+|---|---|---|
+| **Your script** | Builds the backend, the engine and the telemetry; runs the workflow inside the `MiniApp` block; shuts everything down and calls `app.verify()` | This page |
+| **`MiniApp`** (wfMiniAPI) | Checks the telemetry when the block starts, records when the run started and how it ended, verifies the checkpoint, writes the report | This page and [Telemetry](../telemetry.md) |
+| **AsyncFlow** | The workflow engine (`flow`): runs the tasks in dependency order, emits their events, handles Ctrl-C | [AsyncFlow docs](https://radical-cybertools.github.io/radical.asyncflow/) |
+| **RHAPSODY** | The execution backend, which runs the task bodies, and the telemetry manager, which writes the checkpoint file | [RHAPSODY docs](https://radical-cybertools.github.io/rhapsody/) |
+
+## The script
+
+Every mini-app script has this shape. Only the backend, the scope name and the
+workflow change from one mini-app to the next.
 
 ```python
-from rhapsody.backends import DragonExecutionBackend
 from radical.asyncflow import WorkflowEngine
+from rhapsody.backends import DragonExecutionBackend
 from wfMiniAPI.api import MiniApp
 
-backend   = await DragonExecutionBackend()
+backend   = await DragonExecutionBackend()                        # (1)!
 flow      = await WorkflowEngine.create(backend=backend)
-telemetry = await flow.start_telemetry(checkpoint_path="telemetry")
+telemetry = await flow.start_telemetry(checkpoint_path="telemetry")  # (2)!
 app = MiniApp(flow, telemetry)
 try:
-    async with app, flow.workflow_scope("motif_4"):
-        await miniapp_workflow(cfg, flow, logger)      # the unchanged workflow
+    async with app, flow.workflow_scope("motif_4"):              # (3)!
+        await miniapp_workflow(cfg, flow, logger)                 # (4)!
 finally:
     try:
-        await flow.shutdown()
+        await flow.shutdown()                                     # (5)!
     finally:
-        await telemetry.stop()
-        app.verify()
+        await telemetry.stop()                                    # (6)!
+        app.verify()                                              # (7)!
 print(app.report.telemetry_complete, app.report.tasks)
 ```
 
-The `finally` is nested on purpose. If the engine's shutdown fails (a backend raises),
-or a second Ctrl-C arrives during it, telemetry is still stopped and the report is
-still written; the shutdown's error then propagates. With a flat `finally`, a failed
-shutdown would skip both, leave the checkpoint open, and on Dragon the process may not
-exit.
+1. Any RHAPSODY backend works. `ConcurrentExecutionBackend()` runs on a laptop; see
+   [Getting started](../getting-started.md).
+2. `checkpoint_path` is required: `MiniApp` verifies the file written there.
+3. The *MiniApp block*. `flow.workflow_scope(...)` groups the run's tasks under this
+   name in the telemetry.
+4. Your workflow, unchanged. The workflow does not shut the engine down.
+5. Your script shuts the engine down: unfinished tasks are cancelled and the backend
+   stops.
+6. Your script stops telemetry: everything still queued is written and the file is
+   closed.
+7. `MiniApp` reads the closed file, sets `app.report` and writes the report file. It
+   never raises.
 
-`telemetry.stop()` after `flow.shutdown()` is safe either way: if AsyncFlow's
-`shutdown()` already stopped telemetry (radical.asyncflow #125), it does nothing. Keep
-the `telemetry` variable: after such a shutdown `flow.telemetry` is `None`.
+The order of the three calls in `finally` matters. The engine shuts down first, so its
+last task events are emitted. Telemetry stops next, so all of them reach the file.
+`app.verify()` comes last and reads the finished file. Why the `finally` is nested is
+explained in [When something fails](#when-something-fails).
 
-## What it does
+## What MiniApp does during a run
 
-**On entry**, it raises `AttachError` with a fix-it message if:
+```mermaid
+sequenceDiagram
+    participant S as Your script
+    participant M as MiniApp
+    participant E as Engine (AsyncFlow)
+    participant T as Telemetry (RHAPSODY)
+    participant C as Checkpoint file
+    S->>E: build the backend and the engine
+    S->>T: flow.start_telemetry(checkpoint_path=...)
+    T->>C: SessionStarted
+    S->>M: enter the MiniApp block
+    M->>T: attach checks, then RunStarted
+    S->>E: run the workflow
+    E->>T: task events
+    S->>M: leave the MiniApp block
+    M->>T: RunEnded, with ended_by
+    S->>E: flow.shutdown()
+    Note over E: cancels unfinished tasks, shuts the backend down
+    S->>T: telemetry.stop()
+    T->>C: remaining events, SessionEnded, metrics, spans
+    S->>M: app.verify()
+    M->>C: read the checkpoint, write the report next to it
+```
 
-- `telemetry` is not the manager this `flow` emits into: pass the object the latest
-  `flow.start_telemetry()` returned, not a manager built by hand, a wrapper, or the
-  result of an earlier call;
-- telemetry is not running, or has no checkpoint file (`checkpoint_path=`);
-- tasks were already submitted (enter `MiniApp` right after `start_telemetry()`).
+### When the MiniApp block starts
 
-The script's `finally` handles an `AttachError` like any other error: it shuts the
-engine down, stops telemetry, and `app.verify()` returns a report that says MiniApp
-did not attach.
+`MiniApp` first checks that it can verify this run. `MiniApp` raises `AttachError` with a
+message that says what to change when, for example, `telemetry` is not the object
+`flow.start_telemetry()` returned, telemetry has no `checkpoint_path`, or tasks were
+already submitted. [Troubleshooting](../troubleshooting.md#attacherror-when-the-miniapp-block-starts)
+lists every case.
 
-Then it records `wfminiapi.RunStarted` (wfMiniAPI, AsyncFlow and RHAPSODY versions,
-backend classes).
+`MiniApp` then subscribes to telemetry, sends a `wfminiapi.Barrier` marker and waits
+until telemetry has processed it (at most 30 seconds), which shows that telemetry is
+running. Finally `MiniApp` records `wfminiapi.RunStarted`, with the versions of
+wfMiniAPI, AsyncFlow and RHAPSODY and the backend classes.
 
-**On exit**, whether normal, on an exception, a cancel or a signal, it records how the
-block ended (`ended_by`) and queues `wfminiapi.RunEnded`, if telemetry is still running.
-It awaits nothing, so a cancel cannot interrupt it, and it never raises over the
-workflow's own exception. It does not shut the engine down or stop telemetry: the
-script does that next. `RunEnded` is therefore queued before the engine's shutdown, so
-the shutdown's own events (cancelled tasks, `SessionEnded`) come after it, and its
-`duration_s` covers the block, not the shutdown.
+Your script's `finally` handles an `AttachError` like any other error: it shuts the
+engine down and stops telemetry, and `app.verify()` returns a report that says
+`MiniApp` did not attach. The report file is written only when `MiniApp` already knew
+the checkpoint directory; see [Troubleshooting](../troubleshooting.md#no-report-file).
 
-**`app.verify()`**, called after `flow.shutdown()` and `telemetry.stop()`, reads the
-checkpoint, sets `app.report` and writes `<checkpoint>/<session>.wfminiapi.report.json`.
-It never raises:
+### When the MiniApp block ends
 
-- called while telemetry still runs, it returns an incomplete report saying so, and
-  counts nothing (the file is still buffered);
-- after an `AttachError`, or if the block was never entered, the report says so;
-- an error while reading the checkpoint becomes a reason in the report.
+`MiniApp` records how the block ended (`ended_by`, below) and queues
+`wfminiapi.RunEnded`. That is all: `MiniApp` awaits nothing, so a cancel cannot
+interrupt it, and it never replaces the workflow's own exception. Shutting down is
+left to your script, which does it next.
 
-If a script never calls `app.verify()`, a WARNING is logged when the process exits:
-"verify() was never called; no report written".
+Because `RunEnded` is queued before the engine shuts down, the shutdown's own events
+come after it in the file, and its `duration_s` covers the block only.
 
-Signals are handled by AsyncFlow, as before: its handler starts the engine's shutdown
-and cancels the awaited futures, the block ends with `ended_by` `engine_shutdown`, and
-the script's `await flow.shutdown()` waits for that same shutdown.
+### How `ended_by` is decided
 
-**Time limits.** `MiniApp` sets none, and its exit waits for nothing. An
-`asyncio.timeout()` around the block bounds the workflow; the script's `finally`
-(engine shutdown, telemetry stop) runs after it, and Dragon's backend shutdown blocks
-the event loop while it runs. For a hard limit use a process-level one (the batch
-walltime, `timeout -k`); after a kill on Dragon, run `dragon-cleanup` and check for
-orphaned `_dragon_native_python_process_main` processes.
+```mermaid
+flowchart TD
+    A{"Did the block raise?"} -- no --> N["normal"]
+    A -- "yes: an exception" --> X["exception"]
+    A -- "yes: a cancel" --> B{"Was the task running the block cancelled?"}
+    B -- "yes: asyncio.timeout, a TaskGroup, asyncio.run" --> C1["cancelled"]
+    B -- no --> D{"Is the engine shutting down?"}
+    D -- "yes: Ctrl-C, SIGTERM, an engine error, flow.shutdown()" --> S["engine_shutdown"]
+    D -- no --> C2["cancelled"]
+```
 
-## The report
+A workflow that catches the cancel and returns normally ends `normal`, even after
+Ctrl-C.
 
-`app.report` (`MiniAppReport`, set by `app.verify()`), also written as
-`<checkpoint>/<session>.wfminiapi.report.json`:
+### When your script calls `app.verify()`
 
-| Field | Meaning |
+`MiniApp` reads the checkpoint, sets `app.report`, writes
+`<checkpoint_path>/<session>.wfminiapi.report.json` and logs one summary line. The
+report's fields are described in [Telemetry](../telemetry.md#the-report).
+`app.verify()` never raises: anything that goes wrong becomes a reason in the report.
+
+??? note "If `app.verify()` is called too early, or never"
+    - Called while telemetry still runs, `app.verify()` returns an incomplete report
+      that says so and counts nothing; call it again after `telemetry.stop()`.
+    - If a script never calls `app.verify()`, a warning is printed when the Python
+      process exits: `verify() was never called; no report written`.
+
+## When something fails
+
+### Why the `finally` is nested
+
+If `flow.shutdown()` raises, for example because a backend fails to shut down, the
+inner `finally` still stops telemetry and writes the report, and then the error
+propagates. With a single, flat `finally`, that error would skip `telemetry.stop()`
+and `app.verify()`: the checkpoint would stay open, there would be no report, and on
+Dragon the process might not exit.
+
+??? note "Works whether or not `flow.shutdown()` stops telemetry itself"
+    With the pinned AsyncFlow, `flow.shutdown()` leaves telemetry running and your
+    script stops it. If a future AsyncFlow stops telemetry inside `shutdown()`, this
+    script still works: `telemetry.stop()` then does nothing. If that shutdown starts
+    before the `MiniApp` block ends (Ctrl-C, SIGTERM, an engine error), `RunEnded`
+    cannot be written, and the report gets a note saying so. Keep your own `telemetry`
+    variable rather than reading `flow.telemetry` in the `finally`.
+
+### Ctrl-C, signals and time limits
+
+**Ctrl-C and SIGTERM** are handled by AsyncFlow, not by `MiniApp`
+([AsyncFlow docs](https://radical-cybertools.github.io/radical.asyncflow/)). AsyncFlow
+starts the engine's shutdown and cancels what the workflow is waiting for, so the
+`MiniApp` block ends with `ended_by` = `engine_shutdown`. Your script's
+`await flow.shutdown()` then waits for that same shutdown instead of starting a second
+one. Tasks still running at that moment are cancelled without an end event; the report
+counts them as `abandoned`.
+
+**Time limits.** `MiniApp` sets none. An `asyncio.timeout()` around the `MiniApp` block
+bounds the workflow, and your script's `finally` still runs after it. For a hard limit,
+use one at the process level, such as the batch job's walltime or `timeout -k`. After
+killing a run on Dragon, clean up as described in [Run on HPC](../hpc.md).
+
+## Options
+
+`MiniApp(flow, telemetry, /, *, backends=None, part_of=None, parameters=None)`
+
+`flow` and `telemetry` are positional-only: `MiniApp(flow=flow, telemetry=telemetry)`
+raises `TypeError`.
+
+| Argument | Meaning |
 |---|---|
-| `telemetry_complete` | every event emitted and seen was written to the checkpoint; the checkpoint exists; telemetry finished writing its queue; it was not stopped by hand while the engine still ran |
-| `tasks` | from AsyncFlow's events, tasks only (blocks excluded): `created`, `completed`, `failed`, `canceled`, `abandoned` (submitted, no end event, e.g. cancelled at shutdown), `not_submitted` (e.g. a failed dependency) |
-| `ended_by` | how the block ended: `normal`; `exception` (any exception other than a cancel); `cancelled` (cancelled from outside: `asyncio.timeout`, a `TaskGroup`, `asyncio.run`, a supervisor); `engine_shutdown` (the engine was shut down under the block: a signal, an engine error, or a `flow.shutdown()` call that cancelled what the workflow awaited). A workflow that catches the cancel and returns ends `normal`, even after a signal. |
-| `reasons` | why telemetry is incomplete |
-| `notes` | facts worth knowing that do not make it incomplete, e.g. "RunEnded not in the checkpoint: the engine shutdown stopped telemetry before MiniApp's exit" (Ctrl-C with an AsyncFlow whose `shutdown()` stops telemetry) |
-| `run_id`, `part`, `parameters`, `completed_by_executable` | the run this engine belongs to, its part name, the run's configuration, completed tasks by function name |
-| `parts`, `components`, `checks`, `checks_pass` | a run of many engines and components: see below |
-| `exit_hint` | `0` if complete and every check passes, `3` if telemetry is incomplete, `4` if it is complete but a check failed. wfMiniAPI never exits by itself; a script may do `sys.exit(app.report.exit_hint)`. |
+| `flow` | The engine (`WorkflowEngine`). |
+| `telemetry` | The telemetry manager that `flow.start_telemetry()` returned, called right before. |
+| `backends` | The backends listed in `RunStarted`. Defaults to the engine's backend; pass them all if the engine has several. |
+| `part_of` | In a run of many engines, the `PartRef` this engine was handed; see [Runs of many engines](../runs.md). |
+| `parameters` | The run's configuration, recorded as a `wfminiapi.Parameters` event. |
 
-## A run of many engines and components
-
-In the example above, the workflow is one engine's tasks. A run can be more than that. It
-can use other engines (one per population of agents, say), each in its own process, and
-components that are not engines but leave records of their own. All of it is the run's
-**composition** (`app.composition`), declared on the run's `MiniApp`. Its telemetry records
-the composition and verifies it. `MiniApp` still builds and runs nothing: the script starts
-every engine and component, as it does with one engine.
-
-### What a run is made of
-
-| | What it is | How it is declared | What it leaves | Who verifies it |
-|---|---|---|---|---|
-| **The run's engine** | the AsyncFlow engine whose `MiniApp` hands out the parts; its report is the run's report | `MiniApp(flow, telemetry)` | its telemetry checkpoint | its `MiniApp`, as with one engine |
-| **A part** | each other engine of the run, in any process | `ref = app.part(name)` on the run's `MiniApp`; then, where that engine runs, `MiniApp(flow, telemetry, part_of=ref)` | its checkpoint, and its report in the run's parts directory | its own `MiniApp`; the run requires its report |
-| **A component** | anything else that leaves records: an agent library's telemetry export, a model server's counters, the application's results | `app.component(name, files, verify=...)` (a `Component`) | its files | the verifier given, run by the run's `verify()` |
-| **A check** | a function over the whole run: are the results right? | `app.check(name, verify=...)`, or `ok=` for a result computed in the run | | the run's `verify()`, last |
-| **The parameters** | the run's configuration | `MiniApp(..., parameters=cfg)` or `app.parameters(cfg)` | a `wfminiapi.Parameters` event | |
-
-How they fit together, with one part:
-
-```text
-the run's process                                  the part's process (any node)
------------------                                  -----------------------------
-engine E0 and its telemetry                        engine E1 and its telemetry
-app = MiniApp(E0, telemetry, parameters=cfg)
-  ref = app.part("p1")  ---- PartRef, picklable ---> part = MiniApp(E1, telemetry, part_of=ref)
-                                                       ... E1 runs its tasks ...
-                                                     part.verify() writes its report into
-                                                       the run's parts directory
-  app.component("agents", files, verify=...)
-  app.check("results_match", verify=...)
-app.verify(), after both engines are shut down:
-  1. E0's checkpoint, as with one engine
-  2. each part's report, from the parts directory
-  3. each component's verifier, over its files
-  4. each check, over all of the above (a Run)
-  -> report.telemetry_complete (1 to 3) and report.checks_pass (4)
-```
-
-In the script, the run's `MiniApp` declares the composition inside its block:
-
-```python
-app = MiniApp(flow, telemetry, parameters=cfg)  # the run's engine and configuration
-try:
-    async with app, flow.workflow_scope("screening"):  # a scope name, as "motif_4" above
-        refs = [app.part(f"p{i}") for i in range(2)]  # one part per other engine
-        await start_engines(refs)  # your code: each of its processes builds an engine
-                                   # and MiniApp(flow, telemetry, part_of=ref)
-        app.component("agents", run_dir / "otel", verify="mylib.telemetry:verify_export")
-        app.check("simulations_match", verify="myapp.checks:simulations_match")
-finally:
-    ...  # the same nested finally
-```
-
-and each part, in whatever process it runs, has the same shape as a run of one engine:
-
-```python
-app = MiniApp(flow, telemetry, part_of=ref)  # same script shape and nested finally
-```
-
-`start_engines` stands for the application's own code: `MiniApp` does not start processes
-or engines. The scope name, `"screening"` here and `"motif_4"` above, only labels the
-block's tasks in telemetry.
-
-### What the run's verify() requires
-
-- **Parts.** Each part's `verify()` writes its report into the run's parts directory
-  (`<checkpoint>/<run_id>.parts/<name>.<session>.json`, an absolute path taken when the
-  run's `MiniApp` attached). Every part's process must reach that path: with parts on
-  other nodes, keep the run's checkpoint on a shared file system. Reports are written
-  whole (a temporary file, then a rename), so the run never reads half of one. The run's
-  `verify()` requires exactly one complete report from every part it handed out: a part that never reported, reported incomplete
-  telemetry, was reported by two engines, or belongs to another run makes the run's
-  telemetry incomplete (`part <name>: …`). Give each engine its own part; part names use
-  letters, digits, `_` and `-`. The run's report lists each part's report under `parts`,
-  and a part whose own checks failed adds a failed check `part <name>` to the run's.
-- **Components.** A component is its name, its files and its verifier (a `Component`).
-  The verifier takes the files and returns a `ComponentReport` (or a bool). An
-  incomplete component makes the run's telemetry incomplete (`component <name>: …`);
-  its `counts` are there for checks.
-- **Checks.** A check takes a `Run` (parameters, parts, components, the run's own
-  report) and returns a bool or `(bool, detail)`; `app.check(name, ok=..., detail=...)`
-  records a result computed in the run. Failed checks set `checks_pass` to `False` and
-  `exit_hint` to `4`: they never make telemetry incomplete. Details, counts and
-  parameters are written as plain JSON: keys become strings, sets and tuples lists,
-  anything else its `str()`.
-- **Offline.** The run's `verify()` also writes `<session>.wfminiapi.manifest.json`, with
-  paths relative to its directory, so the run directory can be moved.
-  `python -m wfMiniAPI.verify <checkpoint dir>` verifies the run again from its files;
-  verifiers and checks named as `"module:function"` run again, the others keep the
-  verdict recorded in the run. When the directory holds several runs, pass
-  `--session <run engine's session id>`. A run of one engine with none of the above
-  writes no manifest and sees no change.
-
-## What the telemetry covers
-
-The full list of events, metrics and spans, how to read them and their limits: [Telemetry](../telemetry.md).
-
-| Recorded | By |
-|---|---|
-| The run: start, end, how it ended, versions, backends | `MiniApp` (`wfminiapi.RunStarted` / `RunEnded`) |
-| Each task's lifecycle and outcome; workflow scopes and blocks; spans and resource metrics | AsyncFlow and RHAPSODY telemetry, as configured in `start_telemetry()` |
-| Whether all of the above reached the checkpoint | `MiniApp` (`app.report`) |
-
-**Nothing inside a task is recorded.** wfMiniAPI does not time kernels or steps, does
-not pass a task context into tasks and adds no hooks on the backend. In-task telemetry
-is the workflow developer's responsibility.
-
-## Preflight
-
-`require_dragon()` is optional. It raises `BackendUnavailableError` with a launch hint
-when Dragon is not installed or the process was not started by the `dragon` launcher.
-It never starts a Dragon runtime.
-
-::: wfMiniAPI.api.app.MiniApp
-
-::: wfMiniAPI.telemetry.verify.MiniAppReport
-
-::: wfMiniAPI.telemetry.verify.verify_checkpoint
-
-::: wfMiniAPI.composition.Composition
-
-::: wfMiniAPI.composition.PartRef
-
-::: wfMiniAPI.composition.Component
-
-::: wfMiniAPI.telemetry.run.ComponentReport
-
-::: wfMiniAPI.telemetry.run.Run
-
-::: wfMiniAPI.telemetry.run.verify_run
-
-::: wfMiniAPI.api.preflight.require_dragon
+The full API is in the [API reference](reference.md).

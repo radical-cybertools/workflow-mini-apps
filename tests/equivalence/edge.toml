@@ -56,25 +56,57 @@ allow_added = [
 
 # --------------------------------------------------------------------------- #
 # workflow-mini-apps examples: same edge shape in all six
+#
+# HDF5 I/O fix (2026-11-24), motif_2/3/4/6: the tasks shared one file, ./data_0.h5, so
+# motif_2's first stage read it before anything wrote it, and parallel tasks hit HDF5's
+# file lock (the U5 race). Each script now creates ./data_0.h5, sized to its largest
+# read, as the first statement of its try (these three edge lines); every task reads it
+# and writes its own file (a core change, see core_manifest.json). The baseline carries
+# the same change (baseline/examples.patch), so the goldens still compare like with like.
 [[example]]
 id = "motif_2"
 path = "examples/motif_2/miniapp_pipeline.py"
+allow_added = [
+  '# every task reads \./data_0\.h5 and writes its own file: create it for the largest read',
+  'input_size = max\(e\["read_size_bytes"\] for e in cfg\["stages"\] \+ \[cfg\["analysis"\]\]\)',
+  'kern\.writeNonMPI\(num_bytes=input_size, data_root_dir="\./"\)',
+]
 
 [[example]]
 id = "motif_3_simple"
 path = "examples/motif_3/miniapp_simple.py"
+allow_added = [
+  '# every task reads \./data_0\.h5 and writes its own file: create it for the largest read',
+  'input_size = max\(e\["read_size_bytes"\] for e in cfg\.values\(\) if "read_size_bytes" in e\)',
+  'kern\.writeNonMPI\(num_bytes=input_size, data_root_dir="\./"\)',
+]
 
 [[example]]
 id = "motif_3_parallel"
 path = "examples/motif_3/miniapp_parallel.py"
+allow_added = [
+  '# every task reads \./data_0\.h5 and writes its own file: create it for the largest read',
+  'input_size = max\(e\["read_size_bytes"\] for e in cfg\.values\(\) if "read_size_bytes" in e\)',
+  'kern\.writeNonMPI\(num_bytes=input_size, data_root_dir="\./"\)',
+]
 
 [[example]]
 id = "motif_4"
 path = "examples/motif_4/miniapp_async.py"
+allow_added = [
+  '# every task reads \./data_0\.h5 and writes its own file: create it for the largest read',
+  'input_size = max\(e\["read_size_bytes"\] for e in cfg\.values\(\) if "read_size_bytes" in e\)',
+  'kern\.writeNonMPI\(num_bytes=input_size, data_root_dir="\./"\)',
+]
 
 [[example]]
 id = "motif_6"
 path = "examples/motif_6/miniapp_adaptive.py"
+allow_added = [
+  '# every task reads \./data_0\.h5 and writes its own file: create it for the largest read',
+  'input_size = max\(e\["read_size_bytes"\] for e in cfg\.values\(\) if "read_size_bytes" in e\)',
+  'kern\.writeNonMPI\(num_bytes=input_size, data_root_dir="\./"\)',
+]
 
 [[example]]
 id = "dragon_mpi"

@@ -1,79 +1,128 @@
 # Getting started
 
+This page installs wfMiniAPI and runs a first mini-app on a laptop, with `MiniApp`
+recording the run. This takes about five minutes.
+
 ## Install
 
-Python 3.12 or newer.
+wfMiniAPI needs Python 3.12 or newer.
 
 ```shell
 git clone https://github.com/radical-cybertools/workflow-mini-apps.git
 cd workflow-mini-apps
-pip install -e ".[workflow,io,mpi]"
+pip install -e ".[workflow]"
 ```
 
-| Extra | Installs |
-|---|---|
-| `io` | `h5py` (I/O kernels) |
-| `mpi` | `mpi4py` (MPI kernels) |
-| `gpu` | `cupy-cuda12x` (GPU kernels) |
-| `workflow` | AsyncFlow and RHAPSODY (with telemetry), needed by the examples |
-| `dragon` | the Dragon backend (`dragonhpc` 0.15.0, through RHAPSODY); run scripts under the `dragon` launcher |
-| `plot` | `matplotlib`, for `tools/plot_run.py` |
-| `test`, `docs`, `dev` | pytest; MkDocs; ruff and pre-commit |
+`workflow` is all the Quick start needs. Add other extras as you need them:
 
-## Use the kernels
+| Extra | Installs | Needed for |
+|---|---|---|
+| `workflow` | AsyncFlow and RHAPSODY, with telemetry | `MiniApp` and every example |
+| `io` | `h5py` | the I/O kernels |
+| `mpi` | `mpi4py` | the I/O and communication kernels |
+| `gpu` | `cupy-cuda12x` | running kernels on an NVIDIA GPU (for AMD, see [Run on HPC](hpc.md#install)) |
+| `dragon` | the Dragon backend, through RHAPSODY | the examples; see [Run on HPC](hpc.md) |
+| `plot` | `matplotlib` | `tools/plot_run.py` |
+| `test`, `docs`, `dev` | pytest; MkDocs; ruff and pre-commit | working on wfMiniAPI itself |
 
-```python
-import wfMiniAPI.kernel as wf
+`mpi4py` needs an MPI library on the machine (for example `apt install libopenmpi-dev`,
+a site module, or `pip install mpich`).
 
-wf.matMulSimple2D("cpu", 1024)
-wf.writeNonMPI(num_bytes=1 << 20, data_root_dir="./")
-print(wf.list_kernels())
-```
+## Quick start
 
-## Attach a workflow to MiniApp
-
-Build the RADICAL components explicitly, enter `MiniApp` around the workflow, and shut
-the components down yourself in a nested `finally`:
+A mini-app is a workflow whose tasks call emulation kernels instead of running the real
+application. This one has four `simulate` tasks and one `train` task that runs after
+them, all on the CPU. Save it as `quickstart.py`:
 
 ```python
-from rhapsody.backends import ConcurrentExecutionBackend
+import asyncio
+
 from radical.asyncflow import WorkflowEngine
+from rhapsody.backends import ConcurrentExecutionBackend
+
+from wfMiniAPI import kernel as wf
 from wfMiniAPI.api import MiniApp
 
-backend   = await ConcurrentExecutionBackend()
-flow      = await WorkflowEngine.create(backend=backend)
-telemetry = await flow.start_telemetry(checkpoint_path="telemetry")
-app = MiniApp(flow, telemetry)
-try:
-    async with app, flow.workflow_scope("my_workflow"):
-        ...                   # tasks, task graph, steering
-finally:
+
+async def workflow(flow):
+    @flow.function_task
+    async def simulate(i):
+        for _ in range(10):
+            wf.matMulSimple2D("cpu", 1024)  # stands in for one simulation step
+        return i
+
+    @flow.function_task
+    async def train(*simulations):
+        for _ in range(20):
+            wf.matMulSimple2D("cpu", 1024)  # stands in for a training step
+        return len(simulations)
+
+    sims = [simulate(i) for i in range(4)]
+    await train(*sims)                      # runs after all four simulations
+
+
+async def main():
+    backend = await ConcurrentExecutionBackend()
+    flow = await WorkflowEngine.create(backend=backend)
+    telemetry = await flow.start_telemetry(checkpoint_path="telemetry", resource_poll_interval=0.5)
+    app = MiniApp(flow, telemetry)
     try:
-        await flow.shutdown()
+        async with app, flow.workflow_scope("quickstart"):
+            await workflow(flow)
     finally:
-        await telemetry.stop()
-        app.verify()
-print(app.report.telemetry_complete)
+        try:
+            await flow.shutdown()
+        finally:
+            await telemetry.stop()
+            app.verify()
+    print(app.report.telemetry_complete, app.report.tasks)
+
+
+asyncio.run(main())
 ```
 
-`MiniApp` records the run and verifies that AsyncFlow's task telemetry reached the
-checkpoint; it never shuts anything down. It records nothing inside a task: in-task telemetry is yours. See
-[MiniApp](api/miniapp.md).
+Run it:
 
-## Plot a run
+```shell
+python quickstart.py
+```
 
-`tools/plot_run.py` draws one run from its telemetry checkpoint: the task timeline, the
-tasks handed to the backend over time, node CPU and memory, and run time per task kind.
+```text
+True TaskCounts(created=5, completed=5, failed=0, canceled=0, abandoned=0, not_submitted=0)
+```
+
+`True` means the run's record is complete: every event reached the checkpoint. All
+five tasks completed. On a machine without an NVIDIA GPU, RHAPSODY also prints a line
+saying that GPU metrics are disabled.
+
+What each part does:
+
+- `workflow()` is the mini-app: the kernels stand in for the application's work, and
+  passing the `simulate` results to `train` makes `train` wait for them. How to design
+  one is in [Write the workflow](building.md).
+- `main()` is the script every mini-app shares: it builds the engine and telemetry, runs
+  the workflow inside the `MiniApp` block, and shuts everything down. The shape is
+  explained in [Use MiniApp](api/miniapp.md).
+
+## See the run
+
+The run left two files in `telemetry/`: the checkpoint (`*.telemetry.jsonl`) and
+`MiniApp`'s report (`*.wfminiapi.report.json`). [Telemetry](telemetry.md) explains
+both. To plot the run:
 
 ```shell
 pip install -e ".[plot]"
-python tools/plot_run.py examples/motif_4/telemetry run.png
+python tools/plot_run.py telemetry/ run.png
 ```
 
-The directory must hold one run. "Running" starts at AsyncFlow's `TaskStarted`, which
-is emitted when a task is handed to the backend, not when it really starts.
+![The Quick start run: the task timeline, the tasks on the backend over time, node CPU and memory, and the run time of each task kind](assets/quickstart-run.png)
 
-## Run an example
+The four `simulate` tasks run in parallel; `train` starts once all four have finished
+and the engine has scheduled it.
 
-Each example has a README with its configuration and launch command, for example
-`examples/motif_4/README.md`.
+## Next steps
+
+- [Write the workflow](building.md): turn an application into a mini-app.
+- [Examples](examples.md): the mini-apps in this repository. They run on HPC with the
+  Dragon backend; see [Run on HPC](hpc.md).
+- [Kernels](kernels.md): every kernel and what it stands in for.

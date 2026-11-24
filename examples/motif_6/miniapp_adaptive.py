@@ -28,6 +28,9 @@ async def run_miniapp(cfg):
     telemetry = await flow.start_telemetry(checkpoint_path="telemetry")
     app = MiniApp(flow, telemetry)
     try:
+        # every task reads ./data_0.h5 and writes its own file: create it for the largest read
+        input_size = max(e["read_size_bytes"] for e in cfg.values() if "read_size_bytes" in e)
+        kern.writeNonMPI(num_bytes=input_size, data_root_dir="./")
         async with app, flow.workflow_scope("motif_6"):
             await miniapp_workflow(cfg, flow, logger)
     finally:
@@ -53,7 +56,7 @@ async def miniapp_workflow(cfg, flow, logger):
         kern.generateRandomNumber(device=device, size=matmul_dim)
         for _ in range(steps):
             kern.matMulSimple2D(device=device, size=matmul_dim)
-        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
+        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./", filename_suffix=f"simulate_{i}")
         logger.info(f"Finished simulation {i}...")
         logger.info(time.strftime("%H:%M:%S", time.localtime()))
         return random.random()
@@ -73,7 +76,7 @@ async def miniapp_workflow(cfg, flow, logger):
             kern.matMulSimple2D(device="gpu", size=matmul_dim)
             kern.matMulSimple2D(device="cpu", size=matmul_dim)
         kern.dataCopyD2H(data_size=copy_size)
-        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
+        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./", filename_suffix=f"train_{model_id}")
         logger.info(f"Finished training model {model_id}...")
         logger.info(time.strftime("%H:%M:%S", time.localtime()))
         return random.random()
@@ -95,7 +98,7 @@ async def miniapp_workflow(cfg, flow, logger):
             kern.matMulSimple2D(device="gpu", size=matmul_dim)
             kern.matMulSimple2D(device="cpu", size=matmul_dim)
         kern.dataCopyD2H(data_size=copy_size)
-        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./")
+        kern.writeNonMPI(num_bytes=write_size, data_root_dir="./", filename_suffix="analyze")
         logger.info(f"Finished analysis...")
         logger.info(time.strftime("%H:%M:%S", time.localtime()))
         return {"accuracy": [random.random() for _ in range(num_models)],
