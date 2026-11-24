@@ -1,7 +1,20 @@
 # Equivalence harness
 
-The telemetry work must not change how any workflow behaves. `tests/equivalence/`
-proves that, before and after every change.
+This page is for wfMiniAPI maintainers. Adding `MiniApp` to the examples must not change
+how any workflow behaves; `tests/equivalence/` proves that, before and after every
+change, by comparing each workflow with its recorded baseline.
+
+```mermaid
+flowchart LR
+    B["Baseline tree<br/>(before MiniApp)"] --> SH["Test shim<br/>records a trace"]
+    N["This tree"] --> SH
+    SH --> SB["Baseline summary<br/>(the golden)"]
+    SH --> SN["This tree's summary"]
+    SB --> CMP{"Equal?"}
+    SN --> CMP
+    ST["Static check<br/>core code byte-identical"] --> OK["Equivalent"]
+    CMP -- yes --> OK
+```
 
 ## What is checked
 
@@ -26,9 +39,9 @@ proves that, before and after every change.
 
 Active only when the harness sets `WFMINI_EQUIV=1`. It records an independent trace
 (it does not use the library's own telemetry), and makes the unmodified examples run
-deterministically on a CPU host: `DragonExecutionBackendV3` becomes a one-worker
-`ConcurrentExecutionBackend`, `set_start_method("dragon")` is skipped, and `random` and
-NumPy are seeded. It is applied identically on both sides of every comparison.
+deterministically on a CPU host: `DragonExecutionBackend` (and the older name
+`DragonExecutionBackendV3`) becomes a one-worker `ConcurrentExecutionBackend`,
+`set_start_method("dragon")` is skipped, and `random` and NumPy are seeded. It is applied identically on both sides of every comparison.
 
 ## Usage
 
