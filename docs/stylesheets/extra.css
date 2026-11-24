@@ -181,3 +181,50 @@
 .md-typeset details {
   border-radius: 8px;
 }
+
+/* Mermaid diagrams: the same warm palette (Material applies these to every diagram) */
+[data-md-color-scheme="default"] {
+  --md-mermaid-font-family: var(--md-text-font-family), sans-serif;
+  --md-mermaid-node-bg-color: var(--wf-beige);
+  --md-mermaid-node-fg-color: var(--wf-ink);
+  --md-mermaid-edge-color: #8a8270;
+  --md-mermaid-label-bg-color: var(--wf-cream);
+  --md-mermaid-label-fg-color: var(--wf-text);
+  --md-mermaid-sequence-actor-bg-color: var(--wf-beige);
+  --md-mermaid-sequence-actor-fg-color: var(--wf-ink);
+  --md-mermaid-sequence-actor-border-color: var(--wf-sand);
+  --md-mermaid-sequence-actor-line-color: #b7b09f;
+  --md-mermaid-sequence-message-fg-color: var(--wf-text);
+  --md-mermaid-sequence-message-line-color: #8a8270;
+  --md-mermaid-sequence-note-bg-color: #fbf3e8;
+  --md-mermaid-sequence-note-fg-color: var(--wf-text);
+  --md-mermaid-sequence-note-border-color: #e6cdb4;
+  --md-mermaid-sequence-loop-bg-color: transparent;
+  --md-mermaid-sequence-loop-fg-color: var(--wf-ink);
+  --md-mermaid-sequence-loop-border-color: var(--wf-sand);
+  --md-mermaid-sequence-label-bg-color: var(--wf-beige);
+  --md-mermaid-sequence-label-fg-color: var(--wf-ink);
+}
+
+[data-md-color-scheme="slate"] {
+  --md-mermaid-font-family: var(--md-text-font-family), sans-serif;
+  --md-mermaid-node-bg-color: #30302e;
+  --md-mermaid-node-fg-color: #ece9df;
+  --md-mermaid-edge-color: #a19d92;
+  --md-mermaid-label-bg-color: #262624;
+  --md-mermaid-label-fg-color: #e8e5da;
+  --md-mermaid-sequence-actor-bg-color: #30302e;
+  --md-mermaid-sequence-actor-fg-color: #ece9df;
+  --md-mermaid-sequence-actor-border-color: #44433f;
+  --md-mermaid-sequence-actor-line-color: #5c5a54;
+  --md-mermaid-sequence-message-fg-color: #e8e5da;
+  --md-mermaid-sequence-message-line-color: #a19d92;
+  --md-mermaid-sequence-note-bg-color: #3a332c;
+  --md-mermaid-sequence-note-fg-color: #e8e5da;
+  --md-mermaid-sequence-note-border-color: #5a4a3d;
+  --md-mermaid-sequence-loop-bg-color: transparent;
+  --md-mermaid-sequence-loop-fg-color: #ece9df;
+  --md-mermaid-sequence-loop-border-color: #44433f;
+  --md-mermaid-sequence-label-bg-color: #30302e;
+  --md-mermaid-sequence-label-fg-color: #ece9df;
+}
