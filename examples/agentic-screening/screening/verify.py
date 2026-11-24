@@ -65,6 +65,26 @@ def verify(bench: Benchmark, reports: dict[str, dict | None], rows: list[dict]) 
     }
 
 
+# A simulation that ends within this of its seconds ran them: a timer's and a scheduler's slack.
+SLACK_S = 0.01
+
+
+def overruns(rows: list[dict], slack_s: float = SLACK_S) -> dict:
+    """The simulations against their seconds, from the rows' `sim_seconds` ([asked, taken] each):
+    how many overran them and the largest overrun, and how many ended before them. A simulation's
+    seconds are its cost, not a deadline, so an overrun is reported, not failed; a simulation that
+    ended early did not do its work."""
+    pairs = [(asked, taken) for r in rows for asked, taken in r.get("sim_seconds", [])]
+    over = [taken - asked for asked, taken in pairs if taken > asked + slack_s]
+    return {
+        "simulations": len(pairs),
+        "overran": len(over),
+        "largest_overrun_s": round(max(over), 3) if over else 0.0,
+        "slack_s": slack_s,
+        "ended_early": sum(1 for asked, taken in pairs if taken < asked - slack_s),
+    }
+
+
 def rank(reports: dict[str, dict | None], top: int = 10) -> list[dict]:
     found = [r for r in reports.values() if r is not None]
     found.sort(key=lambda r: r["score"], reverse=True)

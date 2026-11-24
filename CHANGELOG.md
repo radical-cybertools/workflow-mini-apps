@@ -35,6 +35,9 @@
   Every knob of the benchmark's recipes is a flag, with its default in `--help`, and the
   README runs each recipe, the reasoning trade-off included (a thinking budget on each decision
   call, and its gain on the simulations); cache-first admission is not in it yet.
+  A simulation can run one of wfMiniAPI's compute kernels for its duration (`--sim-kernel`,
+  off by default). The duration is a cost, not a deadline: each simulation's result gives the
+  seconds asked and taken, and a check reports the overruns without failing on them.
 
 ## 0.2.0 (2026-11-21)
 

@@ -7,6 +7,11 @@ the parameters, or runs wfMiniAPI's compute kernel `bench.sim_kernel` for that d
 writes the result tensor to the store under `key` with `put_tensor`, and returns only the key with
 its timestamps. Each worker opens its store once (`open_store`): a client
 per task would attach to the dictionary each time, and every attach leaks Dragon channels.
+
+The duration is the simulation's cost, not a deadline: it runs at least that long, and a kernel
+call that ends after it overruns it. The result gives both: `seconds`, asked, and
+`seconds_taken`. A run that failed on an overrun would depend on the machine's speed; its checks
+report the overruns instead (`Screening.verify`).
 """
 
 from __future__ import annotations
@@ -50,12 +55,14 @@ def run_simulation(
     t_start = time.time()
     c = physics.candidate(index, bench)
     seconds = physics.sim_seconds(c, temperature, doping, bench)
+    t = time.perf_counter()
     if bench.sim_kernel:
         kernel_calls = _kernel(seconds, bench)
     elif bench.sim_burn:
         _spin(seconds)
     elif seconds > 0:
         time.sleep(seconds)
+    taken = time.perf_counter() - t
     t_compute_end = time.time()
     import numpy as np
 
@@ -69,6 +76,7 @@ def run_simulation(
     out = {
         "key": key,
         "seconds": seconds,
+        "seconds_taken": taken,
         "host": socket.gethostname(),
         "t_start": t_start,
         "t_compute_end": t_compute_end,

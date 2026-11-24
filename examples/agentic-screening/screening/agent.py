@@ -42,7 +42,7 @@ from .prompts import NUDGE, system_prompt, task_message
 from .sim import run_simulation
 from .stub import ScreeningStub, decision_call
 from .tools import Budget, SimulateArgs
-from .verify import read_reports, verify
+from .verify import overruns, read_reports, verify
 
 _UNSAFE = re.compile(r"[^A-Za-z0-9_.-]")
 
@@ -65,6 +65,7 @@ class Record:
 
     cid: str
     sims: list = field(default_factory=list)  # (temperature, doping, result key)
+    sim_seconds: list = field(default_factory=list)  # [asked, taken] for each of `sims`
     asked: int = 0
     analyses: int = 0
     lookups: int = 0
@@ -187,6 +188,7 @@ class Screening:
             v, rec = r.value, records.get(r.info.agent_id)
             if rec is not None and not any(s[2] == v["key"] for s in rec.sims):
                 rec.sims.append((r.info.kwargs["temperature"], r.info.kwargs["doping"], v["key"]))
+                rec.sim_seconds.append([round(v["seconds"], 4), round(v["seconds_taken"], 4)])
                 rec.kernel_calls += v.get("kernel_calls", 0)
 
         async def analyze(result_key: str) -> str:
@@ -350,6 +352,7 @@ class Screening:
                 "agent_id": rec.cid,
                 "cid": rec.cid,
                 "sims": rec.sims,
+                "sim_seconds": rec.sim_seconds,
                 "simulations": len(rec.sims),
                 "analyses": rec.analyses,
                 "store_misses": rec.store_misses,
@@ -382,6 +385,7 @@ class Screening:
             if row.get("status") not in (None, "done") and not row.get("error"):
                 row["error"] = row["status"]
         v = verify(bench, read_reports(store, bench.agents), rows)
+        seconds = overruns(rows)
         calls = sum(r.get("model_calls", 0) for r in rows)
         nudges = sum(r.get("nudges", 0) for r in rows)
         scripted = sum(bench.model_calls_per_agent(len(r["sims"])) for r in rows) + nudges
@@ -398,6 +402,8 @@ class Screening:
                 and not any(r["store_misses"] for r in rows),
                 None,
             ),
+            # a simulation's seconds are its cost, not a deadline: overruns are reported, not failed
+            Check("simulations_ran_their_seconds", seconds["ended_early"] == 0, seconds),
         ]
 
 

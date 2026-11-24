@@ -142,6 +142,68 @@ def test_a_simulation_runs_its_kernel_for_its_drawn_duration_and_writes_the_same
 
 
 @needs_framework
+def test_a_simulation_records_the_seconds_it_asked_and_the_seconds_it_took(monkeypatch):
+    """A simulation's seconds are its cost, not a deadline: it runs at least that long, and its
+    result says how long it took. A kernel call longer than the seconds overruns them."""
+    import time
+
+    monkeypatch.syspath_prepend(str(EXAMPLE))
+    from autonmi.store import forget_store
+    from screening.benchmark import Benchmark
+    from screening.sim import run_simulation
+
+    import wfMiniAPI.kernels as kernels
+
+    monkeypatch.setattr(kernels, "run_kernel", lambda name, **kw: time.sleep(0.3))
+    knobs = {"sim_distribution": "fixed", "sim_median_s": 0.05, "sim_burn": False}
+    try:
+        plain = run_simulation("memory:s0", "res/a", 0, 600.0, 0.1, Benchmark(**knobs))
+        slow = Benchmark(**knobs, sim_kernel="axpy")
+        over = run_simulation("memory:s1", "res/a", 0, 600.0, 0.1, slow)
+    finally:
+        forget_store("memory:s0")
+        forget_store("memory:s1")
+    assert 0.3 > plain["seconds_taken"] >= plain["seconds"] > 0
+    assert over["seconds"] == plain["seconds"] and over["seconds_taken"] >= 0.3
+    assert over["kernel_calls"] == 1
+
+
+@needs_framework
+def test_the_run_reports_the_simulations_that_overran_and_does_not_fail_on_them(monkeypatch):
+    """Overrunning is not a failure: the results would depend on the machine's speed. The run's
+    checks count the simulations that overran their seconds and give the largest overrun; a
+    simulation that ended before its seconds had not done its work, and fails the check."""
+    monkeypatch.syspath_prepend(str(EXAMPLE))
+    from autonmi.store import forget_store, open_store
+    from screening.agent import Screening
+    from screening.benchmark import Benchmark
+
+    def row(cid, *seconds):
+        sims = [(600.0, 0.1, f"res/{cid}/{i}") for i in range(len(seconds))]
+        return {"cid": cid, "agent_id": cid, "sims": sims, "finished": True, "analyses": 1,
+                "store_misses": 0, "sim_seconds": [list(s) for s in seconds]}  # fmt: skip
+
+    app = Screening(Benchmark(agents=3))
+    store = open_store("memory:overruns")
+    try:
+        rows = [
+            row("mat-000000", (1.0, 1.0004), (2.0, 2.5)),
+            row("mat-000001", (1.0, 1.003)),
+            row("mat-000002", (3.0, 3.25), (0.5, 0.5)),
+        ]
+        (check,) = [c for c in app.verify(rows, store) if c.name == "simulations_ran_their_seconds"]
+        early = [row("mat-000000", (1.0, 0.5))]
+        (failed,) = [c for c in app.verify(early, store) if c.name == check.name]
+    finally:
+        forget_store("memory:overruns")
+    assert check.ok
+    assert check.detail == {
+        "simulations": 5, "overran": 2, "largest_overrun_s": 0.5, "slack_s": 0.01, "ended_early": 0,
+    }  # fmt: skip
+    assert not failed.ok and failed.detail["ended_early"] == 1
+
+
+@needs_framework
 def test_the_example_runs_with_a_kernel_in_each_simulation(tmp_path):
     rc, summary = run(tmp_path, "--sim-kernel", "axpy", "--sim-kernel-size", "1000")
     assert rc == 0 and summary["ok"], summary.get("checks")
@@ -163,6 +225,8 @@ def test_the_example_verifies_and_verifies_again_offline(tmp_path):
     assert rc == 0, summary["checks"]
     assert summary["agents"] == 30 and summary["populations"] == 2
     assert summary["exit_hint"] == 0 and all(c["ok"] for c in summary["checks"])
+    (seconds,) = [c for c in summary["checks"] if c["name"] == "simulations_ran_their_seconds"]
+    assert seconds["detail"]["simulations"] == summary["simulations"] > 0
     (report,) = (tmp_path / "run" / "launcher").glob("*.wfminiapi.report.json")
     report = json.loads(report.read_text())
     assert sorted(report["parts"]) == ["p000", "p001"]

@@ -88,6 +88,8 @@ python examples/agentic-screening/miniapp_screening.py --agents 30 --sim-median 
     --sim-kernel matMulSimple2D --sim-kernel-size 512
 ```
 
+**A simulation's duration is its cost, not a deadline.** A simulation runs at least as long as the benchmark draws, and a kernel call that ends after it overruns it. Each simulation's result gives the seconds asked (`seconds`) and taken (`seconds_taken`), and each agent's row lists them (`sim_seconds`). The run counts the overruns and gives the largest, but does not fail on them: its results would then depend on the machine's speed.
+
 **Not in this example yet: cache-first admission.** `--admission` accepts only `fcfs`, and says so otherwise.
 
 ## Recipes
@@ -154,6 +156,7 @@ The run's checks:
 - every agent verifies;
 - the model calls are as the workflow scripts them;
 - the simulations' results go to the store and back;
+- each simulation ran its seconds: none ended more than 10 ms early; its detail counts the simulations that overran by more than that, and gives the largest overrun;
 - each population's tasks equal its agents' simulations;
 - the fleet's calls equal the rows';
 - with `--model openai`, the tokens equal the servers' own counters.
