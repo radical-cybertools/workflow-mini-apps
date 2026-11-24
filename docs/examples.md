@@ -1,7 +1,8 @@
 # Examples
 
 This page describes the mini-apps in `examples/`: what each one emulates, its task
-graph, and how to run it. Each example's README has the full setup for the node.
+graph, and how to run it. Each example's README has notes from earlier runs; for the
+install, follow [Run on HPC](hpc.md).
 
 All of them use the [MiniApp script](api/miniapp.md#the-script), keep their sizes in
 `config.yaml`, and run under Dragon with GPU kernels in some tasks; see
@@ -47,6 +48,10 @@ cd examples/motif_2 && dragon -s miniapp_pipeline.py
     without that file the first stage fails. Create one before the first run:
 
         python -c "from wfMiniAPI import kernel as k; k.writeNonMPI(1048576, './')"
+
+    Its tasks also share that file, like those of
+    [motif_4](#motif_4-digital-replica), and can fail at random under Dragon for the
+    same reason.
 
 ## motif_3: inverse design
 
@@ -96,6 +101,13 @@ flowchart LR
 cd examples/motif_4 && dragon -s miniapp_async.py
 ```
 
+!!! warning "Tasks can fail at random on the shared HDF5 file"
+    All tasks read and write `./data_0.h5`. Under Dragon the 32 simulations run at the
+    same time, and simulation 0 writes the file while the others read it. HDF5 locks
+    the file while it is open, so a task can fail at random with a file-lock error,
+    and the report counts it as `failed`. Setting `HDF5_USE_FILE_LOCKING=FALSE` before
+    the launch avoids the lock error, but then a task can read a half-written file.
+
 ## motif_6: adaptive training
 
 `examples/motif_6/miniapp_adaptive.py`, scope `motif_6`. Training as a workflow of its
@@ -140,8 +152,22 @@ flowchart LR
 cd examples/dragon-mpi && dragon miniapp_rhapsody.py
 ```
 
-This example needs an MPI library and `h5py` built with MPI support on the node; see
-its README.
+This example needs an MPI library and `h5py` built with MPI support on the node. Loading
+the site's HDF5 module is not enough for the `h5py` that pip installs; build it against
+the parallel HDF5 instead:
+
+```shell
+CC=mpicc HDF5_MPI=ON pip install --no-binary=h5py h5py
+```
+
+If the build does not find the parallel HDF5, set `HDF5_DIR` to its install directory.
+
+!!! warning "Needs an input file in a fresh directory"
+    The workflow writes `input/data_0.h5`, but every stage reads `input/data.h5`, which
+    nothing writes. In a directory without that file, stage 1 fails and the other
+    stages are not submitted. Each stage reads `read_size_bytes` (from `config.yaml`)
+    per rank from it, so the file must hold at least `read_size_bytes` × `ranks` bytes
+    for every stage.
 
 ## Other directories
 
