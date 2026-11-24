@@ -51,6 +51,11 @@ In our case, on DELTA we are using CUDA 12.8
 Now we can install the wfMiniAPI
 - `$ pip install -e ".[workflow,io,mpi]"` (from the repository root)
 
+### Files it writes
+Before the first task, the script creates the input file `./data_0.h5`, sized to the
+largest read in `config.yaml`. Every task reads it and writes its own file, named after
+the task (for example `data_0_experiment.h5`). The files stay in the directory after the run.
+
 ### Running the workflow
 Navigate to the example motif and launch the workflow mini-app using Dragon
 - `$ cd workflow-mini-apps/examples/motif_4`

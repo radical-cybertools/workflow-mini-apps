@@ -51,4 +51,8 @@ git -C ../DeepDriveSim archive 0c4f0c2 | tar -x -C .equiv-work/ddsim-0c4f0c2
 python tests/equivalence/run_equiv.py capture
 ```
 
+The harness applies `tests/equivalence/baseline/examples.patch`, the changes made to
+the examples since, to a copy of the export (`.equiv-work/wfmini-baseline`) and rebuilds
+that copy when the patch changes. The export itself stays as made above.
+
 Tests that need an export are skipped when it is missing.
