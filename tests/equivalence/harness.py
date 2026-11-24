@@ -261,10 +261,12 @@ def run(
     keep: Path | None = None,
     baseline: bool = False,
     telemetry: bool = False,
+    config: Path | None = None,
 ):
     """Run one workflow in one mode and return its summary.
 
     ``baseline=True`` runs the pristine baseline tree and library (used to capture goldens).
+    ``config`` replaces the workflow's tiny config.
     """
     tree = baseline_tree() if baseline else TREE
     lib = str(tree / "wfMiniAPI" / "src") if baseline else LIB
@@ -292,7 +294,7 @@ def run(
             stderr = "\n".join(p.stderr for p in procs)
         else:
             if workflow.config:
-                shutil.copy(CONFIGS / workflow.config, run_dir / "cfg.yaml")
+                shutil.copy(config or CONFIGS / workflow.config, run_dir / "cfg.yaml")
             if workflow.kind == "ddsim":
                 root = DDSIM_BASELINE if baseline else integrated_ddsim()
                 script, extra = root / workflow.script, [root]

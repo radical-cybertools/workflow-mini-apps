@@ -68,6 +68,23 @@ def test_matches_golden(name, mode):
         assert scopes == {name}, scopes
 
 
+MOTIFS = ["motif_2", "motif_3_simple", "motif_3_parallel", "motif_4", "motif_6"]
+
+
+@pytest.mark.parametrize("name", MOTIFS)
+def test_outputs_deleted_unless_kept(name, tmp_path):
+    """With outputs.keep false, the script deletes every .h5 file the run wrote."""
+    tiny = (harness.CONFIGS / harness.WORKFLOWS[name].config).read_text()
+    assert "keep: true" in tiny
+    config = tmp_path / "cfg.yaml"
+    config.write_text(tiny.replace("keep: true", "keep: false"))
+    summary = harness.run(name, "real", config=config)
+    kept = harness.run(name, "real")
+    assert summary["exit_code"] == kept["exit_code"]
+    assert any(path.endswith(".h5") for path, _ in kept["files"])
+    assert not [path for path, _ in summary["files"] if path.endswith(".h5")]
+
+
 def test_harness_detects_behaviour_change(tmp_path):
     shutil.copytree(harness.REPO / "examples", tmp_path / "examples", symlinks=True)
     target = tmp_path / harness.WORKFLOWS["motif_4"].script

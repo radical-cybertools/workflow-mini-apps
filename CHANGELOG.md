@@ -34,6 +34,11 @@
 - **Equivalence harness:** the baseline carries the same change
   (`tests/equivalence/baseline/examples.patch`, applied to a copy of the export), and the
   five workflows' goldens are re-captured.
+### Changed
+
+- **The motif examples delete their `.h5` files at the end of the run**, also when it
+  fails. `outputs: keep: true` in `config.yaml` keeps them. Each example's README states
+  how much disk its files take with the default config (up to about 82 GiB for motif_6).
 
 ## 0.2.0 (2026-11-21)
 

@@ -25,3 +25,5 @@ ensemble:
   new_simulations_per_round: 2
   accuracy_threshold: 0.4
   coverage_threshold: 0.5
+outputs:
+  keep: true                    # the harness compares the files each task wrote

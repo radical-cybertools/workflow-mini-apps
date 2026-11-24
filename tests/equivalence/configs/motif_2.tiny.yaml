@@ -30,3 +30,5 @@ analysis:
   write_size_bytes: 512
   data_copy_size_bytes: 256
   matmul_dim: 16
+outputs:
+  keep: true                    # the harness compares the files each task wrote

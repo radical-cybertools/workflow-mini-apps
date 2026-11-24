@@ -1,5 +1,6 @@
 import argparse, asyncio, yaml, random, logging
 import time
+from pathlib import Path
 
 from rhapsody.backends import DragonExecutionBackend
 
@@ -28,17 +29,23 @@ async def run_miniapp(cfg):
     telemetry = await flow.start_telemetry(checkpoint_path="telemetry")
     app = MiniApp(flow, telemetry)
     try:
-        # every task reads ./data_0.h5 and writes its own file: create it for the largest read
-        input_size = max(e["read_size_bytes"] for e in cfg.values() if "read_size_bytes" in e)
-        kern.writeNonMPI(num_bytes=input_size, data_root_dir="./")
-        async with app, flow.workflow_scope("motif_6"):
-            await miniapp_workflow(cfg, flow, logger)
-    finally:
         try:
-            await flow.shutdown()
+            # every task reads ./data_0.h5 and writes its own file: create it for the largest read
+            input_size = max(e["read_size_bytes"] for e in cfg.values() if "read_size_bytes" in e)
+            kern.writeNonMPI(num_bytes=input_size, data_root_dir="./")
+            async with app, flow.workflow_scope("motif_6"):
+                await miniapp_workflow(cfg, flow, logger)
         finally:
-            await telemetry.stop()
-            app.verify()
+            try:
+                await flow.shutdown()
+            finally:
+                await telemetry.stop()
+                app.verify()
+    finally:
+        # delete the .h5 files the run wrote, unless the config keeps them
+        if not cfg.get("outputs", {}).get("keep"):
+            for path in Path(".").glob("data_0*.h5"):
+                path.unlink()
 
 async def miniapp_workflow(cfg, flow, logger):
 

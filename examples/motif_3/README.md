@@ -54,7 +54,11 @@ Now we can install the wfMiniAPI
 ### Files it writes
 Before the first task, the script creates the input file `./data_0.h5`, sized to the
 largest read in `config.yaml`. Every task reads it and writes its own file, named after
-the task (for example `data_0_train.h5`). The files stay in the directory after the run.
+the task (for example `data_0_train.h5`). With the default `config.yaml` they take
+about 5 GiB for `miniapp_simple.py` and 7 GiB for `miniapp_parallel.py` in the run directory.
+
+At the end of the run, also when it fails, the script deletes these files. To keep them,
+set `keep: true` under `outputs` in `config.yaml`.
 
 ### Running the workflow
 Navigate to the example motif and launch the workflow mini-app using Dragon

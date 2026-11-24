@@ -202,10 +202,10 @@
  "whole": {
   "configs": {
    "examples/dragon-mpi/config.yaml": "f378ee424d24c88cad7bf277c32516067a77c73f50bf768392cbc9ff70760f89",
-   "examples/motif_2/config.yaml": "a71c5c747d0678a198f1c202d06e73dc0543bf49beecc9815cd23e1b0002c512",
-   "examples/motif_3/config.yaml": "5edbd753176c8820a0eaa88564d958217f2680bce28c8d53fcd389cb62ef4865",
-   "examples/motif_4/config.yaml": "d05b17c406d57bd87f50839eb00919f2699b1a0c8a2a94e5e0c662c6ab6b45fa",
-   "examples/motif_6/config.yaml": "caad5950c549f4df1563aac0b6c877fd8225e5f8b14f420a8ed67a5e0950ef13"
+   "examples/motif_2/config.yaml": "dabfd2d34882586d982fe8e61360e20fddc98416df9169312473e0c955489bd2",
+   "examples/motif_3/config.yaml": "259e39a8be1865f07d51459653fa19f2e005596ae23011fefe13befed9802d4e",
+   "examples/motif_4/config.yaml": "2197c29ceda75e3c99093587ce41c151533454b1e7c19624f100d058c3c2727d",
+   "examples/motif_6/config.yaml": "991af7ce33abc9b591d85f32969fda2ff060f7e14eaffdcc04bc1187e78d8241"
   },
   "ddsim_core": {
    "ddsim/ddsim_manager.py": "6f85fe3523e8bc7cdfa86beb4814f32807936aa3945257e2bdc880780ae37c69",

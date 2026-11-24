@@ -12,3 +12,7 @@ training:
   write_size_bytes: 512
   data_copy_size_bytes: 2097152
   matmul_dim: 8192
+
+# the .h5 files the run writes (./data_0.h5 and one data_0_<task>.h5 per task)
+outputs:
+  keep: false                   # true keeps them after the run; false deletes them
