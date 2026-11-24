@@ -1,29 +1,74 @@
 # RADICAL Workflow Mini-Apps
 
-## What a mini-app is
+wfMiniAPI is a library for building **workflow mini-apps**: small, self-contained
+versions of scientific workflows that keep the shape and the load of the real thing
+without its code, data or deployment. Its `MiniApp` records every run of a mini-app
+and checks that the record is complete.
 
-Workflow Mini-Apps are small, self-contained representations of scientific workflows.
-Each mini-app captures the key tasks, data flow and performance characteristics of a
-complex workflow without the deployment constraints of the full application.
+## What wfMiniAPI gives you
 
-## What this repository provides
+- **Kernels** that stand in for an application's work inside tasks: computation, file
+  I/O, MPI communication and host/GPU data movement, on CPU or GPU.
+  See [Kernels](kernels.md).
+- **`MiniApp`**, which attaches to a run, records when it started and how it ended, and
+  afterwards verifies that the run's telemetry reached its file, in a short report.
+  See [Use MiniApp](api/miniapp.md) and [Telemetry](telemetry.md).
+- **Example mini-apps** of common workflow patterns: pipelines, inverse design, digital
+  replicas, adaptive training and MPI tasks. See [Examples](examples.md).
 
-- **`wfMiniAPI`**: emulation kernels (compute, I/O, communication, host/device data
-  movement) that stand in for real application work inside workflow tasks, and
-  `MiniApp`, which records each run and verifies its telemetry;
-- **example workflows** built on [AsyncFlow](https://github.com/radical-cybertools/radical.asyncflow)
-  and [RHAPSODY](https://github.com/radical-cybertools/rhapsody): `motif_2`, `motif_3`,
-  `motif_4`, `motif_6` and `dragon-mpi`, plus standalone task scripts in `examples/tutorial/`.
+## A mini-app run
 
-The AI-steered simulation mini-app lives in
-[DeepDriveSim](https://github.com/radical-collaboration/DeepDriveSim).
+```mermaid
+flowchart LR
+    subgraph yours["Your mini-app"]
+        S["Your script"]
+        W["Your workflow<br/>(task functions)"]
+    end
+    subgraph wf["wfMiniAPI"]
+        M["MiniApp"]
+        K["Kernels"]
+    end
+    subgraph af["AsyncFlow"]
+        E["Engine"]
+    end
+    subgraph rh["RHAPSODY"]
+        B["Backend<br/>(runs task bodies)"]
+        T["Telemetry manager"]
+    end
+    C[("checkpoint")]
+    R[("report")]
+    S -- "builds, runs, shuts down" --> E
+    S -- "enters, then verify()" --> M
+    W -- "tasks" --> E
+    E -- "submits tasks" --> B
+    B -- "task bodies call" --> K
+    E -- "task events" --> T
+    M -- "RunStarted, RunEnded" --> T
+    T -- "writes" --> C
+    M -- "reads" --> C
+    M -- "writes" --> R
+```
+
+Your script builds the engine and the telemetry, runs your workflow, and shuts them
+down. `MiniApp` sits beside the run: it never runs or stops anything, it only records
+the run and checks the result.
+
+!!! info "Built on AsyncFlow and RHAPSODY"
+    The workflow engine is [AsyncFlow](https://radical-cybertools.github.io/radical.asyncflow/):
+    it runs your tasks in dependency order. The execution backends and the telemetry
+    come from [RHAPSODY](https://radical-cybertools.github.io/rhapsody/). These docs
+    cover only what wfMiniAPI adds, and link to theirs for the rest.
 
 ## Where to go next
 
 | To | Read |
 |---|---|
-| install and run an example | [Getting started](getting-started.md) |
-| use the emulation kernels in your tasks | [Kernels](kernels.md) |
-| understand what a run records, and read it | [Telemetry](telemetry.md) |
-| attach `MiniApp` to a workflow | [MiniApp](api/miniapp.md) |
-| check that the workflows behave as before | [Equivalence harness](testing/equivalence.md), [Validation on an HPC node](testing/hpc-validation.md) |
+| install wfMiniAPI and run a first mini-app on a laptop | [Getting started](getting-started.md) |
+| turn an application into a mini-app | [Write the workflow](building.md) |
+| attach `MiniApp` to your script | [Use MiniApp](api/miniapp.md) |
+| understand and read what a run records | [Telemetry](telemetry.md) |
+| run on an HPC allocation | [Run on HPC](hpc.md) |
+| fix an error or an incomplete report | [Troubleshooting](troubleshooting.md) |
+
+The AI-steered simulation mini-app lives in its own repository,
+[DeepDriveSim](https://github.com/radical-collaboration/DeepDriveSim).

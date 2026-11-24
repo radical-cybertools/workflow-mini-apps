@@ -1,7 +1,7 @@
 site_name: RADICAL Workflow Mini-Apps
 site_url: https://radical-cybertools.github.io/workflow-mini-apps/
 site_author: RADICAL Cybertools
-site_description: Workflow mini-apps and the wfMiniAPI emulation kernels, with verified telemetry.
+site_description: Build workflow mini-apps from emulation kernels, and record and verify every run with MiniApp.
 
 repo_name: radical-cybertools/workflow-mini-apps
 repo_url: https://github.com/radical-cybertools/workflow-mini-apps
@@ -63,17 +63,33 @@ watch:
   - docs/
   - src/
 
+# Page paths are kept from earlier releases (the site is live); only the grouping changes.
 nav:
   - Home: index.md
   - Getting started: getting-started.md
-  - Kernels: kernels.md
-  - Telemetry: telemetry.md
-  - API:
-      - MiniApp: api/miniapp.md
+  - Build a mini-app:
+      - Write the workflow: building.md
+      - Kernels: kernels.md
+      - Examples: examples.md
+      - Run on HPC: hpc.md
+  - MiniApp:
+      - Use MiniApp: api/miniapp.md
+      - Runs of many engines: runs.md
+      - Telemetry: telemetry.md
+      - Troubleshooting: troubleshooting.md
+  - API reference:
+      - MiniApp: api/reference.md
       - Kernels: api/kernels.md
-  - Testing:
+  - For developers:
       - Equivalence harness: testing/equivalence.md
       - Validation on an HPC node: testing/hpc-validation.md
+  - Changelog: https://github.com/radical-cybertools/workflow-mini-apps/blob/main/CHANGELOG.md
+
+# --strict alone does not fail on broken anchors (MkDocs 1.6 reports them at info level)
+validation:
+  links:
+    anchors: warn
+    unrecognized_links: warn
 
 plugins:
   - search
@@ -99,6 +115,10 @@ markdown_extensions:
       pygments_lang_class: true
   - pymdownx.inlinehilite
   - pymdownx.keys
-  - pymdownx.superfences
+  - pymdownx.superfences:
+      custom_fences:        # mermaid diagrams; Material loads mermaid itself
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
   - pymdownx.tabbed:
       alternate_style: true

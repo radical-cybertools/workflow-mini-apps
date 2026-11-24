@@ -1,7 +1,7 @@
 # Validation on an HPC node
 
-The equivalence suite in CI runs on the Concurrent backend on a CPU. Two things need a
-real node:
+This page is for wfMiniAPI maintainers. The [equivalence suite](equivalence.md) in CI
+runs on the Concurrent backend on a CPU. Two things need a real node:
 
 - **Dragon:** task bodies run in Dragon worker processes, in parallel;
 - **a GPU:** the examples' hard-coded GPU kernel calls succeed instead of failing.

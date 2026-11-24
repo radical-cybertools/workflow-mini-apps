@@ -44,10 +44,9 @@ pip install -e ".[workflow,io,mpi]"    # add "gpu" for CuPy (CUDA 12), "test" fo
 | `plot` | `matplotlib`, for `tools/plot_run.py` |
 | `test`, `docs`, `dev` | pytest; MkDocs; ruff and pre-commit |
 
-Each example's README explains how to run it. Every example attaches to
-`wfMiniAPI.api.MiniApp`, which records the run and verifies AsyncFlow's task telemetry
-(see `docs/api/miniapp.md`). Nothing inside a task is recorded: in-task telemetry is the
-workflow developer's.
+Each example's README explains how to run it. Every example uses
+`wfMiniAPI.api.MiniApp`, which records each run and verifies that its telemetry is
+complete; see [Use MiniApp](https://radical-cybertools.github.io/workflow-mini-apps/api/miniapp/).
 
 ## Tests
 
