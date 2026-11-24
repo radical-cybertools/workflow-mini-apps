@@ -3,8 +3,9 @@
     run_simulation(store_spec, key, index, temperature, doping, bench)
 
 It spins a CPU (or sleeps, with `bench.sim_burn` off) for the duration drawn from the candidate and
-the parameters, then writes the result tensor to the store under `key` with `put_tensor`, and
-returns only the key with its timestamps. Each worker opens its store once (`open_store`): a client
+the parameters, or runs wfMiniAPI's compute kernel `bench.sim_kernel` for that duration. Then it
+writes the result tensor to the store under `key` with `put_tensor`, and returns only the key with
+its timestamps. Each worker opens its store once (`open_store`): a client
 per task would attach to the dictionary each time, and every attach leaks Dragon channels.
 """
 
@@ -29,13 +30,29 @@ def _spin(seconds: float) -> int:
     return x
 
 
+def _kernel(seconds: float, bench: Benchmark) -> int:
+    """Run wfMiniAPI's compute kernel `bench.sim_kernel` (size `bench.sim_kernel_size`, on
+    `bench.sim_kernel_device`) until `seconds` of wall time have passed, at least once; return
+    the calls."""
+    from wfMiniAPI.kernels import run_kernel  # here: off by default, and it loads the backends
+
+    deadline = time.perf_counter() + seconds
+    calls = 0
+    while calls == 0 or time.perf_counter() < deadline:
+        run_kernel(bench.sim_kernel, device=bench.sim_kernel_device, size=bench.sim_kernel_size)
+        calls += 1
+    return calls
+
+
 def run_simulation(
     store_spec: str, key: str, index: int, temperature: float, doping: float, bench: Benchmark
 ) -> dict:
     t_start = time.time()
     c = physics.candidate(index, bench)
     seconds = physics.sim_seconds(c, temperature, doping, bench)
-    if bench.sim_burn:
+    if bench.sim_kernel:
+        kernel_calls = _kernel(seconds, bench)
+    elif bench.sim_burn:
         _spin(seconds)
     elif seconds > 0:
         time.sleep(seconds)
@@ -49,7 +66,7 @@ def run_simulation(
     t = time.perf_counter()
     store.put_tensor(key, tensor)
     put_s = time.perf_counter() - t
-    return {
+    out = {
         "key": key,
         "seconds": seconds,
         "host": socket.gethostname(),
@@ -58,3 +75,6 @@ def run_simulation(
         "t_end": time.time(),
         "put_s": put_s,
     }
+    if bench.sim_kernel:
+        out["kernel_calls"] = kernel_calls
+    return out

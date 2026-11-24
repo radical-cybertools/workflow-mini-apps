@@ -10,6 +10,9 @@ import dataclasses
 import math
 from dataclasses import dataclass
 
+# wfMiniAPI's compute kernels that take only (device, size): the ones a simulation can run
+SIM_KERNELS = ("matMulSimple2D", "axpy", "axpy_fast", "generateRandomNumber")
+
 
 @dataclass(frozen=True)
 class Benchmark:
@@ -34,6 +37,12 @@ class Benchmark:
     so a repeat asks for the same work: `lognormal` (median `sim_median_s`, shape `sim_sigma`),
     `fixed` (`sim_median_s`) or `uniform` (between the two values of `sim_range_s`).
     `sim_out_elems` float64 values go to the store per simulation.
+
+    Simulation compute. A simulation spins a CPU core for its duration (`sim_burn`). With
+    `sim_kernel`, it runs that wfMiniAPI compute kernel instead, sized `sim_kernel_size`, on
+    `sim_kernel_device`, over and over for the same duration (at least once): the benchmark still
+    sets how long a simulation takes, and the kernel gives it a real footprint (floating-point
+    work, memory, a GPU). Off by default; the result written to the store is the same either way.
 
     Suspension. Before each simulation an agent suspends (checkpoint to the store, state dropped,
     resumed from the store when the simulation ends) with probability `suspend_fraction`, drawn per
@@ -81,6 +90,10 @@ class Benchmark:
     sim_range_s: tuple[float, float] = (30.0, 300.0)  # the uniform distribution's bounds
     sim_out_elems: int = 1024
     sim_burn: bool = True  # spin a CPU for the duration; False sleeps (local runs, tests)
+    # a wfMiniAPI compute kernel run for each simulation's duration, in place of the spin ("": off)
+    sim_kernel: str = ""
+    sim_kernel_size: int = 256  # matMulSimple2D: size x size matrices; the others: size values
+    sim_kernel_device: str = "cpu"  # cpu (NumPy) or gpu (CuPy)
     # the MCP tool
     mcp_latency_ms: tuple[float, float] = (5.0, 50.0)
     # suspension: the share of simulations an agent suspends before
@@ -106,34 +119,73 @@ class Benchmark:
     tool_result_tokens: int = 0
 
     def __post_init__(self) -> None:
-        if self.max_sims < 1:
-            raise ValueError("max_sims must be at least 1")
-        if not 0 <= self.sims_per_agent <= self.max_sims:
-            raise ValueError("sims_per_agent must be 0 (the physics decides) or 1 to max_sims")
-        if self.lookup_calls < 0:
-            raise ValueError("lookup_calls must be 0 or more")
-        if self.sim_distribution not in ("lognormal", "fixed", "uniform"):
-            raise ValueError(f"unknown sim_distribution {self.sim_distribution!r}")
-        if self.sim_range_s[0] > self.sim_range_s[1] or self.sim_range_s[0] < 0:
-            raise ValueError("sim_range_s must be (low, high) with 0 <= low <= high")
-        if not 0.0 <= self.suspend_fraction <= 1.0:
-            raise ValueError("suspend_fraction must be in [0, 1]")
-        if not 0 < self.contraction < 1:
-            raise ValueError("contraction must be in (0, 1)")
-        if self.sim_cost_sigma < 0:
-            raise ValueError("sim_cost_sigma must be 0 or more")
-        if self.think_budget < 0 or self.think_budget_max < 0:
-            raise ValueError("think_budget and think_budget_max must be 0 or more")
-        if self.think_policy not in ("fixed", "proportional"):
-            raise ValueError(f"unknown think_policy {self.think_policy!r}")
-        if self.think_gain < 0:
-            raise ValueError("think_gain must be 0 or more")
-        if self.think_gain_on not in ("used", "asked"):
-            raise ValueError(f"unknown think_gain_on {self.think_gain_on!r}")
-        if self.plan_calls < 0:
-            raise ValueError("plan_calls must be 0 or more")
-        if self.tool_result_tokens < 0:
-            raise ValueError("tool_result_tokens must be 0 or more")
+        refused = [why for wrong, why in self._checks() if wrong]
+        if refused:
+            raise ValueError("invalid benchmark: " + "; ".join(refused))
+
+    def _checks(self):
+        """(wrong, why) for each knob. They are independent, so all are checked and a refusal
+        names every invalid value at once."""
+        low, high = self.sim_range_s
+        yield self.max_sims < 1, f"max_sims must be at least 1 (got {self.max_sims})"
+        yield (
+            not 0 <= self.sims_per_agent <= self.max_sims,
+            "sims_per_agent must be 0 (the physics decides) or 1 to max_sims "
+            f"(got {self.sims_per_agent})",
+        )
+        yield self.lookup_calls < 0, f"lookup_calls must be 0 or more (got {self.lookup_calls})"
+        yield (
+            self.sim_distribution not in ("lognormal", "fixed", "uniform"),
+            f"unknown sim_distribution {self.sim_distribution!r}",
+        )
+        yield (
+            low > high or low < 0,
+            f"sim_range_s must be (low, high) with 0 <= low <= high (got {self.sim_range_s})",
+        )
+        yield (
+            not 0.0 <= self.suspend_fraction <= 1.0,
+            f"suspend_fraction must be in [0, 1] (got {self.suspend_fraction})",
+        )
+        yield (
+            not 0 < self.contraction < 1,
+            f"contraction must be in (0, 1) (got {self.contraction})",
+        )
+        yield (
+            self.sim_cost_sigma < 0,
+            f"sim_cost_sigma must be 0 or more (got {self.sim_cost_sigma})",
+        )
+        yield (
+            self.think_budget < 0 or self.think_budget_max < 0,
+            "think_budget and think_budget_max must be 0 or more "
+            f"(got {self.think_budget}, {self.think_budget_max})",
+        )
+        yield (
+            self.think_policy not in ("fixed", "proportional"),
+            f"unknown think_policy {self.think_policy!r}",
+        )
+        yield self.think_gain < 0, f"think_gain must be 0 or more (got {self.think_gain})"
+        yield (
+            self.think_gain_on not in ("used", "asked"),
+            f"unknown think_gain_on {self.think_gain_on!r}",
+        )
+        yield self.plan_calls < 0, f"plan_calls must be 0 or more (got {self.plan_calls})"
+        yield (
+            self.tool_result_tokens < 0,
+            f"tool_result_tokens must be 0 or more (got {self.tool_result_tokens})",
+        )
+        if self.sim_kernel:
+            yield (
+                self.sim_kernel not in SIM_KERNELS,
+                f"unknown sim_kernel {self.sim_kernel!r}: one of {', '.join(SIM_KERNELS)}",
+            )
+            yield (
+                self.sim_kernel_size < 1,
+                f"sim_kernel_size must be at least 1 (got {self.sim_kernel_size})",
+            )
+            yield (
+                self.sim_kernel_device not in ("cpu", "gpu"),
+                f"sim_kernel_device must be cpu or gpu (got {self.sim_kernel_device!r})",
+            )
 
     @property
     def sim_mean_s(self) -> float:

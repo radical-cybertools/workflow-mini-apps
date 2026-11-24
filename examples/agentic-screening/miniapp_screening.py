@@ -54,7 +54,7 @@ from autonmi.population import PopulationConfig  # noqa: E402
 from autonmi.telemetry import Telemetry  # noqa: E402
 from radical.asyncflow import WorkflowEngine  # noqa: E402
 from screening.agent import Screening  # noqa: E402
-from screening.benchmark import Benchmark  # noqa: E402
+from screening.benchmark import SIM_KERNELS, Benchmark  # noqa: E402
 
 from wfMiniAPI.api import MiniApp  # noqa: E402
 
@@ -135,6 +135,19 @@ def parse(argv=None) -> argparse.Namespace:
     g.add_argument(
         "--sim-out-elems", type=int, default=d.sim_out_elems,
         help="float64 values a simulation writes to the store",
+    )  # fmt: skip
+    g.add_argument(
+        "--sim-kernel", default=d.sim_kernel, metavar="KERNEL",
+        help="run this wfMiniAPI compute kernel for each simulation's duration, in place of "
+        f"spinning a core: {', '.join(SIM_KERNELS)} (off by default)",
+    )  # fmt: skip
+    g.add_argument(
+        "--sim-kernel-size", type=int, default=d.sim_kernel_size,
+        help="the kernel's size: size x size matrices for matMulSimple2D, else size values",
+    )  # fmt: skip
+    g.add_argument(
+        "--sim-kernel-device", default=d.sim_kernel_device,
+        help="where the kernel runs: cpu (NumPy) or gpu (CuPy, the gpu extra)",
     )  # fmt: skip
     g.add_argument(
         "--lookup-calls", type=int, default=d.lookup_calls, help="MCP reference lookups per agent"
@@ -292,6 +305,9 @@ def benchmark(cfg: argparse.Namespace) -> Benchmark:
         sim_range_s=tuple(cfg.sim_range),
         sim_out_elems=cfg.sim_out_elems,
         sim_burn=cfg.burn,
+        sim_kernel=cfg.sim_kernel,
+        sim_kernel_size=cfg.sim_kernel_size,
+        sim_kernel_device=cfg.sim_kernel_device,
         mcp_latency_ms=tuple(cfg.mcp_latency_ms),
         suspend_fraction=cfg.suspend_fraction,
         sim_cost_sigma=cfg.sim_cost_sigma,

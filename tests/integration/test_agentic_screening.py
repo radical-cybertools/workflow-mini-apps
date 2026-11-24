@@ -72,6 +72,91 @@ def test_the_benchmark_verifies_reports_at_each_best_and_refuses_one_far_from_it
     assert result["verified"] == 19 and result["reasons"] == {"report below tolerance": 1}
 
 
+def test_a_benchmark_lists_every_invalid_value_at_once(monkeypatch):
+    """The checks are independent: one error names each value refused, not only the first."""
+    monkeypatch.syspath_prepend(str(EXAMPLE))
+    from screening.benchmark import Benchmark
+
+    with pytest.raises(ValueError) as refused:
+        Benchmark(max_sims=0, lookup_calls=-1, think_policy="greedy", sim_kernel="no_such")
+    message = str(refused.value)
+    for part in ("max_sims", "lookup_calls", "-1", "'greedy'", "'no_such'"):
+        assert part in message, message
+    assert message.count(";") == 3  # four values refused
+
+
+def test_a_simulation_kernel_must_be_a_sized_compute_kernel_of_wfminiapi(monkeypatch):
+    monkeypatch.syspath_prepend(str(EXAMPLE))
+    from screening.benchmark import SIM_KERNELS, Benchmark
+
+    assert Benchmark().sim_kernel == ""  # off by default
+    assert {"matMulSimple2D", "axpy"} <= set(SIM_KERNELS)
+    from wfMiniAPI.kernels import kernel_params
+
+    assert all(list(kernel_params(k)) == ["device", "size"] for k in SIM_KERNELS)
+    Benchmark(sim_kernel="matMulSimple2D", sim_kernel_size=64)
+    for bad in (
+        {"sim_kernel": "fft"},  # a compute kernel, but not sized by one number
+        {"sim_kernel": "axpy", "sim_kernel_size": 0},
+        {"sim_kernel": "axpy", "sim_kernel_device": "tpu"},
+    ):
+        with pytest.raises(ValueError, match="sim_kernel"):
+            Benchmark(**bad)
+
+
+@needs_framework
+def test_a_simulation_runs_its_kernel_for_its_drawn_duration_and_writes_the_same_result(
+    monkeypatch,
+):
+    """With a kernel, a simulation runs wfMiniAPI's kernel until its drawn duration has passed,
+    in place of spinning; its result is the same. Without one, it never calls a kernel."""
+    monkeypatch.syspath_prepend(str(EXAMPLE))
+    from autonmi.store import forget_store, open_store
+    from screening.benchmark import Benchmark
+    from screening.sim import run_simulation
+
+    import wfMiniAPI.kernels as kernels
+
+    calls = []
+    real = kernels.run_kernel
+    monkeypatch.setattr(
+        kernels, "run_kernel", lambda name, **kw: calls.append((name, kw)) or real(name, **kw)
+    )
+    knobs = {"sim_distribution": "fixed", "sim_median_s": 0.05, "sim_burn": False}
+    try:
+        plain = run_simulation("memory:k0", "res/a", 0, 600.0, 0.1, Benchmark(**knobs))
+        assert calls == [] and "kernel_calls" not in plain
+        heavy = Benchmark(**knobs, sim_kernel="matMulSimple2D", sim_kernel_size=32)
+        out = run_simulation("memory:k1", "res/a", 0, 600.0, 0.1, heavy)
+        assert out["kernel_calls"] == len(calls) >= 1
+        assert {(n, kw["device"], kw["size"]) for n, kw in calls} == {("matMulSimple2D", "cpu", 32)}
+        assert out["t_compute_end"] - out["t_start"] >= out["seconds"] == plain["seconds"]
+        a, b = (
+            open_store("memory:k0").get_tensor("res/a"),
+            open_store("memory:k1").get_tensor("res/a"),
+        )
+        assert list(a) == list(b)
+    finally:
+        forget_store("memory:k0")
+        forget_store("memory:k1")
+
+
+@needs_framework
+def test_the_example_runs_with_a_kernel_in_each_simulation(tmp_path):
+    rc, summary = run(tmp_path, "--sim-kernel", "axpy", "--sim-kernel-size", "1000")
+    assert rc == 0 and summary["ok"], summary.get("checks")
+    rows = [
+        json.loads(line)
+        for f in (tmp_path / "run" / "app").glob("agents-p*.jsonl")
+        for line in f.read_text().splitlines()
+    ]
+    assert len(rows) == 30 and all(r["kernel_calls"] >= r["simulations"] >= 1 for r in rows)
+    m = script()
+    b = m.benchmark(m.parse(["--sim-kernel", "matMulSimple2D", "--sim-kernel-size", "128",
+                             "--sim-kernel-device", "cpu"]))  # fmt: skip
+    assert (b.sim_kernel, b.sim_kernel_size, b.sim_kernel_device) == ("matMulSimple2D", 128, "cpu")
+
+
 @needs_framework
 def test_the_example_verifies_and_verifies_again_offline(tmp_path):
     rc, summary = run(tmp_path, "--lookup-calls", "0")

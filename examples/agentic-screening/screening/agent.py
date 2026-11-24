@@ -80,6 +80,7 @@ class Record:
     thinking_tokens: int = 0
     think_calls: list = field(default_factory=list)  # each decision call with a budget, in order
     nudges: int = 0  # times told to report after ending without a report
+    kernel_calls: int = 0  # with a simulation kernel: its calls, over the agent's simulations
 
 
 class Screening:
@@ -186,6 +187,7 @@ class Screening:
             v, rec = r.value, records.get(r.info.agent_id)
             if rec is not None and not any(s[2] == v["key"] for s in rec.sims):
                 rec.sims.append((r.info.kwargs["temperature"], r.info.kwargs["doping"], v["key"]))
+                rec.kernel_calls += v.get("kernel_calls", 0)
 
         async def analyze(result_key: str) -> str:
             """Analyze a simulation's result: its score, whether it has converged, and the next conditions to try."""
@@ -357,6 +359,7 @@ class Screening:
                 "population": pop.index,
                 **({"notes": rec.notes} if bench.plan_calls else {}),
                 **({"nudges": rec.nudges} if rec.nudges else {}),
+                **({"kernel_calls": rec.kernel_calls} if bench.sim_kernel else {}),
                 **(
                     {
                         "think_budget": physics.think_budget(physics.index_of(rec.cid), bench),

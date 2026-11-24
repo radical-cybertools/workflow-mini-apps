@@ -60,7 +60,7 @@ The script puts `screening/` first on `PYTHONPATH`, so that the processes the ru
 - **the campaign:** `--agents`, `--seed`, `--populations`, `--runtime`, `--timeout`;
 - **what the agents do:**
   - simulation length (`--sim-median`, `--sim-sigma`, `--sim-distribution`, `--sim-range`);
-  - the cost spread (`--sim-cost-sigma`), simulations per agent (`--sims-per-agent`, `--max-sims`), burn or sleep (`--no-burn`);
+  - the cost spread (`--sim-cost-sigma`), simulations per agent (`--sims-per-agent`, `--max-sims`), burn or sleep (`--no-burn`), a compute kernel (`--sim-kernel`, `--sim-kernel-size`, `--sim-kernel-device`);
   - simulation output (`--sim-out-elems`), reference lookups (`--lookup-calls`), MCP latency (`--mcp-latency-ms`);
   - planning calls (`--plan-calls`), long tool results (`--tool-result-tokens`), suspension (`--suspend-fraction`, `--no-suspend`);
   - the thinking knobs (`--think-budget`, `--think-policy`, `--think-budget-max`, `--think-gain`, `--think-gain-on`);
@@ -75,6 +75,18 @@ The script puts `screening/` first on `PYTHONPATH`, so that the processes the ru
 - **With the stub,** a decision call thinks for min(budget, a seeded natural length): median `--stub-think-median`, shape `--stub-think-sigma`, at `--stub-decode-rate` tokens per second.
 - **With vLLM,** a decision call turns the model's thinking on (Qwen3's `enable_thinking`) and sends `thinking_token_budget`, with room for it in `max_tokens`. The servers need a reasoning parser and a thinking budget enabled. vLLM's chat API doesn't count thinking tokens apart, so they are counted from the reasoning text the parser splits out: with the model's tokenizer when `--tokenizer` gives it, otherwise as the reasoning's share of the reply's characters, times its completion tokens.
 - **The nudge.** A model sometimes answers in text where it should call `report`, more often when its thinking was cut at a small budget. Such an agent is told once to report, as the benchmark's agents are; the row counts its `nudges`, and the check of the model calls counts each nudge as one call more than the script's.
+
+**A compute kernel in each simulation.** By default a simulation spins a CPU core for its drawn duration. With `--sim-kernel`, it runs one of wfMiniAPI's compute kernels instead, over and over for the same duration (at least once):
+- **The kernels:** `matMulSimple2D` (size × size float32 matrices), `axpy`, `axpy_fast` and `generateRandomNumber` (size values).
+- **The size:** `--sim-kernel-size`, 256 by default.
+- **The device:** `--sim-kernel-device` is `cpu` (NumPy) or `gpu` (CuPy, the `gpu` extra).
+
+The benchmark still sets how long each simulation takes, so the agents, the checks and the results are the same as without the kernel. The kernel gives the simulation a real footprint: floating-point work, memory traffic, NumPy's threads, or a GPU. Each agent's row counts its simulations' kernel calls (`kernel_calls`). For example:
+
+```bash
+python examples/agentic-screening/miniapp_screening.py --agents 30 --sim-median 1 \
+    --sim-kernel matMulSimple2D --sim-kernel-size 512
+```
 
 **Not in this example yet: cache-first admission.** `--admission` accepts only `fcfs`, and says so otherwise.
 
