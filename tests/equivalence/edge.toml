@@ -70,6 +70,12 @@ allow_added = [
   '# every task reads \./data_0\.h5 and writes its own file: create it for the largest read',
   'input_size = max\(e\["read_size_bytes"\] for e in cfg\["stages"\] \+ \[cfg\["analysis"\]\]\)',
   'kern\.writeNonMPI\(num_bytes=input_size, data_root_dir="\./"\)',
+  # disk use (2026-11-24): delete the .h5 files at the end, unless cfg outputs.keep
+  'from pathlib import Path',
+  '# delete the \.h5 files the run wrote, unless the config keeps them',
+  'if not cfg\.get\("outputs", \{\}\)\.get\("keep"\):',
+  'for path in Path\("\."\)\.glob\("data_0\*\.h5"\):',
+  'path\.unlink\(\)',
 ]
 
 [[example]]
@@ -79,6 +85,12 @@ allow_added = [
   '# every task reads \./data_0\.h5 and writes its own file: create it for the largest read',
   'input_size = max\(e\["read_size_bytes"\] for e in cfg\.values\(\) if "read_size_bytes" in e\)',
   'kern\.writeNonMPI\(num_bytes=input_size, data_root_dir="\./"\)',
+  # disk use (2026-11-24): delete the .h5 files at the end, unless cfg outputs.keep
+  'from pathlib import Path',
+  '# delete the \.h5 files the run wrote, unless the config keeps them',
+  'if not cfg\.get\("outputs", \{\}\)\.get\("keep"\):',
+  'for path in Path\("\."\)\.glob\("data_0\*\.h5"\):',
+  'path\.unlink\(\)',
 ]
 
 [[example]]
@@ -88,6 +100,12 @@ allow_added = [
   '# every task reads \./data_0\.h5 and writes its own file: create it for the largest read',
   'input_size = max\(e\["read_size_bytes"\] for e in cfg\.values\(\) if "read_size_bytes" in e\)',
   'kern\.writeNonMPI\(num_bytes=input_size, data_root_dir="\./"\)',
+  # disk use (2026-11-24): delete the .h5 files at the end, unless cfg outputs.keep
+  'from pathlib import Path',
+  '# delete the \.h5 files the run wrote, unless the config keeps them',
+  'if not cfg\.get\("outputs", \{\}\)\.get\("keep"\):',
+  'for path in Path\("\."\)\.glob\("data_0\*\.h5"\):',
+  'path\.unlink\(\)',
 ]
 
 [[example]]
@@ -97,6 +115,12 @@ allow_added = [
   '# every task reads \./data_0\.h5 and writes its own file: create it for the largest read',
   'input_size = max\(e\["read_size_bytes"\] for e in cfg\.values\(\) if "read_size_bytes" in e\)',
   'kern\.writeNonMPI\(num_bytes=input_size, data_root_dir="\./"\)',
+  # disk use (2026-11-24): delete the .h5 files at the end, unless cfg outputs.keep
+  'from pathlib import Path',
+  '# delete the \.h5 files the run wrote, unless the config keeps them',
+  'if not cfg\.get\("outputs", \{\}\)\.get\("keep"\):',
+  'for path in Path\("\."\)\.glob\("data_0\*\.h5"\):',
+  'path\.unlink\(\)',
 ]
 
 [[example]]
@@ -106,6 +130,12 @@ allow_added = [
   '# every task reads \./data_0\.h5 and writes its own file: create it for the largest read',
   'input_size = max\(e\["read_size_bytes"\] for e in cfg\.values\(\) if "read_size_bytes" in e\)',
   'kern\.writeNonMPI\(num_bytes=input_size, data_root_dir="\./"\)',
+  # disk use (2026-11-24): delete the .h5 files at the end, unless cfg outputs.keep
+  'from pathlib import Path',
+  '# delete the \.h5 files the run wrote, unless the config keeps them',
+  'if not cfg\.get\("outputs", \{\}\)\.get\("keep"\):',
+  'for path in Path\("\."\)\.glob\("data_0\*\.h5"\):',
+  'path\.unlink\(\)',
 ]
 
 [[example]]

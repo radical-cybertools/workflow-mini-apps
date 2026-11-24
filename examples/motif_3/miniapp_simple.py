@@ -1,5 +1,6 @@
 import argparse, asyncio, yaml, random, logging
 import time
+from pathlib import Path
 
 from rhapsody.backends import DragonExecutionBackend
 
@@ -39,6 +40,10 @@ async def run_miniapp(cfg):
         finally:
             await telemetry.stop()
             app.verify()
+            # delete the .h5 files the run wrote, unless the config keeps them
+            if not cfg.get("outputs", {}).get("keep"):
+                for path in Path(".").glob("data_0*.h5"):
+                    path.unlink()
 
 async def miniapp_workflow(cfg, flow, logger):
     

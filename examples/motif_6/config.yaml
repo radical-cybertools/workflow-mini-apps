@@ -27,3 +27,7 @@ ensemble:
   new_simulations_per_round: 4  # simulations spawned when coverage is low
   accuracy_threshold: 0.4       # models below this are terminated and respawned
   coverage_threshold: 0.5       # spawn new simulations below this coverage
+
+# the .h5 files the run writes (./data_0.h5 and one data_0_<task>.h5 per task)
+outputs:
+  keep: false                   # true keeps them after the run; false deletes them

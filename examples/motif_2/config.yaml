@@ -34,3 +34,7 @@ analysis:
   write_size_bytes: 512           # 512 B post-step write
   data_copy_size_bytes: 2097152   # 2 MiB data copy
   matmul_dim: 8192                # dimension for square matrix multiplication
+
+# the .h5 files the run writes (./data_0.h5 and one data_0_<task>.h5 per task)
+outputs:
+  keep: false                   # true keeps them after the run; false deletes them
