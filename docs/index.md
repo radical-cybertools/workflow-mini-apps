@@ -14,7 +14,8 @@ and checks that the record is complete.
   afterwards verifies that the run's telemetry reached its file, in a short report.
   See [Use MiniApp](api/miniapp.md) and [Telemetry](telemetry.md).
 - **Example mini-apps** of common workflow patterns: pipelines, inverse design, digital
-  replicas, adaptive training and MPI tasks. See [Examples](examples.md).
+  replicas, adaptive training and MPI tasks, and a campaign of AI agents run with many
+  engines. See [Examples](examples.md).
 
 ## A mini-app run
 

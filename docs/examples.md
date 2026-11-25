@@ -4,9 +4,9 @@ This page describes the mini-apps in `examples/`: what each one emulates, its ta
 graph, and how to run it. Each example's README has notes from earlier runs; for the
 install, follow [Run on HPC](hpc.md).
 
-All of them use the [MiniApp script](api/miniapp.md#the-script), keep their sizes in
-`config.yaml`, and run under Dragon with GPU kernels in some tasks; see
-[Run on HPC](hpc.md). To try MiniApp on a laptop first, use the
+All of them use the [MiniApp script](api/miniapp.md#the-script). The workflow examples
+keep their sizes in `config.yaml` and run under Dragon with GPU kernels in some tasks; see
+[Run on HPC](hpc.md). agentic-screening takes flags instead, and runs on a laptop too. To try MiniApp on a laptop first, use the
 [Quick start](getting-started.md#quick-start).
 
 **Reading the graphs.** A solid arrow is a dependency: the engine starts the second task
@@ -20,6 +20,7 @@ awaits the first tasks, then creates the next ones, often based on their results
 | [motif_4](#motif_4-digital-replica) | a digital replica | 105 |
 | [motif_6](#motif_6-adaptive-training) | adaptive training (hyperparameter search) | varies |
 | [dragon-mpi](#dragon-mpi-mpi-tasks) | a pipeline of MPI tasks | 4 |
+| [agentic-screening](#agentic-screening-a-campaign-of-agents) | a materials-screening campaign of AI agents | varies |
 
 ## motif_2: multistage pipeline
 
@@ -168,6 +169,41 @@ If the build does not find the parallel HDF5, set `HDF5_DIR` to its install dire
     stages are not submitted. Each stage reads `read_size_bytes` (from `config.yaml`)
     per rank from it, so the file must hold at least `read_size_bytes` × `ranks` bytes
     for every stage.
+
+## agentic-screening: a campaign of agents
+
+`examples/agentic-screening/miniapp_screening.py`, scope `screening`. A synthetic
+materials-screening campaign with one AI agent per candidate material. Each agent looks
+the material up, runs simulations at the conditions it chooses, analyzes each result, and
+reports the best conditions it found. Its model decides each next step. The physics is
+seeded, so every candidate's best is known and the run checks each agent's report
+against it.
+
+```mermaid
+flowchart LR
+    L["lookup<br/>(MCP tool)"] -.-> S["simulate<br/>(a task)"]
+    S -.->|"result key"| A["analyze"]
+    A -.->|"next conditions"| D{"Report now?<br/>(the model decides)"}
+    D -- no --> S
+    D -- yes --> R["report"]
+```
+
+Only `simulate` is a task; the agent calls the other tools directly. The agents run in
+populations, and each population is an AsyncFlow node with an engine of its own. So the
+run is a [run of many engines](runs.md): each population's engine is a part of the run,
+and the agents' telemetry export and the application's results are components. The
+number of tasks is the number of simulations, which varies with the model.
+
+```shell
+python examples/agentic-screening/miniapp_screening.py --agents 200 --populations 2 \
+    --sim-median 0.05 --no-burn
+```
+
+The agents run on the AUTONMI framework, which is installed separately; without it, the
+tests skip this example. Its stub model runs the campaign on CPUs only, and
+`--model openai` uses vLLM servers. Each simulation spins a CPU core for a seeded
+duration, or runs one of wfMiniAPI's compute kernels for it (`--sim-kernel`). The
+example's README lists its flags, its recipes and the run's checks.
 
 ## Other directories
 

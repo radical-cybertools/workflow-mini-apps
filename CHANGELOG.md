@@ -25,6 +25,20 @@
   the above; its paths are relative to it, so a run directory can be moved).
 - A run of one engine that uses none of this sees no change.
 
+### Examples
+
+- **`examples/agentic-screening/`:** a synthetic materials-screening campaign of agents in
+  populations, each population an AsyncFlow node with an engine of its own, assembled and
+  verified by `MiniApp` as a run of many engines and components. Its agents run on the AUTONMI
+  framework, installed separately. The contract check covers it; its run tests skip without the
+  framework.
+  Every knob of the benchmark's recipes is a flag, with its default in `--help`, and the
+  README runs each recipe, the reasoning trade-off included (a thinking budget on each decision
+  call, and its gain on the simulations); cache-first admission is not in it yet.
+  A simulation can run one of wfMiniAPI's compute kernels for its duration (`--sim-kernel`,
+  off by default). The duration is a cost, not a deadline: each simulation's result gives the
+  seconds asked and taken, and a check reports the overruns without failing on them.
+
 ### Fixed
 
 - **motif_2, motif_3, motif_4 and motif_6** now run from a fresh directory and on

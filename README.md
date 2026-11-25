@@ -14,7 +14,7 @@ Workflow Mini-app facilitate experimentation and helps understand workflow (dist
 |---|---|
 | `src/wfMiniAPI/` | The Python package: emulation kernels (`wfMiniAPI.kernels`, also importable as `wfMiniAPI.kernel`) |
 | `cpp/include/wfMiniAPI/` | Header-only C++ kernels |
-| `examples/` | Workflow mini-apps on AsyncFlow and RHAPSODY: `motif_2`, `motif_3`, `motif_4`, `motif_6`, `dragon-mpi`; standalone task scripts in `tutorial/` |
+| `examples/` | Workflow mini-apps on AsyncFlow and RHAPSODY: `motif_2`, `motif_3`, `motif_4`, `motif_6`, `dragon-mpi`; `agentic-screening`, populations of agents on the AUTONMI framework (installed separately); standalone task scripts in `tutorial/` |
 | `examples/legacy/exalearn/` | The Neutron Diffraction (InverseProblem) mini-app on the old RADICAL-Pilot API; kept for reference, not maintained |
 | `benchmarks/` | CUDA micro-benchmarks |
 | `tools/` | `plot_run.py` (plot a run's telemetry), `validate_node.sh` (validation on an HPC node), `analyze/` (result-analysis helpers) |
@@ -56,7 +56,8 @@ pytest
 ```
 
 `tests/equivalence/` checks that the example workflows behave exactly as their recorded
-baseline; see its README. On a node with Dragon (and a GPU), `tools/validate_node.sh`
+baseline; see its README. The tests that run `examples/agentic-screening/` need the AUTONMI
+framework, installed separately, and skip without it. On a node with Dragon (and a GPU), `tools/validate_node.sh`
 runs the same comparison on the real backend (`docs/testing/hpc-validation.md`).
 
 This work has been supported by the DOE [RECUP](https://github.com/RECUP-DOE/workflow-miniapps) project.

@@ -74,6 +74,13 @@ EXAMPLES = {
     "dragon_mpi": "examples/dragon-mpi/miniapp_rhapsody.py",
 }
 
+# Examples whose agents run on the AUTONMI framework, installed separately: the contract check
+# (E2) covers them, as it reads their source; the dynamic harness does not run them.
+# tests/integration/test_agentic_screening.py runs them when the framework is installed.
+AGENT_EXAMPLES = {
+    "agentic_screening": "examples/agentic-screening/miniapp_screening.py",
+}
+
 TUTORIAL_ARGS = {
     "simulation": (
         "--N_atoms",
