@@ -127,10 +127,11 @@ campaign and the report are not: requeued, they would start over in a directory 
 
 **Dragon jobs, one per node.** The test and the campaign are named `autonmi-dragon`, and wait for
 each other's end (Slurm's `singleton`), across rungs too; `AUTONMI_DRAGON_SINGLETON=0` turns that
-off. Each also stops at once if another running job of yours with "dragon" in its name is on one of
-its nodes. Each ends its run a few minutes before its time limit, then cleans up after Dragon on its
-nodes: your files in `/dev/shm`, and an MPS daemon that Dragon's clean-up can start on nodes with
-NVIDIA GPUs.
+off. `singleton` waits for every earlier job of yours with that name, pending ones too: a chain
+waiting for a GPU holds every chain submitted after it, even a stub one. Each also stops at once if
+another running job of yours with "dragon" in its name is on one of its nodes. Each ends its run a
+few minutes before its time limit, then cleans up after Dragon on its nodes: your files in
+`/dev/shm`, and an MPS daemon that Dragon's clean-up can start on nodes with NVIDIA GPUs.
 
 **Submitting is safe to interrupt.** The state file (`scale-<rung>.jobs`) gets each job's id as soon
 as Slurm takes it. Ctrl-C, or a dropped connection, cancels the jobs submitted so far and says so in
