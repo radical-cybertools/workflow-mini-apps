@@ -20,7 +20,7 @@ model=$(tr ',' '\n' <<< "$jobs" | sed -n 's/^model=//p')
 ids=$(tr ',' '\n' <<< "$jobs" | cut -d= -f2 | grep . | paste -sd, -)
 sacct -X -P -j "$ids" -o JobID,JobName,State,Submit,Start,End,Elapsed,NNodes,NodeList > "$run/jobs.txt" 2> /dev/null ||
 	echo "no accounting: sacct failed"
-python "$JOBS/scale_report.py" write "$run"
+python "$JOBS/scale_report.py" write "$run" --jobs "$jobs"
 status=$?
 if [ -n "$model" ]; then
 	for _ in $(seq 24); do

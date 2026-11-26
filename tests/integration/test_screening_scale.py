@@ -406,7 +406,7 @@ def report(*args) -> subprocess.CompletedProcess:
 def test_the_report_verifies_every_agent_and_says_where_the_time_went(tmp_path):
     run = tmp_path / "scale-1k-stub"
     write_run(run)
-    r = report("write", run)
+    r = report("write", run, "--jobs", "test=101,model=,campaign=103")
     assert r.returncode == 0, r.stdout + r.stderr
     out = json.loads((run / "scale-report.json").read_text())
     assert out["ok"] and out["every_agent_verifies"]
@@ -425,7 +425,8 @@ def test_the_report_verifies_every_agent_and_says_where_the_time_went(tmp_path):
     assert "scale-1k-stub: ok, every agent verifies and every check passes" in text
     assert "agents: 20 of 20 verify, from their rows; the run's own check: 20 of 20" in text
     assert "start-up 50 s" in text and "2.38 times the simulations' bound of 50 s" in text
-    assert "waited 0:12:00, ran 00:04:20" in text and "140 model calls" in text
+    assert "test COMPLETED, waited 0:00:30, ran 00:01:30; campaign COMPLETED, waited 0:12" in text
+    assert "140 model calls" in text
     shown = report("show", run)
     assert shown.stdout.splitlines() == out["lines"]
 

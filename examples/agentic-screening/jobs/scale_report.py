@@ -87,8 +87,10 @@ def _when(text: str) -> datetime.datetime | None:
         return None  # Unknown, None: not started
 
 
-def read_jobs(run: Path) -> list[dict]:
-    """The chain's jobs from Slurm's accounting (`sacct -X -P`, kept by the report job)."""
+def read_jobs(run: Path, roles: str = "") -> list[dict]:
+    """The chain's jobs from Slurm's accounting (`sacct -X -P`, kept by the report job), each with
+    its role in the chain when `roles` names it ("test=101,model=,campaign=103")."""
+    role = {i: r for r, _, i in (p.partition("=") for p in roles.split(",")) if i}
     try:
         lines = (run / "jobs.txt").read_text().splitlines()
     except OSError:
@@ -103,6 +105,7 @@ def read_jobs(run: Path) -> list[dict]:
             continue
         submit, start = _when(job.get("Submit", "")), _when(job.get("Start", ""))
         job["wait_s"] = (start - submit).total_seconds() if submit and start else None
+        job["role"] = role.get(job["JobID"].split(";")[0], job.get("JobName"))
         jobs.append(job)
     return jobs
 
@@ -216,7 +219,9 @@ def time_of(rows: list[dict], marks: dict[str, float], workers: int | None) -> d
     }
 
 
-def write(run: Path, agents: int | None, workers: int | None, name: str | None) -> dict:
+def write(
+    run: Path, agents: int | None, workers: int | None, name: str | None, roles: str = ""
+) -> dict:
     rows, unreadable = read_rows(run)
     summary = read_json(run / "summary.json")
     checks = read_json(run / "app" / "checks.json")
@@ -228,7 +233,7 @@ def write(run: Path, agents: int | None, workers: int | None, name: str | None) 
     v = verify_rows(run, rows, agents) if rows or agents else None
     own = next((c.get("detail") for c in checks if c.get("name") == VERIFY_CHECK), None)
     t = time_of(rows, read_timeline(run), workers)
-    jobs = read_jobs(run)
+    jobs = read_jobs(run, roles)
     nodes = nodes_of(run)
     calls = sum(r.get("model_calls") or 0 for r in rows)
     sims = sum(len(r.get("sims") or []) for r in rows)
@@ -283,7 +288,7 @@ def describe(out: dict) -> list[str]:
         lines.append(f"populations that did not end: {out['populations_not_ended']}")
     lines.append("where the time went:")
     jobs = [
-        f"{j.get('JobName')} {j.get('State')}, waited {_hms(j['wait_s'])}, ran {j.get('Elapsed')}"
+        f"{j.get('role')} {j.get('State')}, waited {_hms(j['wait_s'])}, ran {j.get('Elapsed')}"
         for j in out["jobs"]
     ]
     if jobs:
@@ -386,6 +391,7 @@ def main(argv: list[str] | None = None) -> int:
         "--workers", type=int, help="simulation workers in all, when the run has no campaign.json"
     )
     w.add_argument("--name", help="the run's name in the report (default: its directory's)")
+    w.add_argument("--jobs", default="", help="the jobs by role: test=ID,model=ID,campaign=ID")
     s = sub.add_parser("show", help="print the report, or the summary's headline")
     s.add_argument("run", type=Path)
     c = sub.add_parser("compare", help="the agents both runs have, agent by agent")
@@ -393,7 +399,7 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("second", type=Path)
     a = p.parse_args(argv)
     if a.what == "write":
-        out = write(a.run, a.agents, a.workers, a.name)
+        out = write(a.run, a.agents, a.workers, a.name, a.jobs)
         print("\n".join(out["lines"]))
         print(f"wrote {a.run / 'scale-report.json'}")
         return 0 if out["ok"] else 1
