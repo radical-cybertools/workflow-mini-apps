@@ -56,9 +56,11 @@ Without it, vLLM servers on a GPU node answer. Start small: `1k stub`, `10k stub
   mean fewer servers, and a longer bound: `10k` on one GPU at 10 calls/s gets `--timeout 12850`.
   `jobs/scale dry-run` prints the model's bound.
 - **Measure your model's calls per second** before a large rung: a `1k` run's report gives its calls
-  per second over the agents' span; divide by its servers. The default is about what Qwen3-8B gave on
-  one 48 GB RTX 6000 Ada over a campaign: calls slow down as the agents' conversations grow, from 38
-  per second at the start of a `10k` run on one GPU to 7 at its end. The agents advance together, so
+  per second over the agents' span; divide by its servers. Its server is full only part of the time,
+  so that is a low estimate, which errs toward longer limits. The default is about what Qwen3-8B gave
+  on one 48 GB RTX 6000 Ada: 13.7 per second in a `1k` run, and 13.3 over a `10k` run on one GPU,
+  where calls slowed down as the agents' conversations grew, from 38 per second at the start to 7 at
+  the end. The agents advance together, so
   a run cut short loses almost every result: in that run, which ran out of time, none had finished
   after 48 minutes.
 - **Requests in flight** are per server, shared by the populations: 16 per population and server at
