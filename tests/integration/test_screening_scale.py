@@ -10,6 +10,7 @@ import os
 import re
 import subprocess
 import sys
+import time
 from pathlib import Path
 
 import pytest
@@ -475,3 +476,101 @@ def test_compare_matches_the_agents_both_runs_have(tmp_path):
     r = report("compare", small, large)
     out = json.loads(r.stdout)
     assert r.returncode == 1 and out["differ"] == 1 and list(out["examples"]) == ["mat-000002"]
+
+
+# --- the model and report jobs, with fake vllm, curl and sacct --------------------------------
+
+
+def job_env(tmp_path, **settings) -> dict:
+    """A job's environment as jobs/scale gives it: the site's file, this tree, a fake venv."""
+    venv = tmp_path / "venv" / "bin"
+    venv.mkdir(parents=True, exist_ok=True)
+    (venv / "activate").write_text(f'export PATH="{venv}:$PATH"\n')
+    if not (venv / "python").exists():
+        (venv / "python").symlink_to(sys.executable)
+    text = SITE.replace("/opt/venv", str(tmp_path / "venv")).replace(RUNS, str(tmp_path / "runs"))
+    env = {
+        k: v
+        for k, v in os.environ.items()
+        if not k.startswith(("AUTONMI_", "SLURM_", "CUDA_", "PYTHON")) and k not in ONE_RUN
+    }
+    env.update(
+        AUTONMI_REPO=str(REPO),
+        AUTONMI_LOCAL_ENV=str(site(tmp_path, text, **settings)),
+        SLURM_JOB_ID="7",
+        PATH=f"{tmp_path / 'bin'}:{os.environ['PATH']}",
+    )
+    return env
+
+
+def tool(tmp_path, name: str, body: str) -> None:
+    bin_ = tmp_path / "bin"
+    bin_.mkdir(exist_ok=True)
+    (bin_ / name).write_text("#!/bin/sh\n" + body)
+    (bin_ / name).chmod(0o755)
+
+
+def test_the_model_job_starts_a_server_per_gpu_lists_them_and_ends_on_its_stop_file(tmp_path):
+    log = tmp_path / "vllm.log"
+    tool(tmp_path, "vllm", f'echo "$CUDA_VISIBLE_DEVICES $*" >> "{log}"\nexec sleep 300\n')
+    tool(tmp_path, "curl", "exit 0\n")
+    fleet = tmp_path / "fleet"
+    fleet.mkdir()
+    env = job_env(tmp_path, AUTONMI_MODEL="/models/qwen", AUTONMI_MODEL_NAME="Q")
+    env["CUDA_VISIBLE_DEVICES"] = "4,5,6"
+    job = subprocess.Popen(
+        ["bash", str(JOBS / "model.sh"), str(fleet), "2"],
+        env=env,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+    )
+    try:
+        for _ in range(300):  # the servers answer at once here, maybe before they log
+            started = log.exists() and len(log.read_text().splitlines()) == 2
+            if job.poll() is not None or ((fleet / "endpoints").exists() and started):
+                break
+            time.sleep(0.1)
+        endpoints = (fleet / "endpoints").read_text().split()
+        assert len(endpoints) == 2 and all(e.startswith("http://") for e in endpoints)
+        servers = log.read_text().splitlines()
+        assert [s.split()[0] for s in servers] == ["4", "5"]  # the first 2 of the job's GPUs
+        assert all("serve /models/qwen --served-model-name Q" in s for s in servers)
+        assert (fleet / "api-key").stat().st_mode & 0o077 == 0
+        (fleet / "stop").touch()
+        out, _ = job.communicate(timeout=60)
+    finally:
+        job.kill()
+    assert job.returncode == 0, out
+    assert "servers: 2, GPUs per server: 1 (4 5)" in out and "stopping at" in out
+
+
+def test_the_report_job_keeps_the_accounting_writes_the_report_and_ends_the_model_job(tmp_path):
+    run = tmp_path / "scale-1k"
+    write_run(run)
+    (run / "jobs.txt").unlink()
+    fleet = tmp_path / "fleet"
+    fleet.mkdir()
+    calls = tmp_path / "calls.log"
+    tool(
+        tmp_path,
+        "sacct",
+        'echo "JobID|JobName|State|Submit|Start|End|Elapsed|NNodes|NodeList"\n'
+        'echo "103|autonmi-dragon|COMPLETED|2026-11-26T10:00:00|2026-11-26T10:01:00"'
+        '"|x|00:04:20|2|n"\n',
+    )
+    tool(tmp_path, "squeue", 'echo " 102 autonmi-vllm"\n')  # the model job never ends by itself
+    tool(tmp_path, "scancel", f'echo "scancel $*" >> "{calls}"\n')
+    tool(tmp_path, "sleep", "exit 0\n")
+    r = subprocess.run(
+        ["bash", str(JOBS / "report.sh"), str(run), str(fleet), "test=101,model=102,campaign=103"],
+        env=job_env(tmp_path),
+        capture_output=True,
+        text=True,
+        timeout=120,
+    )
+    assert r.returncode == 0, r.stdout + r.stderr
+    assert (fleet / "stop").exists() and "scancel 102" in calls.read_text()
+    out = json.loads((run / "scale-report.json").read_text())
+    assert out["ok"] and out["jobs"][0]["role"] == "campaign" and out["jobs"][0]["wait_s"] == 60.0
+    assert "campaign COMPLETED, waited 0:01:00, ran 00:04:20" in r.stdout
