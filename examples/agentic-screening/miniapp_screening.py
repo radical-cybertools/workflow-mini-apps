@@ -28,7 +28,7 @@ Writes `<run-dir>/`: `launcher/` (the mini-app's checkpoint and MiniApp's report
 (each population's checkpoint and stats), `app/` (per-agent rows, checks, ranking), `otel/`
 (Flowgentic's export, one directory per population process under Dragon; a tenth of the agents'
 spans unless `--span-ratio 1`), `services/`, `vllm/`, and `autonmi.json` (the AUTONMI commit the
-run imported, against `AUTONMI_COMMIT`).
+run imported, against the one the example pins: `screening/pin.py`).
 Exit status 0 when every check passes and the telemetry is complete.
 """
 
@@ -56,13 +56,9 @@ from autonmi.telemetry import Telemetry  # noqa: E402
 from radical.asyncflow import WorkflowEngine  # noqa: E402
 from screening.agent import Screening  # noqa: E402
 from screening.benchmark import SIM_KERNELS, Benchmark  # noqa: E402
+from screening.pin import autonmi_pin  # noqa: E402
 
 from wfMiniAPI.api import MiniApp  # noqa: E402
-
-# The AUTONMI commit this example is tested on: main with its public API (`autonmi.mcp`,
-# `ModelSettings`), 26 Nov 2026. The framework is installed separately; a run warns on stderr when
-# it imports another commit, and records both in `<run-dir>/autonmi.json`.
-AUTONMI_COMMIT = "cdda559fcd78dbf42671305c3fdb0b6fa97d451b"
 
 
 class _Help(argparse.RawDescriptionHelpFormatter, argparse.ArgumentDefaultsHelpFormatter):
@@ -325,60 +321,6 @@ def benchmark(cfg: argparse.Namespace) -> Benchmark:
         plan_calls=cfg.plan_calls,
         tool_result_tokens=cfg.tool_result_tokens,
     )
-
-
-def autonmi_commit() -> dict:
-    """The commit of the autonmi package this process imported: git's, in the clone it is imported
-    from (an editable install), with whether its tracked files differ; else a `.git-commit` file at
-    the root of a copy made without git; else its installer's record, when installed from git
-    (`direct_url.json`). None when none of them says."""
-    import subprocess
-    from importlib import metadata
-
-    import autonmi
-
-    src = Path(autonmi.__file__).resolve().parent
-
-    def git(*args: str) -> str:
-        return subprocess.run(
-            ["git", "-C", str(src), *args], capture_output=True, text=True, timeout=10, check=True
-        ).stdout.strip()
-
-    try:
-        git("ls-files", "--error-unmatch", "__init__.py")  # its own clone, not a repository above
-        dirty = bool(git("status", "--porcelain", "--untracked-files=no"))
-        return {"commit": git("rev-parse", "HEAD"), "dirty": dirty, "from": "git"}
-    except (OSError, subprocess.SubprocessError):
-        pass
-    for root in (src.parent, src.parent.parent):  # beside the package, or above its `src/`
-        if (root / ".git-commit").is_file():
-            commit = (root / ".git-commit").read_text().strip()
-            return {"commit": commit or None, "dirty": None, "from": ".git-commit"}
-    for dist in metadata.packages_distributions().get("autonmi", []):
-        url = json.loads(metadata.distribution(dist).read_text("direct_url.json") or "{}")
-        commit = url.get("vcs_info", {}).get("commit_id")
-        if commit:
-            return {"commit": commit, "dirty": None, "from": "direct_url.json"}
-    return {"commit": None, "dirty": None, "from": None}
-
-
-def autonmi_pin() -> dict:
-    """`autonmi_commit()` against `AUTONMI_COMMIT`, for the run's record: one warning on stderr when
-    the commit differs, is unknown, or has changed files. A short commit matches its full one."""
-    got = autonmi_commit()
-    commit = got["commit"] or ""
-    same = len(commit) >= 7 and AUTONMI_COMMIT.startswith(commit)
-    got.update(pin=AUTONMI_COMMIT, matches_pin=same and not got["dirty"])
-    if not got["matches_pin"]:
-        what = "an unknown commit" if not commit else commit[:12]
-        what += " with changed files" if got["dirty"] else ""
-        print(
-            f"[screening] warning: the autonmi package imported is at {what}, not at the pinned "
-            f"{AUTONMI_COMMIT[:12]} (AUTONMI_COMMIT in {Path(__file__).name})",
-            file=sys.stderr,
-            flush=True,
-        )
-    return got
 
 
 async def make_backend(cfg: argparse.Namespace):
