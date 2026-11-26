@@ -30,9 +30,9 @@
 - **`examples/agentic-screening/`:** a synthetic materials-screening campaign of agents in
   populations, each population an AsyncFlow node with an engine of its own, assembled and
   verified by `MiniApp` as a run of many engines and components. Its agents run on the AUTONMI
-  framework, installed separately, at the commit the example pins (`AUTONMI_COMMIT`, `main` with
-  its public API: `autonmi.mcp`, `ModelSettings`); a run warns when it imports another commit and
-  records both in `<run-dir>/autonmi.json`. The contract check covers it; its run tests skip
+  framework, installed separately, at the commit the example pins (`screening/pin.py`, `main`
+  with its public API: `autonmi.mcp`, `ModelSettings`) and its README installs; a run warns
+  when it imports another commit and records both in `<run-dir>/autonmi.json`. The contract check covers it; its run tests skip
   without the framework.
   Every knob of the benchmark's recipes is a flag, with its default in `--help`, and the
   README runs each recipe, the reasoning trade-off included (a thinking budget on each decision
