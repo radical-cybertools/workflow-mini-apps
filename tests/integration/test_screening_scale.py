@@ -141,7 +141,8 @@ def test_with_the_stub_there_is_no_model_job(tmp_path):
 def test_each_rung_has_the_table_s_shape_on_nodes_of_96_cpus(
     tmp_path, rung, agents, nodes, gpus, cap, mcp, time, timeout, model_time
 ):
-    r = scale(tmp_path, "dry-run", rung)
+    """With a model fast enough that the simulations set the time (1,000 calls/s per server)."""
+    r = scale(tmp_path, "dry-run", rung, env_file=site(tmp_path, AUTONMI_MODEL_CALLS_PER_S=1000))
     assert r.returncode == 0, r.stderr
     jobs = jobs_of(r.stdout)
     campaign, model = jobs["campaign"], jobs["model"]
@@ -158,7 +159,7 @@ def test_each_rung_has_the_table_s_shape_on_nodes_of_96_cpus(
 def test_the_campaign_s_limit_covers_the_parts_outside_its_populations_timeout(tmp_path):
     """The model wait, start-up, wind-down, clean-up and margin: 300k with 8 servers needs 170 min,
     more than the demo's 120."""
-    r = scale(tmp_path, "dry-run", "300k")
+    r = scale(tmp_path, "dry-run", "300k", env_file=site(tmp_path, AUTONMI_MODEL_CALLS_PER_S=1000))
     campaign = jobs_of(r.stdout)["campaign"]
     wait, timeout = int(option(campaign, "--model-wait")), int(option(campaign, "--timeout"))
     assert wait == 600 + 300 * 8 and timeout == 4800
@@ -168,15 +169,43 @@ def test_the_campaign_s_limit_covers_the_parts_outside_its_populations_timeout(t
     assert option(jobs_of(r.stdout)["campaign"], "-t") == "02:00:00"
 
 
-def test_the_benchmark_s_work_per_agent_is_the_ladder_s(monkeypatch):
-    """The bound the dry run prints uses 31.45 core-seconds per agent: the benchmark's physics at
-    its defaults, which the report measures from the rows."""
+def test_a_model_rung_s_limits_hold_the_model_s_time(tmp_path):
+    """The model's bound: the rung's model calls over its servers' calls per second. 10k makes
+    85,670 calls; at the default 10 calls/s per server, on the rung's 2 servers, that is 4,283 s,
+    and the populations get half as much again."""
+    r = scale(tmp_path, "dry-run", "10k")
+    assert r.returncode == 0, r.stderr
+    campaign, model = jobs_of(r.stdout)["campaign"], jobs_of(r.stdout)["model"]
+    assert option(campaign, "--timeout") == "6424"
+    assert option(campaign, "-t") == "02:19:00" and option(model, "-t") == "03:04:00"
+    assert "the model's bound about 4283 s (85670 calls, 10 per second on each of 2 servers)" in (
+        r.stdout
+    )
+    # on one GPU where the rung has two, twice as long: the 10k run on one GPU that ran out of time
+    r = scale(tmp_path, "dry-run", "10k", AUTONMI_GPUS="1")
+    assert option(jobs_of(r.stdout)["campaign"], "--timeout") == "12850"
+    # a faster model: the simulations set the time again
+    r = scale(tmp_path, "dry-run", "10k", env_file=site(tmp_path, AUTONMI_MODEL_CALLS_PER_S=40))
+    assert option(jobs_of(r.stdout)["campaign"], "--timeout") == "2700"
+    # the stub answers at once; AUTONMI_TIMEOUT replaces the bound
+    r = scale(tmp_path, "dry-run", "10k", "stub")
+    assert option(jobs_of(r.stdout)["campaign"], "--timeout") == "2700"
+    assert "model's bound" not in r.stdout
+    r = scale(tmp_path, "dry-run", "10k", AUTONMI_TIMEOUT="3000")
+    assert option(jobs_of(r.stdout)["campaign"], "--timeout") == "3000"
+    r = scale(tmp_path, "dry-run", "10k", env_file=site(tmp_path, AUTONMI_MODEL_CALLS_PER_S="2.5"))
+    assert r.returncode == 1 and "AUTONMI_MODEL_CALLS_PER_S must be a whole number" in r.stderr
+
+
+def test_the_benchmark_s_work_and_model_calls_per_agent_are_the_ladder_s(monkeypatch):
+    """The bounds the dry run prints use 31.45 core-seconds and 8.567 model calls per agent: the
+    benchmark's physics and workflow at its defaults, which the report measures from the rows."""
     monkeypatch.syspath_prepend(str(EXAMPLE))
     from screening import physics
     from screening.benchmark import Benchmark
 
     bench = Benchmark(agents=10_000)
-    work = 0.0
+    work, calls = 0.0, 0
     for i in range(bench.agents):
         c = physics.candidate(i, bench)
         t, d = physics.reference(c, bench)
@@ -186,13 +215,18 @@ def test_the_benchmark_s_work_per_agent_is_the_ladder_s(monkeypatch):
             if done:
                 break
             t, d = nxt
+        calls += bench.model_calls_per_agent(n)
     assert re.search(r"^CORE_CS_PER_AGENT=3145\b", SCALE.read_text(), re.M)
     assert work / bench.agents == pytest.approx(31.45, abs=0.01)
+    assert re.search(r"^CALLS_PER_1000_AGENTS=8567\b", SCALE.read_text(), re.M)
+    assert calls == 85_670  # the stub's 10k run made as many
 
 
 def test_the_workers_follow_the_site_s_cpus_and_the_limits_follow_the_workers(tmp_path):
     """On nodes of 64 CPUs, shared: 28 workers per population, and limits 88 / 56 times longer."""
-    env_file = site(tmp_path, AUTONMI_NODE_CPUS=64, AUTONMI_NODE_EXCLUSIVE=0)
+    env_file = site(
+        tmp_path, AUTONMI_NODE_CPUS=64, AUTONMI_NODE_EXCLUSIVE=0, AUTONMI_MODEL_CALLS_PER_S=1000
+    )
     r = scale(tmp_path, "dry-run", "10k", "stub", env_file=env_file)
     assert r.returncode == 0, r.stderr
     campaign = jobs_of(r.stdout)["campaign"]
@@ -205,7 +239,9 @@ def test_the_workers_follow_the_site_s_cpus_and_the_limits_follow_the_workers(tm
 
 
 def test_more_cpus_give_more_workers_and_never_shorter_limits(tmp_path):
-    env_file = site(tmp_path, AUTONMI_NODE_CPUS=192, AUTONMI_NODE_POPULATIONS=4)
+    env_file = site(
+        tmp_path, AUTONMI_NODE_CPUS=192, AUTONMI_NODE_POPULATIONS=4, AUTONMI_MODEL_CALLS_PER_S=1000
+    )
     r = scale(tmp_path, "dry-run", "100k", env_file=env_file)
     assert r.returncode == 0, r.stderr
     campaign = jobs_of(r.stdout)["campaign"]
@@ -652,6 +688,121 @@ def test_a_campaign_that_died_before_its_first_file_reports_0_of_n(tmp_path):
     r = report("write", run)  # nothing says how many: it says so, and writes the report
     assert r.returncode == 1 and "nothing to verify against" in r.stdout
     assert (run / "scale-report.json").exists()
+
+
+def otel_export(pop: str, states: dict, sims: int, calls: int, seconds: dict, t: float) -> dict:
+    """One telemetry export of a population, as Flowgentic writes it (otel/p*/metrics.jsonl): the
+    counts so far, from t=1000 s to `t`; a request waited 500 s for admission and took 7 s."""
+    fleet = {"flowgentic.fleet.name": pop, "flowgentic.fleet.replica": 0}
+    t0, t1 = 1000 * 10**9, int(t * 10**9)
+
+    def metric(name, points):
+        return {"name": name, "data": {"data_points": points, "aggregation_temporality": 2}}
+
+    def hist(attrs, count, mean):
+        return {"attributes": attrs, "start_time_unix_nano": t0, "time_unix_nano": t1,
+                "count": count, "sum": mean * count}  # fmt: skip
+
+    def tool(name, outcome, count):
+        attrs = {"gen_ai.tool.name": name, "flowgentic.tool.outcome": outcome}
+        return hist(attrs, count, 1.0)
+
+    in_request = states.get("model_request", 0)
+    metrics = [
+        metric("flowgentic.fleet.admission.wait", [hist(fleet, calls + in_request, 500.0)]),
+        metric("flowgentic.fleet.call.duration", [hist(fleet, calls, 507.0)]),
+        metric("flowgentic.fleet.request.duration", [hist(fleet, calls, 7.0)]),
+        metric(
+            "flowgentic.tool.duration",
+            [
+                tool("lookup_reference", "ok", 10),
+                tool("simulate", "ok", sims),
+                tool("simulate", "error", 1),
+                tool("analyze", "ok", sims - 2),
+            ],
+        ),  # fmt: skip
+        metric(
+            "flowgentic.agents",
+            [{"attributes": {"flowgentic.agent.state": s}, "value": n} for s, n in states.items()],
+        ),
+        metric(
+            "flowgentic.agent.time",
+            [{"attributes": {"flowgentic.agent.state": s}, "value": v} for s, v in seconds.items()],
+        ),
+    ]
+    resource = {"attributes": {"autonmi.population": pop}}
+    scope = {"scope": {"name": "flowgentic"}, "metrics": metrics}
+    return {"resource_metrics": [{"resource": resource, "scope_metrics": [scope]}]}
+
+
+def write_telemetry(run: Path) -> None:
+    """Two populations of 10 agents, cut off while most waited for the model: an early export and
+    the last; p001 was killed while it wrote a third."""
+    seconds = {"pending": 25.0, "working": 25.0, "model_queued": 4000.0, "model_request": 200.0,
+               "tool_wait": 750.0, "done": 150.0}  # fmt: skip
+    last = {
+        "p000": ({"done": 3, "model_queued": 6, "model_request": 1, "tool_wait": 0}, 25, 70),
+        "p001": ({"done": 2, "model_queued": 7, "model_request": 1, "tool_wait": 0}, 24, 68),
+    }
+    for pop, (states, sims, calls) in last.items():
+        early = otel_export(pop, {"model_queued": 9, "model_request": 1}, 5, 20, seconds, 1050.0)
+        lines = [
+            json.dumps(early),
+            json.dumps(otel_export(pop, states, sims, calls, seconds, 1100)),
+        ]
+        if pop == "p001":
+            lines.append(json.dumps(early)[:40])
+        (run / "otel" / pop).mkdir(parents=True)
+        (run / "otel" / pop / "metrics.jsonl").write_text("\n".join(lines) + "\n")
+
+
+def test_when_populations_time_out_the_report_counts_from_telemetry(tmp_path):
+    """Populations write their rows when they end: cut off, they write none, and the counts come
+    from the framework's telemetry, which says where the agents were."""
+    run = tmp_path / "scale-10k"
+    write_run(run, rows_of=range(0), summary=False)
+    write_telemetry(run)
+    r = report("write", run, "--agents", "20", "--populations", "2")
+    assert r.returncode == 1
+    out = json.loads((run / "scale-report.json").read_text())
+    assert out["counts_from"] == "telemetry"
+    assert out["simulations"] == 49 and out["model_calls"] == 138  # from the last whole exports
+    tel = out["telemetry"]
+    assert tel["agents"] == {"done": 5, "model_queued": 13, "model_request": 2, "tool_wait": 0}
+    assert tel["admission_mean_s"] == 500.0 and tel["request_mean_s"] == 7.0
+    assert tel["covers_s"] == 100.0 and sorted(tel["populations"]) == ["p000", "p001"]
+    text = r.stdout
+    assert "agents: 0 of 20 verify, from their rows" in text
+    assert "populations that wrote no rows: p000, p001" in text
+    assert (
+        "agents at the end, from telemetry: 5 of 20 done; model_queued 13, model_request 2" in text
+    )
+    assert (
+        "    49 simulations, 138 model calls (from telemetry: populations without rows), "
+        "1.4 calls/s over the 100 s it covers"
+    ) in text
+    assert (
+        "    model calls: a request waited 500 s on average for admission, then took 7.0 s" in text
+    )
+    assert (
+        "    agents' own time, from telemetry: model_queued 80.0 %, tool_wait 15.0 %, "
+        "model_request 4.0 %, pending 0.5 %, working 0.5 %"
+    ) in text
+    assert "0 simulations" not in text
+
+
+def test_when_every_population_wrote_its_rows_the_counts_are_the_rows(tmp_path):
+    run = tmp_path / "scale-1k"
+    write_run(run)
+    write_telemetry(run)
+    r = report("write", run)
+    assert r.returncode == 0, r.stdout + r.stderr
+    out = json.loads((run / "scale-report.json").read_text())
+    assert out["counts_from"] == "rows" and out["model_calls"] == 140 and out["simulations"] == 40
+    assert "40 simulations, 140 model calls, " in r.stdout and "from telemetry" not in r.stdout
+    assert "model calls: a request waited 500 s on average for admission, then took 7.0 s" in (
+        r.stdout
+    )
 
 
 def test_duplicate_rows_and_rows_of_other_agents_fail_the_run(tmp_path):

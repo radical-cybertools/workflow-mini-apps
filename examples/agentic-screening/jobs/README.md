@@ -21,12 +21,12 @@ Without it, vLLM servers on a GPU node answer. Start small: `1k stub`, `10k stub
 
 ## The rungs
 
-| Rung | Agents | CPU nodes | Populations × workers | GPUs, one vLLM server each | Requests in flight per server | MCP servers | Campaign's time limit, stub / model | Simulations' bound |
-|---|---|---|---|---|---|---|---|---|
-| `1k` | 1,000 | 1 | 2 × 44 | 1 | 96 | 4 | 0:40 / 0:41 | 6 min |
-| `10k` | 10,000 | 2 | 4 × 44 | 2 | 96 | 4 | 1:15 / 1:17 | 30 min |
-| `100k` | 100,000 | 10 | 20 × 44 | 2 | 320 | 4 | 2:00 / 2:00 | 60 min |
-| `300k` | 300,000 | 30 | 60 × 44 | 8 | 960 | 8 | 2:00 / 2:50 | 60 min |
+| Rung | Agents | CPU nodes | Populations × workers | GPUs, one vLLM server each | Requests in flight per server | MCP servers | Simulations' bound | Model calls | Campaign's time limit: stub / model at 100 / at 10 calls/s per server |
+|---|---|---|---|---|---|---|---|---|---|
+| `1k` | 1,000 | 1 | 2 × 44 | 1 | 96 | 4 | 6 min | 8,567 | 0:40 / 0:41 / 0:47 |
+| `10k` | 10,000 | 2 | 4 × 44 | 2 | 96 | 4 | 30 min | 85,670 | 1:15 / 1:17 / 2:19 |
+| `100k` | 100,000 | 10 | 20 × 44 | 2 | 320 | 4 | 60 min | 856,700 | 2:00 / 2:28 / 18:31 |
+| `300k` | 300,000 | 30 | 60 × 44 | 8 | 960 | 8 | 60 min | 2,570,100 | 2:00 / 2:51 / 14:54 |
 
 - **The rungs are the AUTONMI demo's,** which ran them all. The mini-app has run `1k` and `10k`.
   **`100k` and `300k` are untested estimates** for the mini-app: its wind-down and its start-up on
@@ -47,8 +47,20 @@ Without it, vLLM servers on a GPU node answer. Start small: `1k stub`, `10k stub
   clean-up (2 minutes) and the margin before the limit (4 minutes). Where that is more than the
   demo's limit, it replaces it: `300k` with its 8 servers gets 2:50.
 - **The GPUs** are all on one node, in their own job. Each agent always uses the same server.
-- **The bound** is the simulation work over the workers: 31.45 core-seconds per agent with the
-  benchmark's default settings, over every population's workers. No run can finish sooner.
+- **The simulations' bound** is the simulation work over the workers: 31.45 core-seconds per agent
+  with the benchmark's default settings, over every population's workers. No run can finish sooner.
+- **With a model, the model can set the time.** The model's bound is the rung's model calls (8.567
+  per agent with the benchmark's defaults) over what its servers answer: `AUTONMI_MODEL_CALLS_PER_S`
+  each, with their requests in flight full, 10 by default. The populations' `--timeout` is at least
+  half as much again as that bound, and the campaign's limit grows with it. Fewer GPUs than the rung's
+  mean fewer servers, and a longer bound: `10k` on one GPU at 10 calls/s gets `--timeout 12850`.
+  `jobs/scale dry-run` prints the model's bound.
+- **Measure your model's calls per second** before a large rung: a `1k` run's report gives its calls
+  per second over the agents' span; divide by its servers. The default is about what Qwen3-8B gave on
+  one 48 GB RTX 6000 Ada over a campaign: calls slow down as the agents' conversations grow, from 38
+  per second at the start of a `10k` run on one GPU to 7 at its end. The agents advance together, so
+  a run cut short loses almost every result: in that run, which ran out of time, none had finished
+  after 48 minutes.
 - **Requests in flight** are per server, shared by the populations: 16 per population and server at
   `100k` and `300k`.
 
@@ -83,6 +95,7 @@ Without it, vLLM servers on a GPU node answer. Start small: `1k stub`, `10k stub
 | `AUTONMI_MODEL_VENV`, `AUTONMI_MODEL`, `AUTONMI_MODEL_NAME` | the model job's environment, the model's weights, and its served name | the framework's, none, Qwen3-8B |
 | `AUTONMI_GPU_CPUS`, `AUTONMI_GPU_MEM_GB` | CPUs and memory per GPU for the model job | 12 and 110 |
 | `AUTONMI_MODEL_WAIT` | the seconds the campaign waits for every server to answer | 600, and 300 per server |
+| `AUTONMI_MODEL_CALLS_PER_S` | model calls per second one server answers with its requests in flight full, over a campaign: it sizes the model rungs' limits | 10 |
 | `AUTONMI_ENDPOINT_HOST` | the servers' host as the campaign's nodes reach it: `%h` is the GPU node's short name, `%f` its full one, such as `%h-ib` | `%h` |
 | `AUTONMI_CAP_TOKENS` | tokens of live context in flight per server, for the GPU's memory | the mini-app's |
 | `AUTONMI_CAMPAIGN_ARGS` | more of the mini-app's options, for every campaign | none |
@@ -166,6 +179,10 @@ To run a rung again, move `scale-10k*` away first.
   to N − 1 of the rung's N, so a run of another size fails ("0 of N" when no row was written). It
   counts duplicate rows and rows of agents outside the run, and names the populations that wrote
   no rows. It gives the run's own checks beside it;
+- when a population was cut off before it wrote its rows, what the framework counted while it ran,
+  from the populations' telemetry (`otel/p*/metrics.jsonl`): the agents by state at the end, the
+  simulations and model calls, and the agents' time by state;
+- with a model, a request's mean wait for admission and its time at the server;
 - where the time went: how long each job waited in the queue and ran; the campaign job's wait for
   the model servers, start-up, agents, wind-down and clean-up; the agents' span against the
   simulations' bound; and the agents' own time, in simulations, in model calls, and waiting for a
@@ -195,6 +212,10 @@ checks the agents both runs have, agent by agent, and exits 0 when they all matc
   are not for that.
 - **A population never ends.** The mini-app waits `AUTONMI_TIMEOUT` seconds for its populations,
   then stops them. The campaign job also ends its run 4 minutes before its time limit.
+- **The populations ran out of time** (`TimeoutError: the populations ran past timeout_s`). The
+  report's lines from telemetry say where the agents were. With most of them `model_queued`, the
+  model set the time: give the rung its GPUs, or set `AUTONMI_MODEL_CALLS_PER_S` to what the report
+  measured.
 - **`... .jobs.lock exists`.** Another submit of that rung runs, or one was killed outright. Check
   with `status`, then remove the lock.
 - **`... is not set`.** Add the setting to the site's file.

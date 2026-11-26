@@ -23,6 +23,11 @@
   wind-down after the last. The agents' span against the simulations' bound: the seconds the
   simulations asked for over the workers, which no run can beat. And the agents' own time: in their
   simulations, in model calls (admission, then serving), and the rest, mostly waiting for a worker.
+- **what the framework counted.** Populations write their rows when they end. When one was cut off
+  (its timeout, the job's limit), the simulations and model calls come from the populations'
+  telemetry (`otel/p*/metrics.jsonl`, the last whole export of each): with the agents by state at
+  the end, and their time by state. With a model, it also gives a request's wait for admission and
+  its time at the server.
 
 `compare` checks two runs agent by agent, on the agents both have: with the same seed, agent i is
 the same candidate at every size, so with the stub model its simulations, model calls and report
@@ -152,6 +157,99 @@ def read_jobs(run: Path, roles: str = "") -> list[dict]:
     return jobs
 
 
+def _points(export: dict) -> dict[str, list[dict]]:
+    """One telemetry export's data points, by metric name."""
+    points: dict[str, list[dict]] = collections.defaultdict(list)
+    for rm in export.get("resource_metrics") or []:
+        for sm in rm.get("scope_metrics") or []:
+            for m in sm.get("metrics") or []:
+                data = m.get("data") or {}
+                points[m.get("name")] += [p for p in data.get("data_points") or [] if p]
+    return points
+
+
+def _by_state(points: list[dict]) -> dict[str, float]:
+    out: dict[str, float] = collections.Counter()
+    for p in points:
+        state, value = (p.get("attributes") or {}).get("flowgentic.agent.state"), p.get("value")
+        if state and _number(value):
+            out[state] += value
+    return dict(out)
+
+
+def _counted(points: list[dict], **attrs) -> tuple[int, float]:
+    """The count and sum of a histogram's points whose attributes match."""
+    count, total = 0, 0.0
+    for p in points:
+        have = p.get("attributes") or {}
+        if all(have.get(k) == v for k, v in attrs.items()) and _number(p.get("count")):
+            count += p["count"]
+            total += p.get("sum") or 0.0
+    return count, total
+
+
+def _last_export(path: Path) -> dict | None:
+    """The last export of a metrics file that reads whole: a population killed while it wrote
+    leaves a broken last line."""
+    try:
+        lines = path.read_text().splitlines()
+    except OSError:
+        return None
+    for line in reversed(lines):
+        try:
+            export = json.loads(line)
+        except ValueError:
+            continue
+        if isinstance(export, dict):
+            return export
+    return None
+
+
+def read_telemetry(run: Path) -> dict | None:
+    """What Flowgentic counted while the populations ran (`otel/p*/metrics.jsonl`; its counts are
+    cumulative, so the last export of each population holds them): the agents by state at the end,
+    the simulations that ran, the model calls served, a request's mean wait for admission and time
+    at the server, the agents' seconds by state, and the seconds the exports cover. None without."""
+    agents: dict[str, float] = collections.Counter()
+    seconds: dict[str, float] = collections.Counter()
+    sims = calls = admitted = served = 0
+    admission_s = request_s = 0.0
+    covers = 0.0
+    populations = []
+    for path in sorted((run / "otel").glob("p*/metrics.jsonl")):
+        export = _last_export(path)
+        if export is None:
+            continue
+        populations.append(path.parent.name)
+        points = _points(export)
+        agents.update(_by_state(points["flowgentic.agents"]))
+        seconds.update(_by_state(points["flowgentic.agent.time"]))
+        sims += _counted(points["flowgentic.tool.duration"], **{
+            "gen_ai.tool.name": "simulate", "flowgentic.tool.outcome": "ok"})[0]  # fmt: skip
+        n, _ = _counted(points["flowgentic.fleet.call.duration"])
+        calls += n
+        n, total = _counted(points["flowgentic.fleet.admission.wait"])
+        admitted, admission_s = admitted + n, admission_s + total
+        n, total = _counted(points["flowgentic.fleet.request.duration"])
+        served, request_s = served + n, request_s + total
+        for p in points["flowgentic.fleet.call.duration"]:
+            t0, t1 = p.get("start_time_unix_nano"), p.get("time_unix_nano")
+            if _number(t0) and _number(t1):
+                covers = max(covers, (t1 - t0) / 1e9)
+    if not populations:
+        return None
+    return {
+        "populations": populations,
+        "agents": {k: int(v) for k, v in agents.items()},
+        "simulations": sims,
+        "model_calls": calls,
+        "admission_mean_s": round(admission_s / admitted, 1) if admitted else None,
+        "request_mean_s": round(request_s / served, 2) if served else None,
+        "agent_s_by_state": {k: round(v, 1) for k, v in seconds.items()},
+        "covers_s": round(covers, 1) if covers else None,
+    }
+
+
 def _screening() -> None:
     """The benchmark's package, beside this directory: standard library only."""
     if str(EXAMPLE) not in sys.path:
@@ -240,6 +338,11 @@ def _s(x) -> str:
     return "?" if x is None else f"{x:.0f}"
 
 
+def _largest(item: tuple[str, float]) -> tuple[float, str]:
+    """Largest first, then by name."""
+    return (-item[1], item[0])
+
+
 def _pct(part: float, whole: float) -> str:
     return f"{100 * part / whole:.1f} %" if whole else "?"
 
@@ -306,8 +409,13 @@ def write(
     t = time_of(rows, read_timeline(run), workers)
     jobs = read_jobs(run, roles)
     nodes = nodes_of(run)
-    calls = sum(r.get("model_calls") or 0 for r in rows)
-    sims = sum(len(r.get("sims") or []) for r in rows)
+    telemetry = read_telemetry(run)
+    from_telemetry = bool(telemetry) and (bool(missing) or not rows)
+    if from_telemetry:  # some population was cut off before it wrote its rows
+        calls, sims = telemetry["model_calls"], telemetry["simulations"]
+    else:
+        calls = sum(r.get("model_calls") or 0 for r in rows)
+        sims = sum(len(r.get("sims") or []) for r in rows)
     every = (
         bool(v)
         and v["verified"] == v["agents"]
@@ -338,6 +446,8 @@ def write(
         "nodes": nodes,
         "simulations": sims,
         "model_calls": calls,
+        "counts_from": "telemetry" if from_telemetry else "rows",
+        "telemetry": telemetry,
         "autonmi": read_json(run / "autonmi.json"),
     }
     out["lines"] = describe(out)
@@ -385,6 +495,16 @@ def describe(out: dict) -> list[str]:
         lines.append(f"rows that could not be read: {out['unreadable_rows']}")
     if out["populations_not_ended"]:
         lines.append(f"populations that did not end: {out['populations_not_ended']}")
+    tel, from_telemetry = out.get("telemetry"), out.get("counts_from") == "telemetry"
+    if from_telemetry:
+        states = dict(tel["agents"])
+        done = states.pop("done", 0)
+        of = f" of {_n(v['agents'])}" if v else ""
+        rest = ", ".join(f"{s} {_n(n)}" for s, n in sorted(states.items(), key=_largest) if n)
+        lines.append(
+            f"agents at the end, from telemetry: {_n(done)}{of} done"
+            + (f"; {rest}" if rest else "")
+        )
     lines.append("where the time went:")
     jobs = [
         f"{j.get('role')} {j.get('State')}, waited {_hms(j['wait_s'])}, ran {j.get('Elapsed')}"
@@ -419,8 +539,27 @@ def describe(out: dict) -> list[str]:
             f"(admission {_pct(admission, a)}, serving {_pct(serving, a)}), "
             f"waiting for a worker and the rest {_pct(t['agent_s_rest'], a)}"
         )
+    if from_telemetry:
+        seconds = {s: x for s, x in tel["agent_s_by_state"].items() if s != "done"}
+        whole = sum(seconds.values())
+        if whole:
+            shares = sorted(seconds.items(), key=_largest)
+            lines.append(
+                "    agents' own time, from telemetry: "
+                + ", ".join(f"{s} {_pct(x, whole)}" for s, x in shares)
+            )
+    if tel and tel.get("admission_mean_s") is not None and tel.get("request_mean_s") is not None:
+        lines.append(
+            f"    model calls: a request waited {_s(tel['admission_mean_s'])} s on average for "
+            f"admission, then took {tel['request_mean_s']:.1f} s"
+        )
     text = f"    {out['simulations']:,} simulations, {out['model_calls']:,} model calls"
-    if t["agents_s"]:
+    if from_telemetry:
+        text += " (from telemetry: populations without rows)"
+        if tel.get("covers_s"):
+            text += f", {out['model_calls'] / tel['covers_s']:.1f} calls/s over the "
+            text += f"{_s(tel['covers_s'])} s it covers"
+    elif t["agents_s"]:
         text += f", {out['model_calls'] / t['agents_s']:.1f} calls/s over the agents' span"
     lines.append(text)
     nodes = out["nodes"]

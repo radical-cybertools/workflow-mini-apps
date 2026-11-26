@@ -50,7 +50,8 @@ case $rung in
 esac
 AGENTS=$1 REF_NODES=$2 REF_GPUS=$3 CAP=$4 MCP=$5 REF_TIME=$6 REF_TIMEOUT=$7 REF_MODEL_TIME=$8
 REF_WORKERS=$((REF_NODES * 88))
-CORE_CS_PER_AGENT=3145 # the benchmark's simulation work per agent at its defaults: 31.45 core-seconds
+CORE_CS_PER_AGENT=3145     # the benchmark's simulation work per agent at its defaults: 31.45 core-seconds
+CALLS_PER_1000_AGENTS=8567 # and its model calls: 8.567 per agent
 
 ENV_FILE=${AUTONMI_LOCAL_ENV:-$JOBS/local.env}
 [ -e "$ENV_FILE" ] || die "no $ENV_FILE: copy jobs/local.env.example to it and fill it in (jobs/README.md)"
@@ -77,9 +78,19 @@ PER_POPULATION=$(((AGENTS + POPULATIONS - 1) / POPULATIONS))
 BOUND=$((AGENTS * CORE_CS_PER_AGENT / (100 * TOTAL_WORKERS)))
 SERVERS=$((GPUS / ${AUTONMI_TP:-1}))
 [ "$SERVERS" -ge 1 ] || SERVERS=1
+# The model's bound: the rung's model calls over what its servers answer, each at the site's
+# AUTONMI_MODEL_CALLS_PER_S with its requests in flight full (10 by default, about what Qwen3-8B gave
+# on one 48 GB RTX 6000 Ada over a campaign; jobs/README.md says how to measure it)
+CALLS=$((AGENTS * CALLS_PER_1000_AGENTS / 1000))
+RATE=${AUTONMI_MODEL_CALLS_PER_S:-10}
+count AUTONMI_MODEL_CALLS_PER_S "$RATE"
+MODEL_BOUND=$((CALLS / (SERVERS * RATE)))
 
 # The time limits. Fewer workers than the rung's 88 per node make the simulations take longer: the
-# rung's limits grow by as much (never shrink). The campaign's limit also covers, at least, the parts
+# rung's limits grow by as much (never shrink). With a model, the populations' TIMEOUT is at least
+# half as much again as the model's bound: fewer GPUs than the rung's, or a slower model, make it
+# longer. The agents advance together, so a run cut short loses almost every agent's result. The
+# campaign's limit also covers, at least, the parts
 # of the job outside its populations' TIMEOUT: the wait for the model servers (AUTONMI_MODEL_WAIT,
 # 600 s plus 300 s per server, as they load one after another), Dragon's and the services' start-up
 # (120 s plus 10 s per node), the wind-down (120 s plus 5 ms per agent: 36 s was measured at 10k), the
@@ -93,7 +104,11 @@ scaled() { # value: rounded up, times the rung's workers over the run's, when th
 	fi
 }
 hhmm() { printf '%02d:%02d:00' $(($1 / 60)) $(($1 % 60)); }
-TIMEOUT=${AUTONMI_TIMEOUT:-$(scaled "$REF_TIMEOUT")}
+timeout_s=$(scaled "$REF_TIMEOUT")
+if [ "$kind" = model ] && [ "$timeout_s" -lt $((MODEL_BOUND * 3 / 2)) ]; then
+	timeout_s=$((MODEL_BOUND * 3 / 2))
+fi
+TIMEOUT=${AUTONMI_TIMEOUT:-$timeout_s}
 count AUTONMI_TIMEOUT "$TIMEOUT"
 MODEL_WAIT=${AUTONMI_MODEL_WAIT:-$((600 + 300 * SERVERS))}
 budget_s=$((120 + 10 * NODES + TIMEOUT + 120 + AGENTS / 200 + 120 + 240))
@@ -184,6 +199,9 @@ shape() {
 	echo "$NAME: $AGENTS agents on $NODES CPU node(s) of $CPUS CPUs: $POPULATIONS populations of up to" \
 		"$PER_POPULATION agents, $WORKERS workers each ($TOTAL_WORKERS in all)"
 	echo "simulations' bound about $BOUND s; campaign's time limit $TIME, its populations' $TIMEOUT s${model_shape:-}"
+	local servers=servers
+	[ "$SERVERS" -gt 1 ] || servers=server
+	[ "$kind" = stub ] || echo "the model's bound about $MODEL_BOUND s ($CALLS calls, $RATE per second on each of $SERVERS $servers)"
 }
 
 submit() {
