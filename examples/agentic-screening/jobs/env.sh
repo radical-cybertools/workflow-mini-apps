@@ -5,7 +5,8 @@
 source "${AUTONMI_LOCAL_ENV:?set by jobs/scale}"
 EXAMPLE=${AUTONMI_REPO:?set by jobs/scale}/examples/agentic-screening
 JOBS=$EXAMPLE/jobs
-AUTONMI_COMMIT=$(git -C "$AUTONMI_REPO" rev-parse --short HEAD 2> /dev/null || cat "$AUTONMI_REPO/.git-commit" 2> /dev/null || echo unknown)
+# a tree unpacked from `git archive` names its commit in .git-commit
+AUTONMI_COMMIT=$(cat "$AUTONMI_REPO/.git-commit" 2> /dev/null || git -C "$AUTONMI_REPO" rev-parse --short HEAD 2> /dev/null || echo unknown)
 export AUTONMI_COMMIT
 export LD_LIBRARY_PATH="${AUTONMI_CUDART:+$AUTONMI_CUDART:}${LD_LIBRARY_PATH:-}"
 ulimit -n "$(ulimit -Hn)"

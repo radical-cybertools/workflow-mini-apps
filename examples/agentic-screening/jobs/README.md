@@ -95,8 +95,8 @@ For example, the `10k` rung on one node, beside the usual two:
 1. **A test.** 100 agents of the mini-app under Dragon on one node, with short simulations. If it
    fails, the rest is cancelled.
 2. **The model job** on one GPU node, one vLLM server per GPU.
-3. **The campaign,** under one Dragon runtime across the CPU nodes. It starts once the model job
-   runs, and waits up to 30 minutes for its servers.
+3. **The campaign,** under one Dragon runtime across the CPU nodes. It starts once the test has
+   passed and the model job runs, and waits up to 30 minutes for its servers.
 4. **The report,** after the campaign however it ends. It also ends the model job, so that it doesn't
    hold its GPUs.
 

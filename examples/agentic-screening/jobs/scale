@@ -183,7 +183,9 @@ submit() {
 			-t "$MODEL_TIME" -J autonmi-vllm --requeue --open-mode=append -o "$FLEET/model-%j.out" \
 			-d "$after" "${kill[@]}" "${SBATCH_MODEL[@]}" "$JOBS/model.sh" "$FLEET" "$GPUS"
 		model=$JOB
-		after=after:$model # the campaign starts once the model job runs, and waits for its servers
+		# the campaign starts once the model job runs, and waits for its servers; a cancelled model job
+		# satisfies after:, so the test's afterok stays
+		after=$after,after:$model
 	fi
 	# 3. the campaign under one Dragon runtime across the CPU nodes; -D: Dragon's logs go in the run
 	sub campaign "${common[@]}" -p "$SLURM_CPU_PARTITION" "${Q_CAMPAIGN[@]}" -N "$NODES" "${PLACE[@]}" \
@@ -204,7 +206,7 @@ submit() {
 	fi
 	printf 'test=%s\nmodel=%s\ncampaign=%s\nreport=%s\nsubmitted=%s\ncommit=%s\nsettings=%s\n' "$test" "$model" \
 		"$campaign" "$report" "$(date +%Y-%m-%dT%H:%M:%S%z)" \
-		"$(git -C "$REPO" rev-parse --short HEAD 2> /dev/null || cat "$REPO/.git-commit" 2> /dev/null || echo unknown)" \
+		"$(cat "$REPO/.git-commit" 2> /dev/null || git -C "$REPO" rev-parse --short HEAD 2> /dev/null || echo unknown)" \
 		"$ENV_FILE" > "$STATE"
 	echo "$NAME submitted: test $test${model:+ -> model $model} -> campaign $campaign -> report $report"
 	echo "Job ids in $STATE. Check with: $AGAIN"

@@ -87,7 +87,8 @@ def test_a_dry_run_prints_the_chain_and_submits_nothing(tmp_path):
     model, campaign, report = jobs["model"], jobs["campaign"], jobs["report"]
     assert option(model, "-d") == "afterok:<test>" and option(model, "--gres") == "gpu:a100:2"
     assert option(model, "-p") == "gpu" and model.endswith(f"{RUNS}/scale-10k-fleet 2")
-    assert option(campaign, "-d") == "after:<model>,singleton" and option(campaign, "-N") == "2"
+    assert option(campaign, "-d") == "afterok:<test>,after:<model>,singleton"
+    assert option(campaign, "-N") == "2"
     assert "--exclusive" in campaign and option(campaign, "--cpus-per-task") == "96"
     assert option(campaign, "--populations") == "4" and option(campaign, "--workers") == "44"
     assert option(campaign, "--model") == "openai" and option(campaign, "--cap") == "96"
@@ -229,7 +230,8 @@ def test_the_site_s_own_options_and_model_settings_reach_the_jobs(tmp_path):
     assert option(jobs["campaign"], "--exclude") == "node3"
     assert option(jobs["campaign"], "--reservation") == "r1"
     assert option(jobs["model"], "--constraint") == "b200" and "--exclude" not in jobs["model"]
-    assert " -d " not in jobs["test"] and option(jobs["campaign"], "-d") == "after:<model>"
+    assert " -d " not in jobs["test"]
+    assert option(jobs["campaign"], "-d") == "afterok:<test>,after:<model>"
 
 
 @pytest.mark.parametrize(
@@ -293,7 +295,8 @@ def test_submit_chains_the_jobs_and_records_their_ids(tmp_path):
     assert r.returncode == 0, r.stderr
     log = (tmp_path / "slurm.log").read_text().splitlines()
     assert len(log) == 4
-    assert option(log[1], "-d") == "afterok:101" and option(log[2], "-d") == "after:102,singleton"
+    assert option(log[1], "-d") == "afterok:101"
+    assert option(log[2], "-d") == "afterok:101,after:102,singleton"
     assert option(log[3], "-d") == "afterany:103" and log[3].endswith(
         "test=101,model=102,campaign=103"
     )
