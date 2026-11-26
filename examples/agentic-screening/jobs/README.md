@@ -139,8 +139,8 @@ the state file; a job Slurm refuses does the same. Two submits of the same rung 
 (a lock beside the state file). `status` and `cancel` read the state file, never run it.
 
 **Cancelling** sends a running test or campaign USR1 first, so that it ends its run and cleans its
-nodes, waits up to 5 minutes for it, then cancels the rest. The report job then records what there
-is, and ends the model job.
+nodes, waits up to 330 s for it (`AUTONMI_CANCEL_WAIT`), then cancels the rest. The report job then
+records what there is, and ends the model job.
 
 ## Results
 
