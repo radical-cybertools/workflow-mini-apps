@@ -26,8 +26,9 @@
 - **what the framework counted.** Populations write their rows when they end. When one was cut off
   (its timeout, the job's limit), the simulations and model calls come from the populations'
   telemetry (`otel/p*/metrics.jsonl`, the last whole export of each): with the agents by state at
-  the end, and their time by state. With a model, it also gives a request's wait for admission and
-  its time at the server.
+  the end in the populations cut off, and the agents' time by state. A population that ended counts
+  no agents as it shuts down, so its rows say where its agents were. With a model, it also gives a
+  request's wait for admission and its time at the server.
 
 `compare` checks two runs agent by agent, on the agents both have: with the same seed, agent i is
 the same candidate at every size, so with the stub model its simulations, model calls and report
@@ -207,10 +208,13 @@ def _last_export(path: Path) -> dict | None:
 
 def read_telemetry(run: Path) -> dict | None:
     """What Flowgentic counted while the populations ran (`otel/p*/metrics.jsonl`; its counts are
-    cumulative, so the last export of each population holds them): the agents by state at the end,
-    the simulations that ran, the model calls served, a request's mean wait for admission and time
-    at the server, the agents' seconds by state, and the seconds the exports cover. None without."""
-    agents: dict[str, float] = collections.Counter()
+    cumulative, so the last export of each population holds them): each population's agents by
+    state at the end, the simulations that ran, the model calls served, a request's mean wait for
+    admission and time at the server, the agents' seconds by state, and the seconds the exports
+    cover. None without. A population that ended counts no agents in any state in its last export,
+    made as it shut down: it is in `populations_ended`, not in `agents`."""
+    agents: dict[str, dict[str, int]] = {}
+    ended = []
     seconds: dict[str, float] = collections.Counter()
     sims = calls = admitted = served = 0
     admission_s = request_s = 0.0
@@ -220,9 +224,14 @@ def read_telemetry(run: Path) -> dict | None:
         export = _last_export(path)
         if export is None:
             continue
-        populations.append(path.parent.name)
+        pop = path.parent.name
+        populations.append(pop)
         points = _points(export)
-        agents.update(_by_state(points["flowgentic.agents"]))
+        states = {k: int(v) for k, v in _by_state(points["flowgentic.agents"]).items()}
+        if any(states.values()):
+            agents[pop] = states
+        elif states:
+            ended.append(pop)
         seconds.update(_by_state(points["flowgentic.agent.time"]))
         sims += _counted(points["flowgentic.tool.duration"], **{
             "gen_ai.tool.name": "simulate", "flowgentic.tool.outcome": "ok"})[0]  # fmt: skip
@@ -240,7 +249,8 @@ def read_telemetry(run: Path) -> dict | None:
         return None
     return {
         "populations": populations,
-        "agents": {k: int(v) for k, v in agents.items()},
+        "agents": agents,
+        "populations_ended": ended,
         "simulations": sims,
         "model_calls": calls,
         "admission_mean_s": round(admission_s / admitted, 1) if admitted else None,
@@ -487,24 +497,30 @@ def describe(out: dict) -> list[str]:
             )
     else:
         lines.append("agents: nothing to verify against (no campaign.json, and no --agents)")
-    if out.get("populations_without_rows"):
+    missing = out.get("populations_without_rows")
+    if missing:
+        lines.append(f"populations that wrote no rows: {', '.join(missing)}")
+    tel, from_telemetry = out.get("telemetry"), out.get("counts_from") == "telemetry"
+    if from_telemetry:  # where the agents of the populations cut off were
+        cut = missing or tel["populations"]
+        states = collections.Counter()
+        for pop in cut:
+            states.update(tel["agents"].get(pop) or {})
+        every = sum(states.values())
+        done = states.pop("done", 0)
+        text = "    their agents" if missing else "agents"
+        text += f" at the end, from telemetry: {_n(done)} of {_n(every)} done"
+        rest = ", ".join(f"{s} {_n(n)}" for s, n in sorted(states.items(), key=_largest) if n)
+        unknown = [pop for pop in cut if pop not in tel["agents"]]
         lines.append(
-            f"populations that wrote no rows: {', '.join(out['populations_without_rows'])}"
+            text
+            + (f"; {rest}" if rest else "")
+            + (f"; {', '.join(unknown)} counted none at the end" if unknown else "")
         )
     if out["unreadable_rows"]:
         lines.append(f"rows that could not be read: {out['unreadable_rows']}")
     if out["populations_not_ended"]:
         lines.append(f"populations that did not end: {out['populations_not_ended']}")
-    tel, from_telemetry = out.get("telemetry"), out.get("counts_from") == "telemetry"
-    if from_telemetry:
-        states = dict(tel["agents"])
-        done = states.pop("done", 0)
-        of = f" of {_n(v['agents'])}" if v else ""
-        rest = ", ".join(f"{s} {_n(n)}" for s, n in sorted(states.items(), key=_largest) if n)
-        lines.append(
-            f"agents at the end, from telemetry: {_n(done)}{of} done"
-            + (f"; {rest}" if rest else "")
-        )
     lines.append("where the time went:")
     jobs = [
         f"{j.get('role')} {j.get('State')}, waited {_hms(j['wait_s'])}, ran {j.get('Elapsed')}"

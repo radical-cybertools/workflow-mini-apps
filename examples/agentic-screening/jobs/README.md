@@ -180,8 +180,9 @@ To run a rung again, move `scale-10k*` away first.
   counts duplicate rows and rows of agents outside the run, and names the populations that wrote
   no rows. It gives the run's own checks beside it;
 - when a population was cut off before it wrote its rows, what the framework counted while it ran,
-  from the populations' telemetry (`otel/p*/metrics.jsonl`): the agents by state at the end, the
-  simulations and model calls, and the agents' time by state;
+  from the populations' telemetry (`otel/p*/metrics.jsonl`): the agents by state at the end in the
+  populations cut off, the simulations and model calls, and the agents' time by state. A
+  population that ended counts no agents as it shuts down, so its rows say where its agents were;
 - with a model, a request's mean wait for admission and its time at the server;
 - where the time went: how long each job waited in the queue and ran; the campaign job's wait for
   the model servers, start-up, agents, wind-down and clean-up; the agents' span against the

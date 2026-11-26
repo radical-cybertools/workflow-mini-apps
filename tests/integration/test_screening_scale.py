@@ -735,9 +735,10 @@ def otel_export(pop: str, states: dict, sims: int, calls: int, seconds: dict, t:
     return {"resource_metrics": [{"resource": resource, "scope_metrics": [scope]}]}
 
 
-def write_telemetry(run: Path) -> None:
+def write_telemetry(run: Path, ended: tuple[str, ...] = ()) -> None:
     """Two populations of 10 agents, cut off while most waited for the model: an early export and
-    the last; p001 was killed while it wrote a third."""
+    the last; p001 was killed while it wrote a third. A population in `ended` ended instead: its
+    last export, as it shut down, counts no agents in any state, as Flowgentic's does."""
     seconds = {"pending": 25.0, "working": 25.0, "model_queued": 4000.0, "model_request": 200.0,
                "tool_wait": 750.0, "done": 150.0}  # fmt: skip
     last = {
@@ -750,6 +751,9 @@ def write_telemetry(run: Path) -> None:
             json.dumps(early),
             json.dumps(otel_export(pop, states, sims, calls, seconds, 1100)),
         ]
+        if pop in ended:
+            zero = dict.fromkeys(states, 0)
+            lines.append(json.dumps(otel_export(pop, zero, sims, calls, seconds, 1100)))
         if pop == "p001":
             lines.append(json.dumps(early)[:40])
         (run / "otel" / pop).mkdir(parents=True)
@@ -768,15 +772,20 @@ def test_when_populations_time_out_the_report_counts_from_telemetry(tmp_path):
     assert out["counts_from"] == "telemetry"
     assert out["simulations"] == 49 and out["model_calls"] == 138  # from the last whole exports
     tel = out["telemetry"]
-    assert tel["agents"] == {"done": 5, "model_queued": 13, "model_request": 2, "tool_wait": 0}
+    assert tel["agents"] == {
+        "p000": {"done": 3, "model_queued": 6, "model_request": 1, "tool_wait": 0},
+        "p001": {"done": 2, "model_queued": 7, "model_request": 1, "tool_wait": 0},
+    }
+    assert tel["populations_ended"] == []
     assert tel["admission_mean_s"] == 500.0 and tel["request_mean_s"] == 7.0
     assert tel["covers_s"] == 100.0 and sorted(tel["populations"]) == ["p000", "p001"]
     text = r.stdout
     assert "agents: 0 of 20 verify, from their rows" in text
-    assert "populations that wrote no rows: p000, p001" in text
     assert (
-        "agents at the end, from telemetry: 5 of 20 done; model_queued 13, model_request 2" in text
-    )
+        "populations that wrote no rows: p000, p001\n"
+        "    their agents at the end, from telemetry: 5 of 20 done; model_queued 13, "
+        "model_request 2\n"
+    ) in text
     assert (
         "    49 simulations, 138 model calls (from telemetry: populations without rows), "
         "1.4 calls/s over the 100 s it covers"
@@ -789,6 +798,41 @@ def test_when_populations_time_out_the_report_counts_from_telemetry(tmp_path):
         "model_request 4.0 %, pending 0.5 %, working 0.5 %"
     ) in text
     assert "0 simulations" not in text
+
+
+def test_a_population_that_ended_is_not_counted_with_those_cut_off(tmp_path):
+    """A population resets its count of agents by state as it shuts down: p000 ended and wrote its
+    rows, p001 was cut off. The agents at the end are p001's, not p000's zeros."""
+    run = tmp_path / "scale-10k"
+    write_run(run, rows_of=range(0, 20, 2), summary=False)  # p000's rows only
+    write_telemetry(run, ended=("p000",))
+    r = report("write", run, "--agents", "20", "--populations", "2")
+    assert r.returncode == 1
+    out = json.loads((run / "scale-report.json").read_text())
+    assert out["counts_from"] == "telemetry" and out["model_calls"] == 138
+    tel = out["telemetry"]
+    assert tel["populations_ended"] == ["p000"]
+    assert tel["agents"] == {
+        "p001": {"done": 2, "model_queued": 7, "model_request": 1, "tool_wait": 0}
+    }
+    assert (
+        "populations that wrote no rows: p001\n"
+        "    their agents at the end, from telemetry: 2 of 10 done; model_queued 7, "
+        "model_request 1\n"
+    ) in r.stdout
+
+
+def test_a_population_without_rows_and_without_a_count_at_the_end_is_named(tmp_path):
+    """No rows, yet its count went back to zero: what its agents did is not known, and the report
+    says so rather than count it as none."""
+    run = tmp_path / "scale-10k"
+    write_run(run, rows_of=range(0), summary=False)
+    write_telemetry(run, ended=("p000",))
+    r = report("write", run, "--agents", "20", "--populations", "2")
+    assert (
+        "    their agents at the end, from telemetry: 2 of 10 done; model_queued 7, "
+        "model_request 1; p000 counted none at the end\n"
+    ) in r.stdout
 
 
 def test_when_every_population_wrote_its_rows_the_counts_are_the_rows(tmp_path):
