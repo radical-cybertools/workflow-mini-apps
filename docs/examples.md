@@ -199,8 +199,8 @@ python examples/agentic-screening/miniapp_screening.py --agents 200 --population
     --sim-median 0.05 --no-burn
 ```
 
-The agents run on the AUTONMI framework, which is installed separately; without it, the
-tests skip this example. Its stub model runs the campaign on CPUs only, and
+The agents run on the AUTONMI framework, which is installed separately, at the commit the
+example pins (`AUTONMI_COMMIT`); without it, the tests skip this example. Its stub model runs the campaign on CPUs only, and
 `--model openai` uses vLLM servers. Each simulation spins a CPU core for a seeded
 duration, or runs one of wfMiniAPI's compute kernels for it (`--sim-kernel`). The
 example's README lists its flags, its recipes and the run's checks.

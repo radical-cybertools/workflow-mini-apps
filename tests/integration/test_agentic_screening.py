@@ -238,6 +238,48 @@ def test_the_example_verifies_and_verifies_again_offline(tmp_path):
         timeout=120,
     )
     assert again.returncode == 0, again.stdout[-2000:] + again.stderr[-2000:]
+    pin = json.loads((tmp_path / "run" / "autonmi.json").read_text())
+    assert pin["pin"] == script().AUTONMI_COMMIT and set(pin) >= {"commit", "matches_pin"}
+
+
+# --- the AUTONMI commit ---------------------------------------------------------------
+
+
+@needs_framework
+def test_a_run_warns_when_autonmi_is_not_at_the_pinned_commit(monkeypatch, capsys):
+    m = script()
+    pinned = m.AUTONMI_COMMIT
+    assert len(pinned) == 40 and set(pinned) <= set("0123456789abcdef")
+
+    def imported(commit, dirty):
+        monkeypatch.setattr(m, "autonmi_commit", lambda: {"commit": commit, "dirty": dirty})
+        return m.autonmi_pin()
+
+    for same in (pinned, pinned[:7]):  # a copy's `.git-commit` may hold the short commit
+        got = imported(same, False)
+        assert got["matches_pin"] and got["pin"] == pinned and capsys.readouterr().err == ""
+    for other, dirty, said in (
+        (pinned, True, "with changed files"),
+        ("0" * 40, False, "000000000000"),
+        (None, None, "an unknown commit"),
+        (pinned[:6], None, pinned[:6]),  # too short to name a commit
+    ):
+        assert not imported(other, dirty)["matches_pin"]
+        assert said in capsys.readouterr().err
+
+
+@needs_framework
+def test_the_autonmi_commit_is_read_from_a_copy_s_git_commit_file(monkeypatch, tmp_path):
+    """A copy of the framework made without git (as on a cluster) names its commit in a file."""
+    m = script()
+    package = tmp_path / "autonmi-copy" / "src" / "autonmi"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("")
+    (tmp_path / "autonmi-copy" / ".git-commit").write_text(m.AUTONMI_COMMIT + "\n")
+    monkeypatch.setitem(sys.modules, "autonmi", type(sys)("autonmi"))
+    sys.modules["autonmi"].__file__ = str(package / "__init__.py")
+    got = m.autonmi_commit()
+    assert (got["commit"], got["from"]) == (m.AUTONMI_COMMIT, ".git-commit")
 
 
 @needs_framework
@@ -348,7 +390,7 @@ def agent(monkeypatch, tmp_path, **knobs):
     """One population's agent of the example, built as the framework builds it."""
     monkeypatch.syspath_prepend(str(EXAMPLE))
     from autonmi.agent import PopulationContext
-    from autonmi.store import MemoryStore
+    from flowgentic.store import MemoryStore
     from screening.agent import Screening
     from screening.benchmark import Benchmark
 
