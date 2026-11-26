@@ -537,7 +537,8 @@ def test_the_model_job_starts_a_server_per_gpu_lists_them_and_ends_on_its_stop_f
         endpoints = (fleet / "endpoints").read_text().split()
         assert len(endpoints) == 2 and all(e.startswith("http://") for e in endpoints)
         servers = log.read_text().splitlines()
-        assert [s.split()[0] for s in servers] == ["4", "5"]  # the first 2 of the job's GPUs
+        # the first 2 of the job's GPUs, one each (a server may log after the next one starts)
+        assert sorted(s.split()[0] for s in servers) == ["4", "5"]
         assert all("serve /models/qwen --served-model-name Q" in s for s in servers)
         assert (fleet / "api-key").stat().st_mode & 0o077 == 0
         (fleet / "stop").touch()
