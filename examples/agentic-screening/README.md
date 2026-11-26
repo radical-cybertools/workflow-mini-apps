@@ -26,6 +26,7 @@ So this example uses `MiniApp` for runs of many engines and components.
 | `screening/mcp_server.py` | The reference-data MCP server, one tool, `lookup_reference` |
 | `screening/stub.py` | A model for runs without GPUs: it plays the workflow, so a run's per-agent results are known |
 | `screening/agent.py` | The agent definition the AUTONMI framework runs |
+| `jobs/` | The scale ladder: the campaign at 1,000 to 300,000 agents, as a chain of Slurm jobs ([jobs/README.md](jobs/README.md)) |
 
 The physics, the prompts, the benchmark and the verification need nothing outside the package.
 
@@ -91,6 +92,30 @@ python examples/agentic-screening/miniapp_screening.py --agents 30 --sim-median 
 **A simulation's duration is its cost, not a deadline.** A simulation runs at least as long as the benchmark draws, and a kernel call that ends after it overruns it. Each simulation's result gives the seconds asked (`seconds`) and taken (`seconds_taken`), and each agent's row lists them (`sim_seconds`). The run counts the overruns and gives the largest, but does not fail on them: its results would then depend on the machine's speed.
 
 **Not in this example yet: cache-first admission.** `--admission` accepts only `fcfs`, and says so otherwise.
+
+## Across nodes
+
+A campaign across nodes runs under one Dragon runtime that spans the job's nodes. Give the job its
+nodes, one task each (`sbatch -N 2 --ntasks-per-node=1 ...`), and Dragon the site's transport and the
+network the nodes reach each other on:
+
+```shell
+dragon -w slurm -t tcp --network-prefix '<regex of the nodes' interfaces>' \
+    examples/agentic-screening/miniapp_screening.py --runtime dragon \
+    --agents 10000 --populations 4 --workers 44 --model openai \
+    --endpoints-file FLEET/endpoints --api-key-file FLEET/api-key
+```
+
+- The populations are placed on the nodes in contiguous blocks, the mini-app's node first. Each runs
+  its simulations on `--workers` workers of its own node, so give each population its share of the
+  node's CPUs. This needs RHAPSODY's native backend with `hosts=`.
+- RaDEX's dictionary has `--managers` managers on every node.
+- The MCP servers and the tool services stay on the mini-app's node.
+- The summary records the nodes: `nodes`, and each population's `node`.
+
+`jobs/scale` submits such campaigns at fixed sizes, from 1,000 agents on one CPU node to 300,000 on
+30, with the model servers in a GPU job of their own and a report at the end: see
+[jobs/README.md](jobs/README.md).
 
 ## Recipes
 
