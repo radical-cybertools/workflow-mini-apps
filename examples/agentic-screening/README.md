@@ -32,7 +32,7 @@ The physics, the prompts, the benchmark and the verification need nothing outsid
 
 ## What it needs
 
-- **The AUTONMI framework.** It runs populations of agents as nodes of an AsyncFlow graph, on Flowgentic's agent loop. It is installed separately: the RADICAL team gives access to it and its install recipe. It brings Flowgentic, AsyncFlow, RHAPSODY and the OpenTelemetry SDK.
+- **The AUTONMI framework.** It runs populations of agents as nodes of an AsyncFlow graph, on Flowgentic's agent loop. It is installed separately: the RADICAL team gives access to it and its install recipe. It brings Flowgentic, AsyncFlow, RHAPSODY and the OpenTelemetry SDK. This example is tested on its commit `cdda559fcd78dbf42671305c3fdb0b6fa97d451b` (`main` of 26 Nov 2026, with its public API): `AUTONMI_COMMIT` in `miniapp_screening.py`. Install that commit. A run warns on stderr when the framework it imports is at another commit, or has changed files, and records both commits in `<run-dir>/autonmi.json`.
 - **This repository's `wfMiniAPI`,** with `MiniApp` for runs of many engines and components.
 - **Under Dragon:** Dragon and RaDEX, as RHAPSODY's native backend uses them.
 
