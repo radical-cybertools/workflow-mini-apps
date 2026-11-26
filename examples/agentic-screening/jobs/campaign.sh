@@ -6,7 +6,8 @@
 #
 # FLEET is the model job's directory, whose `stop` file this job writes when the mini-app ends; `none`
 # with the stub. One node runs `dragon -s`; several run `dragon` with AUTONMI_DRAGON_ARGS, the site's
-# transport and network. The job writes RUN/timeline (when it started, when Dragon started and
+# transport and network. Dragon runs as `python -m dragon` with the framework's python, which then
+# starts the mini-app with that same python. The job writes RUN/timeline (when it started, when Dragon started and
 # ended, when it ended) for the report, and exits 0 when the run's summary says ok.
 set -u
 run=${1:?run directory}
@@ -29,7 +30,7 @@ echo "dragon ${dragon_args[*]}"
 since=$run/.since-$SLURM_JOB_ID # on the shared file system, so that every node's clean-up reads it
 touch "$since"
 mark dragon_start
-run_dragon dragon "${dragon_args[@]}" "$EXAMPLE/miniapp_screening.py" --runtime dragon --run-dir "$run" "$@"
+run_dragon python -m dragon "${dragon_args[@]}" "$EXAMPLE/miniapp_screening.py" --runtime dragon --run-dir "$run" "$@"
 mark dragon_end
 [ "$fleet" = none ] || touch "$fleet/stop" # the model job ends; the report job makes sure
 if wait_steps 120; then

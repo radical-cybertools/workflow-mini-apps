@@ -46,7 +46,8 @@ Without it, vLLM servers on a GPU node answer. Start small: `1k stub`, `10k stub
 ## Set up once
 
 1. **The environment.** A Python 3.12 environment with the AUTONMI framework, as the example's README
-   says, with Dragon and RaDEX. Several nodes need RHAPSODY's native backend with `hosts=`, which
+   says, with Dragon and RaDEX. The jobs start Dragon as `python -m dragon` with its python, and put
+   this tree's `src` first on `PYTHONPATH`, so the run uses this tree's wfMiniAPI. Several nodes need RHAPSODY's native backend with `hosts=`, which
    keeps each population's workers on its node. The model job needs vLLM, in the same environment or
    another one (`AUTONMI_MODEL_VENV`).
 2. **The site's settings.** Copy `jobs/local.env.example` to `jobs/local.env` (git ignores it) and fill
@@ -63,6 +64,7 @@ Without it, vLLM servers on a GPU node answer. Start small: `1k stub`, `10k stub
 | `SLURM_CPU_PARTITION`, `SLURM_GPU_PARTITION` | the partitions of the CPU jobs and of the model job | required |
 | `SLURM_GPU_GRES` | the model job's GPUs, ending in a count (`gpu:1`, `gpu:<type>:1`), which the rung's GPUs replace; empty for no `--gres` | none |
 | `AUTONMI_QOS_TEST`, `AUTONMI_QOS_CAMPAIGN`, `AUTONMI_QOS_MODEL` | the QOS of the small jobs, the campaign and the model job | none |
+| `AUTONMI_SBATCH_CAMPAIGN`, `AUTONMI_SBATCH_MODEL` | more sbatch options for the campaign and the model job, such as `--exclude` or `--reservation` | none |
 | `AUTONMI_NODE_MEM` | memory to ask for on each CPU node, such as `300G` | required |
 | `AUTONMI_NODE_CPUS` | CPUs to ask for on each CPU node | 96 |
 | `AUTONMI_NODE_EXCLUSIVE` | `0` to share the nodes, where a limit on CPUs per user forbids whole ones | 1 |

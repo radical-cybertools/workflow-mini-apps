@@ -98,6 +98,8 @@ Q_TEST=() Q_CAMPAIGN=() Q_MODEL=()
 [ -z "${AUTONMI_QOS_MODEL:-}" ] || Q_MODEL=(-q "$AUTONMI_QOS_MODEL")
 PLACE=(--ntasks-per-node=1 --cpus-per-task="$CPUS")
 [ "${AUTONMI_NODE_EXCLUSIVE:-1}" = 0 ] || PLACE+=(--exclusive)
+read -ra SBATCH_CAMPAIGN <<< "${AUTONMI_SBATCH_CAMPAIGN:-}" # the site's own sbatch options
+read -ra SBATCH_MODEL <<< "${AUTONMI_SBATCH_MODEL:-}"
 read -ra SITE_ARGS <<< "${AUTONMI_CAMPAIGN_ARGS:-}"
 read -ra RUN_ARGS <<< "${ARGS:-}"
 
@@ -175,14 +177,15 @@ submit() {
 		sub model "${common[@]}" -p "$SLURM_GPU_PARTITION" "${Q_MODEL[@]}" -N1 "${gres[@]}" \
 			--cpus-per-task=$((GPUS * ${AUTONMI_GPU_CPUS:-12})) --mem=$((GPUS * ${AUTONMI_GPU_MEM_GB:-110}))G \
 			-t "$MODEL_TIME" -J autonmi-vllm --requeue --open-mode=append -o "$FLEET/model-%j.out" \
-			-d "$after" "${kill[@]}" "$JOBS/model.sh" "$FLEET" "$GPUS"
+			-d "$after" "${kill[@]}" "${SBATCH_MODEL[@]}" "$JOBS/model.sh" "$FLEET" "$GPUS"
 		model=$JOB
 		after=after:$model # the campaign starts once the model job runs, and waits for its servers
 	fi
 	# 3. the campaign under one Dragon runtime across the CPU nodes; -D: Dragon's logs go in the run
 	sub campaign "${common[@]}" -p "$SLURM_CPU_PARTITION" "${Q_CAMPAIGN[@]}" -N "$NODES" "${PLACE[@]}" \
 		--mem="$AUTONMI_NODE_MEM" -t "$TIME" --signal=B:USR1@240 -J autonmi-dragon -o "$RUN/campaign-%j.out" \
-		-D "$RUN" -d "$after" "${kill[@]}" "$JOBS/campaign.sh" "$RUN" "$fleet" --agents "$AGENTS" \
+		-D "$RUN" -d "$after" "${kill[@]}" "${SBATCH_CAMPAIGN[@]}" "$JOBS/campaign.sh" "$RUN" "$fleet" \
+		--agents "$AGENTS" \
 		--populations "$POPULATIONS" --workers "$WORKERS" --mcp-servers "$MCP" --timeout "$TIMEOUT" \
 		"${model_args[@]}" "${SITE_ARGS[@]}" "${RUN_ARGS[@]}"
 	local campaign=$JOB

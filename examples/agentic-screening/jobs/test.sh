@@ -13,7 +13,7 @@ echo "test job $SLURM_JOB_ID on $(hostname -s), $(date -Is), commit $AUTONMI_COM
 dragon_guard || exit 3
 since=$(mktemp -p "$run")
 touch "$since"
-AUTONMI_MARGIN=60 run_dragon dragon -s "$EXAMPLE/miniapp_screening.py" --runtime dragon --run-dir "$run" \
+AUTONMI_MARGIN=60 run_dragon python -m dragon -s "$EXAMPLE/miniapp_screening.py" --runtime dragon --run-dir "$run" \
 	--agents 100 --populations 2 --workers 4 --sim-median 0.05 --no-burn --stagger-interval 0.01 --timeout 600
 if wait_steps 60; then
 	clean_nodes "$since"

@@ -209,6 +209,8 @@ def test_the_site_s_own_options_and_model_settings_reach_the_jobs(tmp_path):
         AUTONMI_CAP_TOKENS=90000,
         AUTONMI_MODEL_NAME="Nemotron-3-Nano",
         AUTONMI_CAMPAIGN_ARGS='"--span-ratio 1"',
+        AUTONMI_SBATCH_CAMPAIGN='"--exclude=node3 --reservation=r1"',
+        AUTONMI_SBATCH_MODEL="--constraint=b200",
         SLURM_GPU_GRES="",
         SLURM_ACCOUNT="",
     )
@@ -221,6 +223,9 @@ def test_the_site_s_own_options_and_model_settings_reach_the_jobs(tmp_path):
     assert option(jobs["campaign"], "--cap-tokens") == "90000"
     assert option(jobs["campaign"], "--model-name") == "Nemotron-3-Nano"
     assert jobs["campaign"].endswith("--span-ratio 1")
+    assert option(jobs["campaign"], "--exclude") == "node3"
+    assert option(jobs["campaign"], "--reservation") == "r1"
+    assert option(jobs["model"], "--constraint") == "b200" and "--exclude" not in jobs["model"]
 
 
 @pytest.mark.parametrize(
