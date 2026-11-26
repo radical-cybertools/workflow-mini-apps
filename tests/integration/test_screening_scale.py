@@ -86,7 +86,7 @@ def test_a_dry_run_prints_the_chain_and_submits_nothing(tmp_path):
     model, campaign, report = jobs["model"], jobs["campaign"], jobs["report"]
     assert option(model, "-d") == "afterok:<test>" and option(model, "--gres") == "gpu:a100:2"
     assert option(model, "-p") == "gpu" and model.endswith(f"{RUNS}/scale-10k-fleet 2")
-    assert option(campaign, "-d") == "after:<model>" and option(campaign, "-N") == "2"
+    assert option(campaign, "-d") == "after:<model>,singleton" and option(campaign, "-N") == "2"
     assert "--exclusive" in campaign and option(campaign, "--cpus-per-task") == "96"
     assert option(campaign, "--populations") == "4" and option(campaign, "--workers") == "44"
     assert option(campaign, "--model") == "openai" and option(campaign, "--cap") == "96"
@@ -107,7 +107,8 @@ def test_with_the_stub_there_is_no_model_job(tmp_path):
     jobs = jobs_of(r.stdout)
     assert list(jobs) == ["test", "campaign", "report"]
     campaign = jobs["campaign"]
-    assert option(campaign, "-d") == "afterok:<test>" and option(campaign, "--model") == "stub"
+    assert option(campaign, "-d") == "afterok:<test>,singleton"
+    assert option(campaign, "--model") == "stub" and option(jobs["test"], "-d") == "singleton"
     assert (
         f"campaign.sh {RUNS}/scale-1k-stub none " in campaign and "--endpoints-file" not in campaign
     )
@@ -213,6 +214,7 @@ def test_the_site_s_own_options_and_model_settings_reach_the_jobs(tmp_path):
         AUTONMI_SBATCH_MODEL="--constraint=b200",
         SLURM_GPU_GRES="",
         SLURM_ACCOUNT="",
+        AUTONMI_DRAGON_SINGLETON=0,
     )
     r = scale(tmp_path, "dry-run", "10k", env_file=env_file)
     assert r.returncode == 0, r.stderr
@@ -226,6 +228,7 @@ def test_the_site_s_own_options_and_model_settings_reach_the_jobs(tmp_path):
     assert option(jobs["campaign"], "--exclude") == "node3"
     assert option(jobs["campaign"], "--reservation") == "r1"
     assert option(jobs["model"], "--constraint") == "b200" and "--exclude" not in jobs["model"]
+    assert " -d " not in jobs["test"] and option(jobs["campaign"], "-d") == "after:<model>"
 
 
 @pytest.mark.parametrize(
@@ -289,7 +292,7 @@ def test_submit_chains_the_jobs_and_records_their_ids(tmp_path):
     assert r.returncode == 0, r.stderr
     log = (tmp_path / "slurm.log").read_text().splitlines()
     assert len(log) == 4
-    assert option(log[1], "-d") == "afterok:101" and option(log[2], "-d") == "after:102"
+    assert option(log[1], "-d") == "afterok:101" and option(log[2], "-d") == "after:102,singleton"
     assert option(log[3], "-d") == "afterany:103" and log[3].endswith(
         "test=101,model=102,campaign=103"
     )
@@ -298,7 +301,7 @@ def test_submit_chains_the_jobs_and_records_their_ids(tmp_path):
     assert "test=101\nmodel=102\ncampaign=103\nreport=104\n" in state
     assert f"settings={env_file}" in state
     assert all((runs / d).is_dir() for d in ("scale-10k", "scale-10k-fleet", "scale-10k-test"))
-    assert "Check with:" in r.stdout and "status 10k" in r.stdout
+    assert f"Check with: AUTONMI_LOCAL_ENV={env_file} {SCALE} status 10k\n" in r.stdout
     again = scale(tmp_path, "submit", "10k", env_file=env_file, **env)
     assert again.returncode == 1 and "already submitted" in again.stderr
     r = scale(tmp_path, "status", "10k", env_file=env_file, **env)

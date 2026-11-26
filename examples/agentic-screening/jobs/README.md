@@ -104,8 +104,10 @@ With `stub`, only the test, the campaign and the report. The model job waits wit
 campaign waits for its CPU nodes, so its time limit covers both. If that wait is longer, raise
 `MODEL_TIME`.
 
-**Dragon jobs, one per node.** The test and the campaign are named `autonmi-dragon`. Each stops at
-once if another running job of yours with "dragon" in its name is on one of its nodes. Each ends its
+**Dragon jobs, one per node.** The test and the campaign are named `autonmi-dragon`, and wait for
+each other's end (Slurm's `singleton`), across rungs too; `AUTONMI_DRAGON_SINGLETON=0` turns that
+off. Each also stops at once if another running job of yours with "dragon" in its name is on one of
+its nodes. Each ends its
 run a few minutes before its time limit, then cleans up after Dragon on its nodes: your files in
 `/dev/shm`, and an MPS daemon that Dragon's clean-up can start on nodes with NVIDIA GPUs.
 

@@ -82,7 +82,7 @@ MODEL_TIME=${MODEL_TIME:-$(hhmm $((REF_MODEL_TIME + time_min - REF_TIME)))} # it
 NAME=$rung SUFFIX=''
 [ "$kind" = stub ] && NAME=$NAME-stub SUFFIX=' stub'
 [ -z "${TAG:-}" ] || NAME=$NAME-$TAG
-AGAIN="${TAG:+TAG=$TAG }$SELF status $rung$SUFFIX" # how to ask about this run
+AGAIN="${AUTONMI_LOCAL_ENV:+AUTONMI_LOCAL_ENV=$ENV_FILE }${TAG:+TAG=$TAG }$SELF status $rung$SUFFIX" # how to ask again
 RUNS=$AUTONMI_RUNS
 RUN=$RUNS/scale-$NAME
 FLEET=$RUNS/scale-$NAME-fleet
@@ -96,6 +96,8 @@ Q_TEST=() Q_CAMPAIGN=() Q_MODEL=()
 [ -z "${AUTONMI_QOS_TEST:-}" ] || Q_TEST=(-q "$AUTONMI_QOS_TEST")
 [ -z "${AUTONMI_QOS_CAMPAIGN:-}" ] || Q_CAMPAIGN=(-q "$AUTONMI_QOS_CAMPAIGN")
 [ -z "${AUTONMI_QOS_MODEL:-}" ] || Q_MODEL=(-q "$AUTONMI_QOS_MODEL")
+ONE_AT_A_TIME=,singleton # the Dragon jobs (named autonmi-dragon) wait for each other: one runtime per node
+[ "${AUTONMI_DRAGON_SINGLETON:-1}" = 1 ] || ONE_AT_A_TIME=
 PLACE=(--ntasks-per-node=1 --cpus-per-task="$CPUS")
 [ "${AUTONMI_NODE_EXCLUSIVE:-1}" = 0 ] || PLACE+=(--exclusive)
 read -ra SBATCH_CAMPAIGN <<< "${AUTONMI_SBATCH_CAMPAIGN:-}" # the site's own sbatch options
@@ -168,8 +170,10 @@ submit() {
 	small=(-p "$SLURM_CPU_PARTITION" "${Q_TEST[@]}" -N1 --ntasks-per-node=1)
 
 	# 1. a small run of the mini-app under Dragon on one node: if it fails, the rest is cancelled
+	local dep=()
+	[ -z "$ONE_AT_A_TIME" ] || dep=(-d singleton)
 	sub test "${common[@]}" "${small[@]}" --cpus-per-task=16 --mem=32G -t 00:20:00 -J autonmi-dragon \
-		-o "$TEST/test-%j.out" -D "$TEST" "$JOBS/test.sh" "$TEST"
+		"${dep[@]}" -o "$TEST/test-%j.out" -D "$TEST" "$JOBS/test.sh" "$TEST"
 	test=$JOB
 	after=afterok:$test
 	# 2. the model servers, one per GPU, on one GPU node
@@ -184,7 +188,7 @@ submit() {
 	# 3. the campaign under one Dragon runtime across the CPU nodes; -D: Dragon's logs go in the run
 	sub campaign "${common[@]}" -p "$SLURM_CPU_PARTITION" "${Q_CAMPAIGN[@]}" -N "$NODES" "${PLACE[@]}" \
 		--mem="$AUTONMI_NODE_MEM" -t "$TIME" --signal=B:USR1@240 -J autonmi-dragon -o "$RUN/campaign-%j.out" \
-		-D "$RUN" -d "$after" "${kill[@]}" "${SBATCH_CAMPAIGN[@]}" "$JOBS/campaign.sh" "$RUN" "$fleet" \
+		-D "$RUN" -d "$after$ONE_AT_A_TIME" "${kill[@]}" "${SBATCH_CAMPAIGN[@]}" "$JOBS/campaign.sh" "$RUN" "$fleet" \
 		--agents "$AGENTS" \
 		--populations "$POPULATIONS" --workers "$WORKERS" --mcp-servers "$MCP" --timeout "$TIMEOUT" \
 		"${model_args[@]}" "${SITE_ARGS[@]}" "${RUN_ARGS[@]}"
