@@ -45,8 +45,8 @@ Without it, vLLM servers on a GPU node answer. Start small: `1k stub`, `10k stub
 
 ## Set up once
 
-1. **The environment.** A Python 3.12 environment with the AUTONMI framework, as the example's README
-   says, with Dragon and RaDEX. The jobs start Dragon as `python -m dragon` with its python, and put
+1. **The environment.** A Python 3.12 environment with the AUTONMI framework at the commit the example
+   pins, as the example's README says, with Dragon and RaDEX. The jobs start Dragon as `python -m dragon` with its python, and put
    this tree's `src` first on `PYTHONPATH`, so the run uses this tree's wfMiniAPI. Several nodes need RHAPSODY's native backend with `hosts=`, which
    keeps each population's workers on its node. The model job needs vLLM, in the same environment or
    another one (`AUTONMI_MODEL_VENV`).
@@ -135,7 +135,8 @@ To run a rung again, move `scale-10k*` away first.
 - where the time went: how long each job waited in the queue and ran; the campaign job's start-up,
   agents, wind-down and clean-up; the agents' span against the simulations' bound; and the agents'
   own time, in simulations, in model calls, and waiting for a worker;
-- the nodes, with their populations and agents.
+- the nodes, with their populations and agents;
+- the AUTONMI commit the run imported, and whether it is the one the example pins.
 
 **Comparing two runs.** With the same seed, agent *i* is the same candidate at every size. With the
 stub model, its simulations, model calls and report are the same on one node as on several:

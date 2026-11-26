@@ -259,6 +259,7 @@ def write(
         "nodes": nodes,
         "simulations": sims,
         "model_calls": calls,
+        "autonmi": read_json(run / "autonmi.json"),
     }
     out["lines"] = describe(out)
     (run / "scale-report.json").write_text(json.dumps(out, indent=1) + "\n")
@@ -323,6 +324,15 @@ def describe(out: dict) -> list[str]:
     if nodes:
         each = [f"{n} {p} populations ({a:,} agents)" for n, (p, a) in sorted(nodes.items())]
         lines.append(f"nodes: {len(nodes)}: " + ", ".join(each))
+    pin = out.get("autonmi")
+    if pin:  # the AUTONMI commit the run imported, against the mini-app's AUTONMI_COMMIT
+        text = f"autonmi: {(pin.get('commit') or 'an unknown commit')[:12]}"
+        if pin.get("matches_pin"):
+            text += ", the pinned commit"
+        else:
+            text += f", NOT the pinned {str(pin.get('pin'))[:12]}"
+            text += " (its files changed)" if pin.get("dirty") else ""
+        lines.append(text)
     return lines
 
 

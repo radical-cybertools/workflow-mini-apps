@@ -335,7 +335,16 @@ def test_submit_refuses_a_run_directory_that_holds_an_earlier_try(tmp_path):
 # --- the report, on run directories written here ---------------------------------------------
 
 
-def write_run(run: Path, agents: int = 20, rows_of: range | None = None, summary: bool = True):
+PIN = "cdda559fcd78dbf42671305c3fdb0b6fa97d451b"
+
+
+def write_run(
+    run: Path,
+    agents: int = 20,
+    rows_of: range | None = None,
+    summary: bool = True,
+    autonmi: str = PIN,
+):
     """A run of `agents` agents in two populations of 4 workers on two nodes, as the mini-app writes
     it: every agent reports its candidate's best after two simulations of 10 s, from t=1000."""
     sys.path.insert(0, str(EXAMPLE))
@@ -346,6 +355,8 @@ def write_run(run: Path, agents: int = 20, rows_of: range | None = None, summary
         sys.path.remove(str(EXAMPLE))
     bench = Benchmark(agents=agents)
     (run / "app").mkdir(parents=True)
+    pin = {"commit": autonmi, "dirty": False, "pin": PIN, "matches_pin": autonmi == PIN}
+    (run / "autonmi.json").write_text(json.dumps(pin))
     (run / "campaign.json").write_text(
         json.dumps(
             {"knobs": bench.asdict(), "config": {"populations": 2, "population": {"workers": 4}}}
@@ -431,6 +442,7 @@ def test_the_report_verifies_every_agent_and_says_where_the_time_went(tmp_path):
     assert "start-up 50 s" in text and "2.38 times the simulations' bound of 50 s" in text
     assert "test COMPLETED, waited 0:00:30, ran 00:01:30; campaign COMPLETED, waited 0:12" in text
     assert "140 model calls" in text
+    assert "autonmi: cdda559fcd78, the pinned commit" in text
     shown = report("show", run)
     assert shown.stdout.splitlines() == out["lines"]
 
@@ -438,7 +450,7 @@ def test_the_report_verifies_every_agent_and_says_where_the_time_went(tmp_path):
 def test_without_a_summary_the_report_verifies_the_agents_the_rows_have(tmp_path):
     """A campaign that died: one population wrote its rows, the other did not."""
     run = tmp_path / "scale-10k-stub"
-    write_run(run, rows_of=range(0, 20, 2), summary=False)
+    write_run(run, rows_of=range(0, 20, 2), summary=False, autonmi="6c1ff80")
     r = report("write", run)
     assert r.returncode == 1
     out = json.loads((run / "scale-report.json").read_text())
@@ -447,6 +459,7 @@ def test_without_a_summary_the_report_verifies_the_agents_the_rows_have(tmp_path
     assert out["verification"]["reasons"] == {"no agent record": 10}
     assert "the mini-app wrote no summary.json" in r.stdout
     assert "agents: 10 of 20 verify, from their rows" in r.stdout
+    assert "autonmi: 6c1ff80, NOT the pinned cdda559fcd78" in r.stdout
 
 
 def test_a_report_that_does_not_verify_says_why(tmp_path):
