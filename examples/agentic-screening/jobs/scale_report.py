@@ -1,6 +1,7 @@
 """A scale run's report, for `jobs/scale` (jobs/README.md).
 
-    write   RUN [--agents N] [--workers W] [--name NAME]   read the run's files, write
+    write   RUN [--agents N] [--populations P] [--workers W] [--name NAME]
+                                                           read the run's files, write
                                                            RUN/scale-report.json, and print it
     show    RUN                                            print RUN/scale-report.json, or the
                                                            headline of RUN/summary.json
@@ -11,8 +12,11 @@
 
 - **every agent verifies.** It verifies each agent's report as the agent's row recorded it
   (`app/agents-p*.jsonl`), with the benchmark's own verification and the run's knobs
-  (`campaign.json`), so it works when the mini-app wrote no summary. Where the mini-app wrote its
-  checks (`app/checks.json`, `summary.json`), it gives them too.
+  (`campaign.json`), so it works when the mini-app wrote no summary. With `--agents`, the rung's
+  N, it verifies agents 0 to N-1, and a run of another size fails. It counts duplicate rows and rows
+  of agents outside the run, and names the populations that wrote no rows (`--populations`, else
+  `campaign.json`'s). Where the mini-app wrote its checks (`app/checks.json`, `summary.json`), it
+  gives them too.
 - **where the time went.** The chain's jobs, from the accounting the report job keeps
   (`jobs.txt`): how long each waited in the queue and ran. The campaign job's own time, from its
   `timeline`: Dragon's and the services' start-up before the first agent, the agents, and the
@@ -45,8 +49,31 @@ def read_json(path: Path) -> dict | list | None:
         return None
 
 
+def _number(x) -> bool:
+    return isinstance(x, int | float) and not isinstance(x, bool)
+
+
+def well_formed(row) -> bool:
+    """A row the report can use: the agent's id, its simulations, whether it finished, and a report
+    with its numbers, or none."""
+    if not isinstance(row, dict) or not isinstance(row.get("cid"), str) or "finished" not in row:
+        return False
+    sims, seconds, report = row.get("sims"), row.get("sim_seconds") or [], row.get("report")
+    return (
+        isinstance(sims, list)
+        and isinstance(seconds, list)
+        and all(isinstance(p, list) and len(p) == 2 and all(map(_number, p)) for p in seconds)
+        and all(row.get(k) is None or _number(row[k]) for k in ("t_start", "t_end"))
+        and (
+            report is None
+            or isinstance(report, dict)
+            and all(_number(report.get(k)) for k in ("temperature", "doping", "score"))
+        )
+    )
+
+
 def read_rows(run: Path) -> tuple[list[dict], int]:
-    """The agents' rows, one file per population, and the lines that could not be read (a
+    """The agents' rows, one file per population, and the lines that could not be read or used (a
     population killed while it wrote)."""
     rows, unreadable = [], 0
     for path in sorted((run / "app").glob("agents-p*.jsonl")):
@@ -55,10 +82,25 @@ def read_rows(run: Path) -> tuple[list[dict], int]:
                 if not line.strip():
                     continue
                 try:
-                    rows.append(json.loads(line))
+                    row = json.loads(line)
                 except ValueError:
+                    row = None
+                if well_formed(row):
+                    rows.append(row)
+                else:
                     unreadable += 1
     return rows, unreadable
+
+
+def populations_without_rows(run: Path, populations: int | None) -> list[str]:
+    """The run's populations (`populations`, else `campaign.json`'s) that wrote no rows."""
+    if populations is None:
+        config = (read_json(run / "campaign.json") or {}).get("config") or {}
+        populations = config.get("populations")
+    if not isinstance(populations, int):
+        return []
+    wrote = {p.name[len("agents-") : -len(".jsonl")] for p in (run / "app").glob("agents-p*.jsonl")}
+    return [f"p{i:03d}" for i in range(populations) if f"p{i:03d}" not in wrote]
 
 
 def read_timeline(run: Path) -> dict[str, float]:
@@ -116,33 +158,51 @@ def _screening() -> None:
         sys.path.insert(0, str(EXAMPLE))
 
 
+def run_agents(run: Path) -> int | None:
+    """The agents the run was started with (`campaign.json`), if it got that far."""
+    knobs = ((read_json(run / "campaign.json") or {}).get("knobs")) or {}
+    return knobs.get("agents") if isinstance(knobs.get("agents"), int) else None
+
+
 def benchmark(run: Path, agents: int | None):
-    """The run's knobs (`campaign.json`), as the benchmark's `Benchmark`."""
+    """The run's knobs (`campaign.json`), as the benchmark's `Benchmark`, for `agents` agents (the
+    rung's) when given; None when neither says how many."""
     _screening()
     from screening.benchmark import Benchmark
 
-    campaign = read_json(run / "campaign.json") or {}
-    knobs = dict(campaign.get("knobs") or {})
-    if agents is not None and "agents" not in knobs:
+    knobs = dict(((read_json(run / "campaign.json") or {}).get("knobs")) or {})
+    if agents is not None:
         knobs["agents"] = agents
     if "agents" not in knobs:
-        sys.exit(f"{run}: no campaign.json, so give --agents")
+        return None
     return Benchmark.from_dict(knobs)
 
 
-def verify_rows(run: Path, rows: list[dict], agents: int | None) -> dict:
-    """Every agent's report as its row recorded it, against its candidate's best."""
+def verify_rows(run: Path, rows: list[dict], agents: int | None) -> dict | None:
+    """Every agent's report as its row recorded it, against its candidate's best; with the rows
+    that repeat an agent and the rows of agents outside the run. None when nothing says how many
+    agents the run has."""
     _screening()
     from screening import physics
     from screening.verify import verify
 
     bench = benchmark(run, agents)
-    by_cid = {r["cid"]: r for r in rows if "cid" in r}
-    reports = {
-        physics.cid_of(i): (by_cid.get(physics.cid_of(i)) or {}).get("report")
-        for i in range(bench.agents)
-    }
-    return verify(bench, reports, rows)
+    if bench is None:
+        return None
+    expected = [physics.cid_of(i) for i in range(bench.agents)]
+    seen = collections.Counter(r["cid"] for r in rows)
+    first: dict[str, dict] = {}
+    for r in rows:
+        first.setdefault(r["cid"], r)
+    reports = {cid: (first.get(cid) or {}).get("report") for cid in expected}
+    out = verify(bench, reports, list(first.values()))
+    twice = {cid: n for cid, n in seen.items() if n > 1}
+    outside = sorted(set(seen) - set(expected))
+    out["duplicate_rows"] = sum(n - 1 for n in twice.values())
+    out["duplicate_examples"] = sorted(twice)[:5]
+    out["rows_outside_the_run"] = sum(seen[c] for c in outside)
+    out["outside_examples"] = outside[:5]
+    return out
 
 
 def workers_of(run: Path, given: int | None) -> int | None:
@@ -203,6 +263,7 @@ def time_of(rows: list[dict], marks: dict[str, float], workers: int | None) -> d
     bound = asked / workers if workers else None
     return {
         "job_s": between(marks.get("job_start"), marks.get("job_end")),
+        "before_dragon_s": between(marks.get("job_start"), marks.get("dragon_start")),
         "startup_s": between(marks.get("dragon_start"), first),
         "agents_s": span,
         "winddown_s": between(last, marks.get("dragon_end")),
@@ -220,8 +281,15 @@ def time_of(rows: list[dict], marks: dict[str, float], workers: int | None) -> d
 
 
 def write(
-    run: Path, agents: int | None, workers: int | None, name: str | None, roles: str = ""
+    run: Path,
+    agents: int | None,
+    workers: int | None,
+    name: str | None,
+    roles: str = "",
+    populations: int | None = None,
 ) -> dict:
+    """The report: `agents` is the rung's N (else the run's own), `populations` its populations
+    (else the run's own)."""
     rows, unreadable = read_rows(run)
     summary = read_json(run / "summary.json")
     checks = read_json(run / "app" / "checks.json")
@@ -230,15 +298,23 @@ def write(
     checks = checks or []
     failure = read_json(run / "app" / "failure.json")
     workers = workers_of(run, workers)
-    v = verify_rows(run, rows, agents) if rows or agents else None
+    v = verify_rows(run, rows, agents)
+    started_with = run_agents(run)
+    other_size = agents is not None and started_with is not None and started_with != agents
+    missing = populations_without_rows(run, populations)
     own = next((c.get("detail") for c in checks if c.get("name") == VERIFY_CHECK), None)
     t = time_of(rows, read_timeline(run), workers)
     jobs = read_jobs(run, roles)
     nodes = nodes_of(run)
     calls = sum(r.get("model_calls") or 0 for r in rows)
     sims = sum(len(r.get("sims") or []) for r in rows)
-    every = bool(v) and v["verified"] == v["agents"]
-    ok = every and bool(summary) and bool(summary.get("ok"))
+    every = (
+        bool(v)
+        and v["verified"] == v["agents"]
+        and not v["duplicate_rows"]
+        and not v["rows_outside_the_run"]
+    )
+    ok = every and bool(summary) and bool(summary.get("ok")) and not other_size and not missing
     failing = [c.get("name") for c in checks if not c.get("ok")]
     if summary:
         failing += [c.get("name") for c in summary.get("checks") or [] if not c.get("ok")]
@@ -250,6 +326,9 @@ def write(
         "summary_written": bool(summary),
         "every_agent_verifies": every,
         "verification": v,
+        "agents_expected": agents,
+        "agents_started": started_with,
+        "populations_without_rows": missing,
         "verification_by_the_run": own,
         "checks_failing": failing,
         "populations_not_ended": failure,
@@ -276,6 +355,11 @@ def describe(out: dict) -> list[str]:
         lines = [f"{title}: the mini-app wrote no summary.json; the agents are from their rows"]
     else:
         lines = [f"{title}: FAILED" + (f": {', '.join(failing)}" if failing else "")]
+    expected, started = out.get("agents_expected"), out.get("agents_started")
+    if expected is not None and started is not None and started != expected:
+        lines.append(
+            f"the run was started with {_n(started)} agents, but the rung has {_n(expected)}"
+        )
     if v:
         text = f"agents: {_n(v['verified'])} of {_n(v['agents'])} verify, from their rows"
         if own:
@@ -283,6 +367,20 @@ def describe(out: dict) -> list[str]:
         lines.append(text)
         if v["reasons"]:
             lines.append(f"    not verified: {v['reasons']}; for example {v['examples'][:3]}")
+        if v.get("duplicate_rows"):
+            twice, examples = _n(v["duplicate_rows"]), v["duplicate_examples"]
+            lines.append(f"    duplicate rows: {twice}, for example {examples}")
+        if v.get("rows_outside_the_run"):
+            lines.append(
+                f"    rows of agents outside the run: {_n(v['rows_outside_the_run'])}, "
+                f"for example {v['outside_examples']}"
+            )
+    else:
+        lines.append("agents: nothing to verify against (no campaign.json, and no --agents)")
+    if out.get("populations_without_rows"):
+        lines.append(
+            f"populations that wrote no rows: {', '.join(out['populations_without_rows'])}"
+        )
     if out["unreadable_rows"]:
         lines.append(f"rows that could not be read: {out['unreadable_rows']}")
     if out["populations_not_ended"]:
@@ -294,6 +392,11 @@ def describe(out: dict) -> list[str]:
     ]
     if jobs:
         lines.append("    jobs: " + "; ".join(jobs))
+    if t.get("before_dragon_s") and t["before_dragon_s"] >= 5:
+        lines.append(
+            f"    before Dragon, {_s(t['before_dragon_s'])} s: the guard, and the wait for the "
+            "model job's servers"
+        )
     if t["job_s"] is not None:
         lines.append(
             f"    the campaign job, {_s(t['job_s'])} s: start-up {_s(t['startup_s'])} s "
@@ -396,7 +499,8 @@ def main(argv: list[str] | None = None) -> int:
     sub = p.add_subparsers(dest="what", required=True)
     w = sub.add_parser("write", help="write RUN/scale-report.json and print it")
     w.add_argument("run", type=Path)
-    w.add_argument("--agents", type=int, help="when the run has no campaign.json")
+    w.add_argument("--agents", type=int, help="the rung's agents: a run of another size fails")
+    w.add_argument("--populations", type=int, help="the rung's populations (else the run's own)")
     w.add_argument(
         "--workers", type=int, help="simulation workers in all, when the run has no campaign.json"
     )
@@ -409,7 +513,7 @@ def main(argv: list[str] | None = None) -> int:
     c.add_argument("second", type=Path)
     a = p.parse_args(argv)
     if a.what == "write":
-        out = write(a.run, a.agents, a.workers, a.name, a.jobs)
+        out = write(a.run, a.agents, a.workers, a.name, a.jobs, a.populations)
         print("\n".join(out["lines"]))
         print(f"wrote {a.run / 'scale-report.json'}")
         return 0 if out["ok"] else 1

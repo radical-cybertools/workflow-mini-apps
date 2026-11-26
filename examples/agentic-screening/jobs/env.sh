@@ -1,14 +1,22 @@
-# Sourced by the ladder's job scripts: the site's settings, the environments, the Dragon guard and the
-# clean-up after Dragon. jobs/scale exports AUTONMI_REPO and AUTONMI_LOCAL_ENV, and submits with
-# --export=ALL.
+# shellcheck shell=bash disable=SC2034 # the scripts that source it use what it sets
+# Sourced by the ladder's job scripts: the site's settings, the environments, the Dragon guard, the
+# wait for the model servers and the clean-up after Dragon. jobs/scale exports AUTONMI_REPO and
+# AUTONMI_LOCAL_ENV, and submits with --export=ALL. Needs bash 4.4 or newer.
+if ((BASH_VERSINFO[0] * 100 + BASH_VERSINFO[1] < 404)); then
+	echo "the ladder's jobs need bash 4.4 or newer (this is $BASH_VERSION)" >&2
+	exit 1
+fi
 # shellcheck source=/dev/null
 source "${AUTONMI_LOCAL_ENV:?set by jobs/scale}"
 EXAMPLE=${AUTONMI_REPO:?set by jobs/scale}/examples/agentic-screening
 JOBS=$EXAMPLE/jobs
-# a tree unpacked from `git archive` names its commit in .git-commit
-AUTONMI_COMMIT=$(cat "$AUTONMI_REPO/.git-commit" 2> /dev/null || git -C "$AUTONMI_REPO" rev-parse --short HEAD 2> /dev/null || echo unknown)
-export AUTONMI_COMMIT
-export LD_LIBRARY_PATH="${AUTONMI_CUDART:+$AUTONMI_CUDART:}${LD_LIBRARY_PATH:-}"
+# This tree's commit (workflow-mini-apps'), for the logs: a tree unpacked from `git archive` names it
+# in .git-commit. The AUTONMI commit a run imports is in its autonmi.json.
+MINIAPP_COMMIT=$(cat "$AUTONMI_REPO/.git-commit" 2> /dev/null || git -C "$AUTONMI_REPO" rev-parse --short HEAD 2> /dev/null || echo unknown)
+export MINIAPP_COMMIT
+if [ -n "${AUTONMI_CUDART:-}" ]; then
+	export LD_LIBRARY_PATH="$AUTONMI_CUDART${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH}"
+fi
 ulimit -n "$(ulimit -Hn)"
 
 # The framework's environment, with this tree's wfMiniAPI first, then the site's overlays
@@ -23,6 +31,61 @@ use_model() {
 	# shellcheck source=/dev/null
 	source "${AUTONMI_MODEL_VENV:-${AUTONMI_VENV:?set in the site settings}}/bin/activate"
 	unset PYTHONPATH
+}
+
+# Dragon's launcher options for this job: `-s` on one node, the site's AUTONMI_DRAGON_ARGS on several
+dragon_args_here() {
+	if [ "${SLURM_JOB_NUM_NODES:-1}" -gt 1 ]; then
+		dragon_args=(${AUTONMI_DRAGON_ARGS[@]+"${AUTONMI_DRAGON_ARGS[@]}"})
+	else
+		dragon_args=(-s)
+	fi
+}
+
+# The summary's verdict on the run in $1: 0 when it says ok. `dragon` can exit 0 when its head
+# process failed, so the summary decides.
+summary_ok() {
+	python -c "import json, sys; sys.exit(0 if json.load(open(sys.argv[1]))['ok'] else 1)" "$1/summary.json" 2> /dev/null
+}
+
+# Until every server in $2/endpoints answers /health, while the model job $1 runs; at most $3
+# seconds. Fails at once when the model job is not running (it ended, failed, was cancelled or
+# requeued), so that the campaign's nodes do not wait on servers that will not come.
+wait_for_model() { # model-job fleet seconds
+	local job=$1 fleet=$2 end=$(($(date +%s) + $3)) state
+	while :; do
+		state=$(squeue -h -j "$job" -o %T 2> /dev/null || true)
+		case $state in
+		RUNNING | CONFIGURING) ;;
+		*)
+			echo "the model job $job is ${state:-no longer in the queue}: not starting the campaign"
+			return 1
+			;;
+		esac
+		if python - "$fleet/endpoints" << 'EOF'; then
+import sys
+import urllib.request
+
+try:
+    urls = [u.strip() for u in open(sys.argv[1]) if u.strip()]
+except OSError:
+    sys.exit(1)
+for url in urls:
+    try:
+        urllib.request.urlopen(url + "/health", timeout=5).close()
+    except Exception:
+        sys.exit(1)
+sys.exit(0 if urls else 1)
+EOF
+			echo "the model job's servers answer: $(paste -sd' ' "$fleet/endpoints")"
+			return 0
+		fi
+		if [ "$(date +%s)" -ge "$end" ]; then
+			echo "the model job's servers did not all answer within $3 s: not starting the campaign"
+			return 1
+		fi
+		sleep "${AUTONMI_MODEL_POLL:-10}"
+	done
 }
 
 job_nodes() { scontrol show hostnames "${SLURM_JOB_NODELIST:-$(hostname -s)}" 2> /dev/null || hostname -s; }

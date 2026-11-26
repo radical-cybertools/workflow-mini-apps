@@ -5,12 +5,17 @@
 #   jobs/scale submit  RUNG [stub]  submit the rung's jobs and return at once
 #   jobs/scale status  RUNG [stub]  the jobs' states, the main lines of their logs, and the run's report
 #   jobs/scale report  RUNG [stub]  write the run's report again, here: it reads every agent's row
-#   jobs/scale cancel  RUNG [stub]  cancel the rung's jobs
+#   jobs/scale cancel  RUNG [stub]  end the rung's jobs, the Dragon jobs first so that they clean up
 #
 # RUNG: 1k, 10k, 100k or 300k agents. With `stub`, the stub model answers and no GPU job is submitted.
-# The site's settings come from jobs/local.env, or from the file AUTONMI_LOCAL_ENV names. NODES, GPUS,
-# TIME, TIMEOUT, MODEL_TIME, ARGS and TAG in the environment change one run (jobs/README.md).
+# The site's settings come from jobs/local.env, or from the file AUTONMI_LOCAL_ENV names.
+# AUTONMI_NODES, AUTONMI_GPUS, AUTONMI_TIME, AUTONMI_TIMEOUT, AUTONMI_MODEL_TIME, AUTONMI_ARGS and
+# AUTONMI_TAG in the environment change one run (jobs/README.md). Needs bash 4.4 or newer.
 set -euo pipefail
+if ((BASH_VERSINFO[0] * 100 + BASH_VERSINFO[1] < 404)); then
+	echo "jobs/scale needs bash 4.4 or newer (this is $BASH_VERSION)" >&2
+	exit 1
+fi
 JOBS=$(cd "$(dirname "$0")" && pwd)
 EXAMPLE=$(dirname "$JOBS")
 REPO=$(cd "$EXAMPLE/../.." && pwd)
@@ -24,6 +29,9 @@ usage() { # the comment at the top
 	awk 'NR > 1 && /^#/ { sub(/^# ?/, ""); print; next } NR > 1 { exit }' "$SELF"
 	exit 2
 }
+count() { # name value: a whole number of at least 1
+	[[ $2 =~ ^[1-9][0-9]*$ ]] || die "$1 must be a whole number of at least 1 (got '$2')"
+}
 
 what=${1:-} rung=${2:-} kind=${3:-model}
 case $what in dry-run | submit | status | report | cancel) ;; *) usage ;; esac
@@ -31,7 +39,8 @@ case $kind in model | stub) ;; *) usage ;; esac
 
 # The rung on nodes of 96 CPUs (each with 2 populations of 44 workers): agents, CPU nodes, GPUs (one
 # vLLM server each), requests in flight per server, MCP servers, the campaign's time limit (minutes),
-# the seconds its populations may run, and the model job's time limit (minutes).
+# the seconds its populations may run, and the model job's time limit (minutes). These are the AUTONMI
+# demo's rungs; the mini-app has run 1k and 10k, and 100k and 300k only as estimates (jobs/README.md).
 case $rung in
 1k) set -- 1000 1 1 96 4 40 900 120 ;;
 10k) set -- 10000 2 2 96 4 75 2700 120 ;;
@@ -53,9 +62,12 @@ need AUTONMI_RUNS SLURM_CPU_PARTITION AUTONMI_NODE_MEM
 case $AUTONMI_RUNS in /*) ;; *) die "AUTONMI_RUNS must be an absolute path (got $AUTONMI_RUNS)" ;; esac
 
 # The run's shape: the rung's nodes, with the site's CPUs per node shared among its populations
-NODES=${NODES:-$REF_NODES}
-GPUS=${GPUS:-$REF_GPUS}
+NODES=${AUTONMI_NODES:-$REF_NODES}
+GPUS=${AUTONMI_GPUS:-$REF_GPUS}
 CPUS=${AUTONMI_NODE_CPUS:-96}
+count AUTONMI_NODES "$NODES"
+count AUTONMI_GPUS "$GPUS"
+count AUTONMI_NODE_CPUS "$CPUS"
 NODE_POPULATIONS=${AUTONMI_NODE_POPULATIONS:-2}
 WORKERS=${AUTONMI_NODE_WORKERS:-$(((CPUS - ${AUTONMI_NODE_RESERVE:-8}) / NODE_POPULATIONS))}
 [ "$WORKERS" -ge 1 ] || die "$CPUS CPUs per node leave no workers for $NODE_POPULATIONS populations: set AUTONMI_NODE_WORKERS"
@@ -63,9 +75,16 @@ POPULATIONS=$((NODES * NODE_POPULATIONS))
 TOTAL_WORKERS=$((POPULATIONS * WORKERS))
 PER_POPULATION=$(((AGENTS + POPULATIONS - 1) / POPULATIONS))
 BOUND=$((AGENTS * CORE_CS_PER_AGENT / (100 * TOTAL_WORKERS)))
+SERVERS=$((GPUS / ${AUTONMI_TP:-1}))
+[ "$SERVERS" -ge 1 ] || SERVERS=1
 
-# Fewer workers than the rung's 88 per node make the simulations take longer: the time limits grow by
-# as much (never shrink). TIME, TIMEOUT and MODEL_TIME in the environment replace them.
+# The time limits. Fewer workers than the rung's 88 per node make the simulations take longer: the
+# rung's limits grow by as much (never shrink). The campaign's limit also covers, at least, the parts
+# of the job outside its populations' TIMEOUT: the wait for the model servers (AUTONMI_MODEL_WAIT,
+# 600 s plus 300 s per server, as they load one after another), Dragon's and the services' start-up
+# (120 s plus 10 s per node), the wind-down (120 s plus 5 ms per agent: 36 s was measured at 10k), the
+# clean-up (120 s) and the margin before the limit (240 s). AUTONMI_TIME, AUTONMI_TIMEOUT and
+# AUTONMI_MODEL_TIME replace them.
 scaled() { # value: rounded up, times the rung's workers over the run's, when the run has fewer
 	if [ "$TOTAL_WORKERS" -lt "$REF_WORKERS" ]; then
 		echo $((($1 * REF_WORKERS + TOTAL_WORKERS - 1) / TOTAL_WORKERS))
@@ -74,22 +93,30 @@ scaled() { # value: rounded up, times the rung's workers over the run's, when th
 	fi
 }
 hhmm() { printf '%02d:%02d:00' $(($1 / 60)) $(($1 % 60)); }
+TIMEOUT=${AUTONMI_TIMEOUT:-$(scaled "$REF_TIMEOUT")}
+count AUTONMI_TIMEOUT "$TIMEOUT"
+MODEL_WAIT=${AUTONMI_MODEL_WAIT:-$((600 + 300 * SERVERS))}
+budget_s=$((120 + 10 * NODES + TIMEOUT + 120 + AGENTS / 200 + 120 + 240))
+[ "$kind" = stub ] || budget_s=$((budget_s + MODEL_WAIT))
 time_min=$(scaled "$REF_TIME")
-TIME=${TIME:-$(hhmm "$time_min")}
-TIMEOUT=${TIMEOUT:-$(scaled "$REF_TIMEOUT")}
-MODEL_TIME=${MODEL_TIME:-$(hhmm $((REF_MODEL_TIME + time_min - REF_TIME)))} # it waits for the campaign too
+[ "$time_min" -ge $(((budget_s + 59) / 60)) ] || time_min=$(((budget_s + 59) / 60))
+TIME=${AUTONMI_TIME:-$(hhmm "$time_min")}
+MODEL_TIME=${AUTONMI_MODEL_TIME:-$(hhmm $((REF_MODEL_TIME + time_min - REF_TIME)))} # it waits for the campaign too
 
+TAG=${AUTONMI_TAG:-}
 NAME=$rung SUFFIX=''
 [ "$kind" = stub ] && NAME=$NAME-stub SUFFIX=' stub'
-[ -z "${TAG:-}" ] || NAME=$NAME-$TAG
-AGAIN="${AUTONMI_LOCAL_ENV:+AUTONMI_LOCAL_ENV=$ENV_FILE }${TAG:+TAG=$TAG }$SELF status $rung$SUFFIX" # how to ask again
+[ -z "$TAG" ] || NAME=$NAME-$TAG
+# how to ask again, quoted for the shell
+AGAIN="${AUTONMI_LOCAL_ENV:+AUTONMI_LOCAL_ENV=$(printf %q "$ENV_FILE") }${TAG:+AUTONMI_TAG=$(printf %q "$TAG") }$(printf %q "$SELF") status $rung$SUFFIX"
 RUNS=$AUTONMI_RUNS
 RUN=$RUNS/scale-$NAME
 FLEET=$RUNS/scale-$NAME-fleet
 TEST=$RUNS/scale-$NAME-test
 STATE=$RUNS/scale-$NAME.jobs
+LOCK=$STATE.lock
 
-export AUTONMI_REPO=$REPO AUTONMI_LOCAL_ENV=$ENV_FILE # for the jobs (--export=ALL), which source env.sh
+export AUTONMI_REPO=$REPO AUTONMI_LOCAL_ENV=$ENV_FILE AUTONMI_MODEL_WAIT=$MODEL_WAIT # for the jobs (--export=ALL)
 ACCOUNT=()
 [ -z "${SLURM_ACCOUNT:-}" ] || ACCOUNT=(-A "$SLURM_ACCOUNT")
 Q_TEST=() Q_CAMPAIGN=() Q_MODEL=()
@@ -100,14 +127,40 @@ ONE_AT_A_TIME=,singleton # the Dragon jobs (named autonmi-dragon) wait for each 
 [ "${AUTONMI_DRAGON_SINGLETON:-1}" = 1 ] || ONE_AT_A_TIME=
 PLACE=(--ntasks-per-node=1 --cpus-per-task="$CPUS")
 [ "${AUTONMI_NODE_EXCLUSIVE:-1}" = 0 ] || PLACE+=(--exclusive)
+ONCE=(--no-requeue --open-mode=append) # a requeued Dragon job would start over in a run that holds one
 read -ra SBATCH_CAMPAIGN <<< "${AUTONMI_SBATCH_CAMPAIGN:-}" # the site's own sbatch options
 read -ra SBATCH_MODEL <<< "${AUTONMI_SBATCH_MODEL:-}"
 read -ra SITE_ARGS <<< "${AUTONMI_CAMPAIGN_ARGS:-}"
-read -ra RUN_ARGS <<< "${ARGS:-}"
+read -ra RUN_ARGS <<< "${AUTONMI_ARGS:-}"
+for a in "${SITE_ARGS[@]}" "${RUN_ARGS[@]}"; do
+	case $a in --agents | --agents=* | --populations | --populations=* | --workers | --workers=* | --run-dir | --run-dir=*)
+		die "AUTONMI_ARGS and AUTONMI_CAMPAIGN_ARGS may not set $a: the rung sets it (jobs/README.md)"
+		;;
+	esac
+done
 
 SUBMITTED=()
-# Run one sbatch command; its job id goes in JOB. If Slurm refuses it, cancel what this run submitted
-# and stop, so that no job is left waiting on one that doesn't exist. A dry run prints the command.
+state() { # key value: one line of the state file, written as the chain is submitted
+	[ "$what" = submit ] || return 0
+	printf '%s=%s\n' "$1" "$2" >> "$STATE"
+}
+cancel_submitted() { # why
+	if [ ${#SUBMITTED[@]} -gt 0 ]; then
+		scancel "${SUBMITTED[@]}" 2> /dev/null || true
+		echo "cancelled the jobs already submitted: ${SUBMITTED[*]}" >&2
+	fi
+	state cancelled "$1: ${SUBMITTED[*]:-no job}"
+}
+interrupted() {
+	trap '' INT TERM HUP
+	echo "interrupted while submitting $NAME" >&2
+	cancel_submitted "interrupted while submitting"
+	exit 130
+}
+
+# Run one sbatch command; its job id goes in JOB and in the state file. If Slurm refuses it, cancel
+# what this run submitted and stop, so that no job is left waiting on one that doesn't exist. A dry
+# run prints the command.
 sub() { # label sbatch-arguments...
 	local label=$1 out
 	shift
@@ -116,16 +169,15 @@ sub() { # label sbatch-arguments...
 		echo "$JOB: sbatch $*"
 		return
 	fi
-	if ! out=$(sbatch "$@") || [ -z "${out%%;*}" ]; then
-		echo "Slurm refused the $label job (its message is above): sbatch $*" >&2
-		if [ ${#SUBMITTED[@]} -gt 0 ]; then
-			scancel "${SUBMITTED[@]}" 2> /dev/null || true
-			echo "cancelled the jobs already submitted: ${SUBMITTED[*]}" >&2
-		fi
+	if ! out=$(sbatch "$@") || ! [[ ${out%%;*} =~ ^[0-9]+$ ]]; then
+		echo "Slurm refused the $label job (its message is above${out:+; it printed: $out}): sbatch $*" >&2
+		cancel_submitted "the $label job was refused"
+		rm -f "$STATE" # every job it held is cancelled: a submit may start over
 		exit 1
 	fi
 	JOB=${out%%;*} # sbatch --parsable may print "id;cluster"
 	SUBMITTED+=("$JOB")
+	state "$label" "$JOB"
 }
 
 shape() {
@@ -146,10 +198,12 @@ submit() {
 			gres=(--gres="${SLURM_GPU_GRES%:*}:$GPUS")
 		fi
 		fleet=$FLEET
-		model_args=(--model openai --endpoints-file "$FLEET/endpoints" --api-key-file "$FLEET/api-key" --cap "$CAP")
+		model_args=(--model openai --endpoints-file "$FLEET/endpoints" --api-key-file "$FLEET/api-key" --cap "$CAP"
+			--model-wait "$MODEL_WAIT")
 		[ -z "${AUTONMI_CAP_TOKENS:-}" ] || model_args+=(--cap-tokens "$AUTONMI_CAP_TOKENS")
 		[ -z "${AUTONMI_MODEL_NAME:-}" ] || model_args+=(--model-name "$AUTONMI_MODEL_NAME")
-		model_shape="; $GPUS GPU(s), $CAP requests in flight per server, model job's time limit $MODEL_TIME"
+		model_shape="; $GPUS GPU(s), $CAP requests in flight per server, the servers' wait up to $MODEL_WAIT s,"
+		model_shape+=" model job's time limit $MODEL_TIME"
 	else
 		model_args=(--model stub)
 	fi
@@ -157,6 +211,10 @@ submit() {
 		echo "warning: $PER_POPULATION agents per population, above the 5,000 the ladder was sized for" >&2
 	fi
 	if [ "$what" = submit ]; then
+		mkdir -p "$RUNS"
+		mkdir "$LOCK" 2> /dev/null ||
+			die "$LOCK exists: another submit of $NAME runs, or one was interrupted. See '$AGAIN', then remove it."
+		trap 'rmdir "$LOCK" 2> /dev/null || true' EXIT
 		[ ! -e "$STATE" ] || die "$NAME was already submitted ($STATE): see '$AGAIN'. Move it away to submit again."
 		for d in "$RUN" "$FLEET" "$TEST"; do
 			[ -z "$(ls -A "$d" 2> /dev/null)" ] || die "$d holds an earlier try: move it away first (mv $d $d.old)"
@@ -164,16 +222,25 @@ submit() {
 		[ -x "${AUTONMI_VENV:-}/bin/python" ] || die "no python in AUTONMI_VENV=${AUTONMI_VENV:-} ($ENV_FILE)"
 		mkdir -p "$RUN" "$TEST"
 		[ "$kind" = stub ] || mkdir -p "$FLEET"
+		trap interrupted INT TERM HUP
+		state submitted "$(date +%Y-%m-%dT%H:%M:%S%z)"
+		state commit "$(cat "$REPO/.git-commit" 2> /dev/null || git -C "$REPO" rev-parse --short HEAD 2> /dev/null || echo unknown)"
+		state settings "$ENV_FILE"
 	fi
 	shape
-	local common=(--parsable --export=ALL "${ACCOUNT[@]}") small kill=(--kill-on-invalid-dep=yes) after model='' test
-	small=(-p "$SLURM_CPU_PARTITION" "${Q_TEST[@]}" -N1 --ntasks-per-node=1)
+	local common=(--parsable --export=ALL "${ACCOUNT[@]}") kill=(--kill-on-invalid-dep=yes) after model='' test
+	local small=(-p "$SLURM_CPU_PARTITION" "${Q_TEST[@]}" -N1 --ntasks-per-node=1)
 
-	# 1. a small run of the mini-app under Dragon on one node: if it fails, the rest is cancelled
-	local dep=()
+	# 1. a small run of the mini-app under Dragon: if it fails, the rest is cancelled. A rung of several
+	# nodes tests on two, with the campaign's Dragon options and sbatch options (its network).
+	local dep=() test_place=("${small[@]}") test_site=()
 	[ -z "$ONE_AT_A_TIME" ] || dep=(-d singleton)
-	sub test "${common[@]}" "${small[@]}" --cpus-per-task=16 --mem=32G -t 00:20:00 -J autonmi-dragon \
-		"${dep[@]}" -o "$TEST/test-%j.out" -D "$TEST" "$JOBS/test.sh" "$TEST"
+	if [ "$NODES" -gt 1 ]; then
+		test_place=(-p "$SLURM_CPU_PARTITION" "${Q_TEST[@]}" -N 2 --ntasks-per-node=1)
+		test_site=("${SBATCH_CAMPAIGN[@]}")
+	fi
+	sub test "${common[@]}" "${test_place[@]}" --cpus-per-task=16 --mem=32G -t 00:20:00 -J autonmi-dragon \
+		"${ONCE[@]}" "${dep[@]}" "${test_site[@]}" -o "$TEST/test-%j.out" -D "$TEST" "$JOBS/test.sh" "$TEST"
 	test=$JOB
 	after=afterok:$test
 	# 2. the model servers, one per GPU, on one GPU node
@@ -183,42 +250,46 @@ submit() {
 			-t "$MODEL_TIME" -J autonmi-vllm --requeue --open-mode=append -o "$FLEET/model-%j.out" \
 			-d "$after" "${kill[@]}" "${SBATCH_MODEL[@]}" "$JOBS/model.sh" "$FLEET" "$GPUS"
 		model=$JOB
-		# the campaign starts once the model job runs, and waits for its servers; a cancelled model job
-		# satisfies after:, so the test's afterok stays
+		# the campaign may start once the model job runs; it then waits for the servers itself and fails
+		# at once if the model job is not running (campaign.sh). A cancelled model job satisfies after:,
+		# so the test's afterok stays.
 		after=$after,after:$model
 	fi
 	# 3. the campaign under one Dragon runtime across the CPU nodes; -D: Dragon's logs go in the run
 	sub campaign "${common[@]}" -p "$SLURM_CPU_PARTITION" "${Q_CAMPAIGN[@]}" -N "$NODES" "${PLACE[@]}" \
-		--mem="$AUTONMI_NODE_MEM" -t "$TIME" --signal=B:USR1@240 -J autonmi-dragon -o "$RUN/campaign-%j.out" \
-		-D "$RUN" -d "$after$ONE_AT_A_TIME" "${kill[@]}" "${SBATCH_CAMPAIGN[@]}" "$JOBS/campaign.sh" "$RUN" "$fleet" \
-		--agents "$AGENTS" \
+		--mem="$AUTONMI_NODE_MEM" -t "$TIME" --signal=B:USR1@240 -J autonmi-dragon "${ONCE[@]}" \
+		-o "$RUN/campaign-%j.out" -D "$RUN" -d "$after$ONE_AT_A_TIME" "${kill[@]}" "${SBATCH_CAMPAIGN[@]}" \
+		"$JOBS/campaign.sh" "$RUN" "$fleet" "${model:-none}" --agents "$AGENTS" \
 		--populations "$POPULATIONS" --workers "$WORKERS" --mcp-servers "$MCP" --timeout "$TIMEOUT" \
 		"${model_args[@]}" "${SITE_ARGS[@]}" "${RUN_ARGS[@]}"
 	local campaign=$JOB
 	# 4. after the campaign however it ends: the report, and the model job's end
 	sub report "${common[@]}" "${small[@]}" --cpus-per-task=2 --mem=16G -t 00:30:00 -J autonmi-report \
-		-o "$RUN/report-%j.out" -d "afterany:$campaign" "$JOBS/report.sh" "$RUN" "$fleet" \
-		"test=$test,model=$model,campaign=$campaign"
+		"${ONCE[@]}" -o "$RUN/report-%j.out" -d "afterany:$campaign" "$JOBS/report.sh" "$RUN" "$fleet" \
+		"test=$test,model=$model,campaign=$campaign" --agents "$AGENTS" --populations "$POPULATIONS" \
+		--workers "$TOTAL_WORKERS"
 	local report=$JOB
 	if [ "$what" = dry-run ]; then
 		echo "dry run: nothing submitted"
 		return
 	fi
-	printf 'test=%s\nmodel=%s\ncampaign=%s\nreport=%s\nsubmitted=%s\ncommit=%s\nsettings=%s\n' "$test" "$model" \
-		"$campaign" "$report" "$(date +%Y-%m-%dT%H:%M:%S%z)" \
-		"$(cat "$REPO/.git-commit" 2> /dev/null || git -C "$REPO" rev-parse --short HEAD 2> /dev/null || echo unknown)" \
-		"$ENV_FILE" > "$STATE"
+	trap - INT TERM HUP
 	echo "$NAME submitted: test $test${model:+ -> model $model} -> campaign $campaign -> report $report"
 	echo "Job ids in $STATE. Check with: $AGAIN"
 }
 
+# The state file's values (key=value lines, never run as shell): st_test, st_model, st_campaign,
+# st_report, st_submitted, st_commit, st_cancelled
 load_state() {
 	[ -e "$STATE" ] || {
 		echo "$NAME not submitted yet ($STATE missing)"
 		exit 0
 	}
-	# shellcheck source=/dev/null
-	source "$STATE"
+	st_test='' st_model='' st_campaign='' st_report='' st_submitted='?' st_commit='?' st_cancelled=''
+	local k v
+	while IFS='=' read -r k v; do
+		case $k in test | model | campaign | report | submitted | commit | cancelled) printf -v "st_$k" '%s' "$v" ;; esac
+	done < "$STATE"
 }
 
 python_() { # the framework's python, else python3
@@ -227,36 +298,55 @@ python_() { # the framework's python, else python3
 
 status() {
 	load_state
-	echo "$NAME submitted $submitted, commit $commit"
+	echo "$NAME submitted $st_submitted, commit $st_commit"
+	[ -z "$st_cancelled" ] || echo "cancelled: $st_cancelled"
 	local ids
-	# shellcheck disable=SC2154 - set by the state file
-	ids=$(printf '%s\n' "$test" "$model" "$campaign" "$report" | grep . | paste -sd, -)
-	sacct -X -n -j "$ids" -o JobID%10,JobName%16,State%24,Elapsed,NNodes%6,NodeList%40 || true
+	ids=$(printf '%s\n' "$st_test" "$st_model" "$st_campaign" "$st_report" | grep . | paste -sd, -) || true
+	[ -z "$ids" ] || sacct -X -n -j "$ids" -o JobID%10,JobName%16,State%24,Elapsed,NNodes%6,NodeList%40 || true
 	echo
-	echo "Test under Dragon ($test):"
+	echo "Test under Dragon (${st_test:-not submitted}):"
 	tail -qn1 "$TEST"/test-*.out 2> /dev/null | sed 's/^/    /' || true
-	if [ -n "$model" ]; then
-		echo "Model job, $GPUS GPU(s) ($model):"
-		grep -h -E "ready in|exited|died|stopping" "$FLEET"/model-*.out 2> /dev/null | sed 's/^/    /' ||
+	if [ -n "$st_model" ]; then
+		echo "Model job, $GPUS GPU(s) ($st_model):"
+		grep -h -E "ready in|exited|died|stopping|asked for" "$FLEET"/model-*.out 2> /dev/null | sed 's/^/    /' ||
 			echo "    no servers yet"
 	fi
-	echo "Campaign, $AGENTS agents on $NODES CPU node(s) ($campaign):"
-	grep -h -E "^campaign job|^dragon |\[screening\]|Error|exited|USR1|TERM" "$RUN"/campaign-*.out 2> /dev/null |
+	echo "Campaign, $AGENTS agents on $NODES CPU node(s) (${st_campaign:-not submitted}):"
+	grep -h -E "^campaign job|^dragon |model job|\[screening\]|Error|exited|USR1|TERM" "$RUN"/campaign-*.out 2> /dev/null |
 		cut -c1-160 | sed 's/^/    /' || true
-	echo "Report ($report):"
+	echo "Report (${st_report:-not submitted}):"
 	python_ "$JOBS/scale_report.py" show "$RUN" | sed 's/^/    /'
 }
 
+# The running Dragon jobs first: USR1 to their batch shell ends the run (env.sh: run_dragon), and the
+# job then cleans its nodes. Then the model job and whatever has not ended. The report job is left: it
+# runs once the campaign has ended, records what there is, and ends the model job.
 cancel() {
 	load_state
-	# shellcheck disable=SC2086 - with the stub there is no model job
-	scancel $test $model $campaign $report 2> /dev/null || true
-	echo "cancelled; $STATE kept for the record (move it away to submit again)"
+	local running=() rest=() id
+	for id in "$st_test" "$st_campaign"; do
+		[ -n "$id" ] || continue
+		[ "$(squeue -h -j "$id" -o %T 2> /dev/null || true)" != RUNNING ] || running+=("$id")
+	done
+	if [ ${#running[@]} -gt 0 ]; then
+		scancel -b -s USR1 "${running[@]}" 2> /dev/null || true
+		local wait_s=${AUTONMI_CANCEL_WAIT:-330} end
+		echo "asked the running Dragon job(s) ${running[*]} to end their run and clean up; waiting up to $wait_s s"
+		end=$(($(date +%s) + wait_s))
+		while [ "$(date +%s)" -lt "$end" ] &&
+			squeue -h -j "$(IFS=,; echo "${running[*]}")" 2> /dev/null | grep -q .; do
+			sleep 5
+		done
+	fi
+	for id in "$st_test" "$st_model" "$st_campaign"; do [ -z "$id" ] || rest+=("$id"); done
+	[ ${#rest[@]} -eq 0 ] || scancel "${rest[@]}" 2> /dev/null || true
+	echo "cancelled ${rest[*]:-nothing}; the report job ${st_report:-(none)} records the run once the campaign has ended."
+	echo "$STATE is kept for the record (move it away to submit again)"
 }
 
 case $what in
 dry-run | submit) submit ;;
 status) status ;;
-report) python_ "$JOBS/scale_report.py" write "$RUN" --agents "$AGENTS" --workers "$TOTAL_WORKERS" --name "$NAME" ;;
+report) python_ "$JOBS/scale_report.py" write "$RUN" --agents "$AGENTS" --populations "$POPULATIONS" --workers "$TOTAL_WORKERS" ;;
 cancel) cancel ;;
 esac

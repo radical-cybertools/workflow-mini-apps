@@ -4,9 +4,11 @@
 #
 #   model.sh FLEET [GPUS]
 #
-# GPUS: how many of the job's GPUs to use, all by default. Writes into FLEET: `endpoints` (one base URL
-# per server, once all answer), `api-key` (readable by the owner only), `gpu.csv` (nvidia-smi every
-# second, where there is one) and `vllm-<i>.log`. Ends when FLEET/stop appears.
+# GPUS: how many of the job's GPUs to use, all by default; the job fails when it has fewer. Writes into
+# FLEET: `endpoints` (one base URL per server, once all answer), `api-key` (readable by the owner
+# only), `gpu.csv` (nvidia-smi every second, where there is one, for the record) and `vllm-<i>.log`.
+# Ends when FLEET/stop appears. The servers' host in `endpoints` is AUTONMI_ENDPOINT_HOST, where %h
+# is the node's short name and %f its full one (default %h): `%h-ib` names another network.
 #
 # A server that dies is started again on its own port, up to AUTONMI_VLLM_RESTARTS times (3); past
 # that the job ends. The job is requeueable (jobs/scale submits it with --requeue): requeued, it starts
@@ -22,14 +24,20 @@ want=${2:-}
 # shellcheck source=/dev/null
 source "$AUTONMI_REPO/examples/agentic-screening/jobs/env.sh"
 use_model
-echo "model job $SLURM_JOB_ID on $(hostname -s), $(date -Is), commit $AUTONMI_COMMIT, start ${SLURM_RESTART_COUNT:-0}"
+echo "model job $SLURM_JOB_ID on $(hostname -s), $(date -Is), commit $MINIAPP_COMMIT, start ${SLURM_RESTART_COUNT:-0}"
 var=${AUTONMI_GPU_VARIABLE:-CUDA_VISIBLE_DEVICES}
 listed=${!var:-}
 if [ -z "$listed" ] && command -v nvidia-smi > /dev/null; then
 	listed=$(nvidia-smi --query-gpu=index --format=csv,noheader | paste -sd, -)
 fi
 IFS=, read -ra gpus <<< "${listed:-0}"
-[ -z "$want" ] || [ "$want" -ge "${#gpus[@]}" ] || gpus=("${gpus[@]:0:$want}")
+if [ -n "$want" ]; then
+	if [ "$want" -gt "${#gpus[@]}" ]; then
+		echo "asked for $want GPUs, but the job has ${#gpus[@]} ($var=${listed:-none}): stopping"
+		exit 1
+	fi
+	gpus=("${gpus[@]:0:$want}")
+fi
 command -v nvidia-smi > /dev/null && nvidia-smi --query-gpu=index,name,memory.total --format=csv,noheader
 tp=${AUTONMI_TP:-1}
 if [ "$tp" -lt 1 ] || [ $((${#gpus[@]} % tp)) -ne 0 ]; then
@@ -62,6 +70,9 @@ if [ -n "${AUTONMI_REASONING:-}" ]; then
 	echo "reasoning: ${reasoning[*]}"
 fi
 read -ra extra <<< "${AUTONMI_VLLM_ARGS:-}"
+host=${AUTONMI_ENDPOINT_HOST:-%h}
+host=${host//%h/$(hostname -s)}
+host=${host//%f/$(hostname -f)}
 pids=()
 ports=()
 deaths=()
@@ -87,19 +98,27 @@ wait_ready() { # index; fails if the server exits first
 		sleep 2
 	done
 }
-# One server at a time, so that they do not race on vLLM's compile cache.
+free_port() { python -c 'import socket; s = socket.socket(); s.bind(("", 0)); print(s.getsockname()[1])'; }
+# One server at a time, so that they do not race on vLLM's compile cache. A port is free when it is
+# picked, but another process can take it before vLLM binds it: then the server starts again on
+# another, at most twice.
 for i in "${!devices[@]}"; do
-	ports[i]=$(python -c 'import socket; s = socket.socket(); s.bind(("", 0)); print(s.getsockname()[1])')
 	deaths[i]=0
 	t0=$(date +%s)
-	start_server "$i"
-	if ! wait_ready "$i"; then
+	for try in 1 2 3; do
+		ports[i]=$(free_port)
+		start_server "$i"
+		wait_ready "$i" && break
+		if [ "$try" -lt 3 ] && grep -qi "address already in use" "$fleet/vllm-$i.log"; then
+			echo "vLLM $i: port ${ports[$i]} was taken; trying another"
+			continue
+		fi
 		echo "vLLM $i exited before it was ready"
 		tail -30 "$fleet/vllm-$i.log"
 		stop_all
 		exit 1
-	fi
-	echo "http://$(hostname -s):${ports[$i]}" >> "$fleet/endpoints.tmp"
+	done
+	echo "http://$host:${ports[$i]}" >> "$fleet/endpoints.tmp"
 	echo "vLLM $i (devices ${devices[$i]}) ready in $(($(date +%s) - t0)) s on port ${ports[$i]}"
 	grep "GPU KV cache size" "$fleet/vllm-$i.log" | tail -1 || true
 done
