@@ -2,6 +2,13 @@
 
 ## Unreleased
 
+## 0.3.0 (2026-11-28)
+
+### Dependencies
+
+- **The `workflow` and `dragon` extras install released AsyncFlow and RHAPSODY**:
+  `radical.asyncflow>=0.7.1,<0.8` and `rhapsody-py>=0.7,<0.9`, instead of commits.
+
 ### Runs of many engines and components
 
 - **A run's composition is declared on its `MiniApp`** (`app.composition`, a
@@ -60,6 +67,7 @@
 - **Equivalence harness:** the baseline carries the same change
   (`tests/equivalence/baseline/examples.patch`, applied to a copy of the export), and the
   five workflows' goldens are re-captured.
+
 ### Changed
 
 - **The motif examples delete their `.h5` files at the end of the run**, also when it
