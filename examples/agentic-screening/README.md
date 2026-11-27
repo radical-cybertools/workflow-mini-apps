@@ -31,11 +31,24 @@ The physics, the prompts, the benchmark and the verification need nothing outsid
 
 ## What it needs
 
-- **The AUTONMI framework.** It runs populations of agents as nodes of an AsyncFlow graph, on Flowgentic's agent loop. It is installed separately: the RADICAL team gives access to it and its install recipe. It brings Flowgentic, AsyncFlow, RHAPSODY and the OpenTelemetry SDK.
+- **The AUTONMI framework.** It runs populations of agents as nodes of an AsyncFlow graph, on Flowgentic's agent loop. It is installed separately: the RADICAL team gives access to it. It brings Flowgentic, AsyncFlow, RHAPSODY and the OpenTelemetry SDK.
 - **This repository's `wfMiniAPI`,** with `MiniApp` for runs of many engines and components.
 - **Under Dragon:** Dragon and RaDEX, as RHAPSODY's native backend uses them.
 
-Without the framework, this repository's tests skip this example, apart from the benchmark's own test and the contract check, which reads its source.
+Without the framework, this repository's tests skip this example, apart from the benchmark's own test, the check of the pinned commit, and the contract check, which reads its source.
+
+**The framework's commit.** This example is tested on AUTONMI commit `cdda559fcd78dbf42671305c3fdb0b6fa97d451b` (`main` of 26 Nov 2026, with its public API). That is `AUTONMI_COMMIT` in `screening/pin.py`, and a test keeps this line and the constant equal. Install it with the versions AUTONMI's own `requirements.txt` pins, then this repository without its dependencies, so that AUTONMI's pins hold. From a clone of each, side by side, with Python 3.12 and [uv](https://docs.astral.sh/uv/):
+
+```shell
+git -C autonmi checkout cdda559fcd78dbf42671305c3fdb0b6fa97d451b
+uv venv --python 3.12 && source .venv/bin/activate
+uv pip install -r autonmi/requirements.txt pyyaml pytest
+uv pip install --no-deps -e autonmi -e workflow-mini-apps
+```
+
+AUTONMI's `requirements.txt` pins RHAPSODY at `eac7ceb`, while this repository's `workflow` extra pins `142f396`. The example is tested with AUTONMI's RHAPSODY, which is why the last line skips the extras. Across nodes under Dragon, the populations also need RHAPSODY's native backend with `hosts=` (radical-cybertools/rhapsody#169).
+
+A run checks the commit it imports and records it in `<run-dir>/autonmi.json`. The commit comes from git for an editable clone, from a `.git-commit` file at the root of a copy made without git (`git archive <commit> | tar -x -C DIR; echo <commit> > DIR/.git-commit`), or from the installer's record for a package installed from git. A run at another commit, at an unknown one, or with changed files under the package prints a warning on stderr and goes on.
 
 ## Running it
 
@@ -151,6 +164,7 @@ The run directory holds:
 | `services/` | The MCP servers' and tool services' records |
 | `vllm/` | With `--model openai`: the servers' counters over the run |
 | `summary.json` | The run's figures |
+| `autonmi.json` | The AUTONMI commit the run imported, where it was read, and whether it is the pinned one |
 
 The run's checks:
 - every agent verifies;

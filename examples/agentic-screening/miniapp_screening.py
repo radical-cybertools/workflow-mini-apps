@@ -27,7 +27,8 @@ it too.
 Writes `<run-dir>/`: `launcher/` (the mini-app's checkpoint and MiniApp's report), `populations/`
 (each population's checkpoint and stats), `app/` (per-agent rows, checks, ranking), `otel/`
 (Flowgentic's export, one directory per population process under Dragon; a tenth of the agents'
-spans unless `--span-ratio 1`), `services/`, `vllm/`.
+spans unless `--span-ratio 1`), `services/`, `vllm/`, and `autonmi.json` (the AUTONMI commit the
+run imported, against the one the example pins: `screening/pin.py`).
 Exit status 0 when every check passes and the telemetry is complete.
 """
 
@@ -55,6 +56,7 @@ from autonmi.telemetry import Telemetry  # noqa: E402
 from radical.asyncflow import WorkflowEngine  # noqa: E402
 from screening.agent import Screening  # noqa: E402
 from screening.benchmark import SIM_KERNELS, Benchmark  # noqa: E402
+from screening.pin import autonmi_pin  # noqa: E402
 
 from wfMiniAPI.api import MiniApp  # noqa: E402
 
@@ -412,7 +414,7 @@ async def miniapp_workflow(cfg, flow, run_dir: Path, logger, app) -> bool:
         if model is not None:
             from autonmi.vllm import VllmSampler
 
-            sampler = VllmSampler(model["endpoints"], api_key(model), cfg.vllm_interval)
+            sampler = VllmSampler(list(model.endpoints), api_key(model), cfg.vllm_interval)
             sampler.start()
         try:
             t0 = time.time()
@@ -448,6 +450,7 @@ def main(argv=None) -> int:
         raise SystemExit("--model openai needs --endpoints-file")
     run_dir = Path(cfg.run_dir or f"runs/screening-{cfg.agents}-{time.strftime('%Y%m%dT%H%M%S')}")
     run_dir.mkdir(parents=True, exist_ok=True)
+    (run_dir / "autonmi.json").write_text(json.dumps(autonmi_pin()) + "\n")
     from autonmi.assemble import assemble
 
     if float(os.environ.get("AUTONMI_STACKS") or 0) > 0:  # every thread's stack, every s seconds

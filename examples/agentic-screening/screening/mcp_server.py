@@ -27,7 +27,7 @@ import sys
 import time
 from pathlib import Path
 
-from autonmi.toolservice import free_ports, stop_servers, wait_port
+from autonmi.mcp import free_ports, stop_servers, wait_port
 from mcp.server.mcpserver import MCPServer
 
 from . import physics

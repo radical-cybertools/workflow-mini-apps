@@ -2,14 +2,18 @@
 engines, one per population of agents, whose agents run on the AUTONMI framework.
 
 The framework is installed separately, so the tests that run the example skip without it. The
-benchmark's own test below runs everywhere, and so does the contract check
-(``tests/equivalence/contract_check.py``), which reads the example's source.
+benchmark's own test and the tests of the pinned commit below run everywhere, and so does the
+contract check (``tests/equivalence/contract_check.py``), which reads the example's source.
 """
 
+import asyncio
 import importlib.util
 import json
+import re
 import subprocess
 import sys
+import threading
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
 import pytest
@@ -238,6 +242,244 @@ def test_the_example_verifies_and_verifies_again_offline(tmp_path):
         timeout=120,
     )
     assert again.returncode == 0, again.stdout[-2000:] + again.stderr[-2000:]
+    pin = json.loads((tmp_path / "run" / "autonmi.json").read_text())
+    assert set(pin) == {"commit", "dirty", "from", "pin", "matches_pin"}
+    assert pin["pin"] == pinned_module().AUTONMI_COMMIT
+
+
+# --- a model behind OpenAI's API, as a model job serves it ------------------------------------
+
+
+class _Http(ThreadingHTTPServer):
+    daemon_threads = True
+    request_queue_size = 256  # the populations open many connections at once
+
+
+class StubServer:
+    """The example's stub model behind OpenAI's chat API, answering what the mini-app asks a vLLM
+    server: `GET /health`, `POST /v1/chat/completions` with the bearer key, and `GET /metrics`,
+    whose counters count what it served."""
+
+    def __init__(self, bench, key: str) -> None:
+        from screening.stub import ScreeningStub
+
+        self.stub, self.key = ScreeningStub(bench), key
+        self.calls = self.prompt_tokens = self.generation_tokens = 0
+        self.lock = threading.Lock()
+        server = self
+
+        class Handler(BaseHTTPRequestHandler):
+            def log_message(self, *args) -> None:
+                return None
+
+            def reply(self, status: int, body: bytes, kind: str = "application/json") -> None:
+                self.send_response(status)
+                self.send_header("Content-Type", kind)
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def do_GET(self) -> None:
+                if self.path == "/health":
+                    self.reply(200, b"")
+                elif self.path == "/metrics":
+                    self.reply(200, server.metrics().encode(), "text/plain")
+                else:
+                    self.reply(404, b"{}")
+
+            def do_POST(self) -> None:
+                if self.path != "/v1/chat/completions":
+                    self.reply(404, b"{}")
+                elif self.headers.get("Authorization") != f"Bearer {server.key}":
+                    self.reply(401, b'{"error": {"message": "bad key"}}')
+                else:
+                    body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
+                    self.reply(200, json.dumps(server.complete(body)).encode())
+
+        self.http = _Http(("127.0.0.1", 0), Handler)
+        self.url = f"http://127.0.0.1:{self.http.server_address[1]}"
+
+    def complete(self, body: dict) -> dict:
+        extra = {k: body[k] for k in ("thinking_token_budget",) if k in body}
+        with self.lock:  # one call at a time: the stub keeps no per-call state, this keeps counts
+            reply = asyncio.run(
+                self.stub.complete(body["messages"], body.get("tools"), extra_body=extra)
+            )
+            self.calls += 1
+            self.prompt_tokens += reply.usage.prompt_tokens
+            self.generation_tokens += reply.usage.completion_tokens
+        calls = [
+            {"id": c.id, "type": "function",
+             "function": {"name": c.name, "arguments": json.dumps(c.args)}}
+            for c in reply.tool_calls
+        ]  # fmt: skip
+        usage = reply.usage
+        return {
+            "id": f"chatcmpl-{self.calls}",
+            "object": "chat.completion",
+            "model": body.get("model"),
+            "choices": [
+                {
+                    "index": 0,
+                    "message": {
+                        "role": "assistant",
+                        "content": reply.content or None,
+                        "tool_calls": calls or None,
+                    },
+                    "finish_reason": reply.finish_reason,
+                }
+            ],
+            "usage": {
+                "prompt_tokens": usage.prompt_tokens,
+                "completion_tokens": usage.completion_tokens,
+                "total_tokens": usage.prompt_tokens + usage.completion_tokens,
+            },
+        }
+
+    def metrics(self) -> str:
+        with self.lock:
+            counts = {
+                "prompt_tokens_total": self.prompt_tokens,
+                "generation_tokens_total": self.generation_tokens,
+                "request_success_total": self.calls,
+                "prefix_cache_queries_total": self.prompt_tokens,
+                "prefix_cache_hits_total": 0,
+                "num_preemptions_total": 0,
+                "num_requests_running": 0,
+                "num_requests_waiting": 0,
+                "kv_cache_usage_perc": 0,
+            }
+        return "".join(f'vllm:{k}{{model_name="stub"}} {float(v)}\n' for k, v in counts.items())
+
+    def __enter__(self) -> "StubServer":
+        threading.Thread(target=self.http.serve_forever, daemon=True).start()
+        return self
+
+    def __exit__(self, *exc) -> None:
+        self.http.shutdown()
+        self.http.server_close()
+
+
+@needs_framework
+def test_the_example_runs_against_a_model_job_s_servers(tmp_path, monkeypatch):
+    """`--model openai`: the mini-app waits for the servers in the endpoints file, sends every call
+    there with the key, and samples the servers' counters (`vllm/vllm.json`)."""
+    monkeypatch.syspath_prepend(str(EXAMPLE))
+    m = script()
+    flags = ["--agents", "30", "--sim-median", "0.01", "--no-burn"]
+    fleet = tmp_path / "fleet"
+    fleet.mkdir()
+    with StubServer(m.benchmark(m.parse(flags)), key="secret") as server:
+        (fleet / "endpoints").write_text(server.url + "\n")
+        (fleet / "api-key").write_text("secret\n")
+        rc, summary = run(
+            tmp_path, "--model", "openai", "--endpoints-file", str(fleet / "endpoints"),
+            "--api-key-file", str(fleet / "api-key"), "--model-wait", "60",
+            "--vllm-interval", "0.5",
+        )  # fmt: skip
+    assert rc == 0, summary["checks"]
+    assert all(c["ok"] for c in summary["checks"]) and summary["agents"] == 30
+    assert server.calls == summary["model_calls"] > 0
+    sampled = json.loads((tmp_path / "run" / "vllm" / "vllm.json").read_text())
+    assert server.url in json.dumps(sampled)  # the sampler got the fleet's endpoints
+
+
+# --- the AUTONMI commit: no framework needed ------------------------------------------------
+
+
+def pinned_module():
+    """`screening/pin.py`, which imports nothing of the framework."""
+    spec = importlib.util.spec_from_file_location("screening_pin", EXAMPLE / "screening" / "pin.py")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+def test_the_readme_installs_the_commit_the_example_pins():
+    pinned = pinned_module().AUTONMI_COMMIT
+    assert re.fullmatch(r"[0-9a-f]{40}", pinned)
+    readme = (EXAMPLE / "README.md").read_text()
+    assert set(re.findall(r"\b[0-9a-f]{40}\b", readme)) == {pinned}
+    assert f"git -C autonmi checkout {pinned}" in readme
+    docs = (REPO / "docs" / "examples.md").read_text()
+    assert not re.findall(r"\b[0-9a-f]{40}\b", docs)  # one place to change it, besides the README
+
+
+def git(cwd, *args: str) -> str:
+    return subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-c", "commit.gpgsign=false",
+         "-C", str(cwd), *args],
+        capture_output=True, text=True, check=True,
+    ).stdout.strip()  # fmt: skip
+
+
+def test_the_commit_of_a_clone_and_its_changes_under_the_package_only(tmp_path):
+    pin = pinned_module()
+    package = tmp_path / "clone" / "src" / "pkg"
+    package.mkdir(parents=True)
+    (package / "__init__.py").write_text("")
+    (tmp_path / "clone" / "CHANGELOG.md").write_text("")
+    git(tmp_path / "clone", "init", "-q")
+    git(tmp_path / "clone", "add", "-A")
+    git(tmp_path / "clone", "commit", "-q", "-m", "one")
+    head = git(tmp_path / "clone", "rev-parse", "HEAD")
+    assert pin.commit_of(package) == {"commit": head, "dirty": False, "from": "git"}
+    (tmp_path / "clone" / "CHANGELOG.md").write_text("changed, but not the package")
+    assert pin.commit_of(package)["dirty"] is False
+    (package / "__init__.py").write_text("x = 1\n")
+    assert pin.commit_of(package)["dirty"] is True
+
+
+def test_the_commit_of_a_copy_made_without_git(tmp_path):
+    pin = pinned_module()
+    package = tmp_path / "copy" / "src" / "pkg"
+    package.mkdir(parents=True)
+    mark = tmp_path / "copy" / ".git-commit"
+    assert pin.commit_of(package) == {"commit": None, "dirty": None, "from": None}
+    mark.write_text("CDDA559FCD78\nsomething else\n")  # its first word, in any case
+    got = pin.commit_of(package)
+    assert got == {"commit": "cdda559fcd78", "dirty": None, "from": ".git-commit"}
+    for broken in (b"\xff\xfe\x00\x81", b"not a commit\n", b""):  # never stops the run
+        mark.write_bytes(broken)
+        assert pin.commit_of(package)["commit"] is None
+
+
+def test_the_commit_of_a_package_installed_from_git(tmp_path, monkeypatch):
+    pin = pinned_module()
+    site = tmp_path / "site"
+    (site / "pkgx").mkdir(parents=True)
+    (site / "pkgx" / "__init__.py").write_text("")
+    info = site / "pkgx-0.1.dist-info"
+    info.mkdir()
+    (info / "METADATA").write_text("Metadata-Version: 2.1\nName: pkgx\nVersion: 0.1\n")
+    (info / "top_level.txt").write_text("pkgx\n")
+    monkeypatch.syspath_prepend(str(site))
+    record = info / "direct_url.json"
+    record.write_text(json.dumps({"url": "x", "vcs_info": {"vcs": "git", "commit_id": "A" * 40}}))
+    got = pin.commit_of(site / "pkgx", "pkgx")
+    assert got == {"commit": "a" * 40, "dirty": None, "from": "direct_url.json"}
+    for broken in ("{not json", "[1, 2]", '{"vcs_info": null}'):  # never stops the run
+        record.write_text(broken)
+        assert pin.commit_of(site / "pkgx", "pkgx")["commit"] is None
+
+
+def test_a_run_warns_when_autonmi_is_not_at_the_pinned_commit(capsys):
+    pin = pinned_module()
+    pinned = pin.AUTONMI_COMMIT
+    for same in (pinned, pinned[:7]):  # a copy's `.git-commit` may hold the short commit
+        got = pin.check({"commit": same, "dirty": False, "from": "git"})
+        assert got["matches_pin"] and got["pin"] == pinned and capsys.readouterr().err == ""
+    assert pin.check({"commit": pinned, "dirty": None, "from": ".git-commit"})["matches_pin"]
+    for commit, dirty, said in (
+        (pinned, True, f"at the pinned {pinned[:12]}, but with changed files"),
+        ("0" * 40, False, f"at 000000000000, not at the pinned {pinned[:12]}"),
+        (None, None, "at an unknown commit"),
+        (pinned[:6], None, f"at {pinned[:6]}, not at"),  # too short to name a commit
+    ):
+        got = pin.check({"commit": commit, "dirty": dirty, "from": None}, where="/x/autonmi")
+        assert not got["matches_pin"]
+        err = capsys.readouterr().err
+        assert said in err and "(/x/autonmi)" in err and "screening/pin.py" in err
 
 
 @needs_framework
@@ -348,7 +590,7 @@ def agent(monkeypatch, tmp_path, **knobs):
     """One population's agent of the example, built as the framework builds it."""
     monkeypatch.syspath_prepend(str(EXAMPLE))
     from autonmi.agent import PopulationContext
-    from autonmi.store import MemoryStore
+    from flowgentic.store import MemoryStore
     from screening.agent import Screening
     from screening.benchmark import Benchmark
 
