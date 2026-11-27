@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "wfMiniAPI"
-version = "0.2.0"
+version = "0.3.0"
 description = "Emulation kernels and building blocks for RADICAL workflow mini-apps"
 readme = "README.md"
 license = "MIT"
@@ -25,17 +25,15 @@ classifiers = [
 gpu = ["cupy-cuda12x"]
 mpi = ["mpi4py"]
 io = ["h5py"]
-# The workflow examples run on AsyncFlow and RHAPSODY, pinned by commit.  AsyncFlow:
-# main at the merge of #139 (after v0.7.0): the joinable shutdown() and the public
-# `telemetry`/`is_shutting_down` MiniApp relies on.  Move to a tag once AsyncFlow
-# releases one with #139.  RHAPSODY: 142f396 (in v0.7.0).
+# The workflow examples run on AsyncFlow and RHAPSODY.  AsyncFlow 0.8 has the joinable
+# shutdown() and the public `telemetry`/`is_shutting_down` MiniApp relies on.
 workflow = [
     "pyyaml",
-    "radical.asyncflow @ git+https://github.com/radical-cybertools/radical.asyncflow@3f18cc86596aaafa6a7efff20b7fefb8e11e9fc9",
-    "rhapsody-py[telemetry] @ git+https://github.com/radical-cybertools/rhapsody@142f396",
+    "radical.asyncflow>=0.8,<0.9",
+    "rhapsody-py[telemetry]>=0.7,<0.9",
 ]
 # Dragon backend (dragonhpc 0.15.0 through RHAPSODY); run the examples under `dragon`.
-dragon = ["rhapsody-py[dragon] @ git+https://github.com/radical-cybertools/rhapsody@142f396"]
+dragon = ["rhapsody-py[dragon]>=0.7,<0.9"]
 plot = ["matplotlib"]
 test = ["pytest"]
 docs = ["mkdocs", "mkdocs-material>=9.0.0", "mkdocstrings[python]"]
