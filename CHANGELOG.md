@@ -7,7 +7,9 @@
 ### Dependencies
 
 - **The `workflow` and `dragon` extras install released AsyncFlow and RHAPSODY**:
-  `radical.asyncflow>=0.7.1,<0.8` and `rhapsody-py>=0.7,<0.9`, instead of commits.
+  `radical.asyncflow>=0.8,<0.9` and `rhapsody-py>=0.7,<0.9`, instead of commits.
+- **Each release carries a wheel and an sdist** (`.github/workflows/release.yml`), so
+  wfMiniAPI installs from the release's URL.
 
 ### Runs of many engines and components
 

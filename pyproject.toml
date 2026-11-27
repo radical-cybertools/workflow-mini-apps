@@ -25,11 +25,11 @@ classifiers = [
 gpu = ["cupy-cuda12x"]
 mpi = ["mpi4py"]
 io = ["h5py"]
-# The workflow examples run on AsyncFlow and RHAPSODY.  AsyncFlow 0.7.1 has the joinable
+# The workflow examples run on AsyncFlow and RHAPSODY.  AsyncFlow 0.8 has the joinable
 # shutdown() and the public `telemetry`/`is_shutting_down` MiniApp relies on.
 workflow = [
     "pyyaml",
-    "radical.asyncflow>=0.7.1,<0.8",
+    "radical.asyncflow>=0.8,<0.9",
     "rhapsody-py[telemetry]>=0.7,<0.9",
 ]
 # Dragon backend (dragonhpc 0.15.0 through RHAPSODY); run the examples under `dragon`.
