@@ -9,6 +9,7 @@ directories written here: no framework and no GPU.
 import json
 import os
 import re
+import shutil
 import signal
 import socket
 import subprocess
@@ -1079,6 +1080,70 @@ def test_the_model_job_names_its_host_as_the_site_says_and_moves_off_a_taken_por
     assert "was taken; trying another" in out
     (endpoint,) = (fleet / "endpoints").read_text().split()
     assert endpoint.startswith(f"http://{short}-ib:")
+
+
+# amd-smi 26's CSV, as it prints it: `list` with CR line ends and a blank line at the end, `metric`
+# with fields that hold commas in quotes
+AMD_SMI = r"""case "$1" in
+list)
+	echo 'WARNING: a line before the header, gpu or not'
+	printf 'gpu,gpu_bdf,gpu_uuid,kfd_id,node_id,partition_id\r\n'
+	for g in 0 1 2 3; do printf '%s,000%s:02:00.0,uuid-%s,1,%s,0\r\n' $g $g $g $((g + 4)); done
+	printf '\n' ;;
+metric)
+	echo 'gpu,gfx_activity,umc_activity,vcn_activity,total_vram,used_vram,free_vram'
+	for g in 0 1 2 3; do echo "$g,$((g + 10)),0,\"['N/A', 'N/A']\",1024,$((g + 30)),990"; done ;;
+static)
+	echo 'gpu,market_name,vendor_id,num_compute_units,size'
+	for g in 0 1 2 3; do echo "$g,AMD Instinct MI300A,0x1002,228,131072"; done ;;
+*) exit 2 ;;
+esac
+"""
+
+
+@pytest.mark.skipif(shutil.which("nvidia-smi") is not None, reason="nvidia-smi lists the GPUs here")
+@pytest.mark.parametrize("named, pinned", [(None, ["0", "1"]), ("2,3", ["2", "3"])])
+def test_on_amd_gpus_the_model_job_lists_them_with_amd_smi_where_no_variable_names_them(
+    tmp_path, named, pinned
+):
+    log = tmp_path / "vllm.log"
+    tool(tmp_path, "vllm", f'echo "$HIP_VISIBLE_DEVICES $*" >> "{log}"\nexec sleep 300\n')
+    tool(tmp_path, "curl", "exit 0\n")
+    tool(tmp_path, "amd-smi", AMD_SMI)
+    fleet = tmp_path / "fleet"
+    fleet.mkdir()
+    env = job_env(
+        tmp_path, AUTONMI_MODEL="/models/qwen", AUTONMI_GPU_VARIABLE="HIP_VISIBLE_DEVICES"
+    )
+    for var in ("HIP_VISIBLE_DEVICES", "ROCR_VISIBLE_DEVICES"):
+        env.pop(var, None)
+    if named:
+        env["HIP_VISIBLE_DEVICES"] = named  # as Slurm would name the job's GPUs
+    job = subprocess.Popen(
+        ["bash", str(JOBS / "model.sh"), str(fleet), "2"], env=env, text=True,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+    )  # fmt: skip
+    gpu_csv = fleet / "gpu.csv"
+    try:
+        for _ in range(300):
+            started = log.exists() and len(log.read_text().splitlines()) == 2
+            sampled = gpu_csv.exists() and len(gpu_csv.read_text().splitlines()) >= 4
+            if job.poll() is not None or ((fleet / "endpoints").exists() and started and sampled):
+                break
+            time.sleep(0.1)
+        (fleet / "stop").touch()
+        out, _ = job.communicate(timeout=60)
+    finally:
+        job.kill()
+    assert job.returncode == 0, out
+    # the first 2 GPUs of the variable's list, or of amd-smi's when the variable names none
+    assert sorted(s.split()[0] for s in log.read_text().splitlines()) == pinned
+    assert f"GPUs per server: 1 ({' '.join(pinned)}), pinned with HIP_VISIBLE_DEVICES" in out
+    assert "0, AMD Instinct MI300A, 131072" in out  # each GPU's name and memory, for the log
+    # nvidia-smi's columns: the time, the GPU, its activity, its memory used (past the quoted list)
+    samples = gpu_csv.read_text().splitlines()[:4]
+    assert [s.split(", ", 1)[1] for s in samples] == [f"{g}, {g + 10}, {g + 30}" for g in range(4)]
+    assert all(re.match(r"\d{4}/\d\d/\d\d \d\d:\d\d:\d\d, ", s) for s in samples)
 
 
 # --- the Dragon jobs, with a fake dragon ------------------------------------------------------

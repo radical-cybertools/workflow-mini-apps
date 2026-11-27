@@ -4,9 +4,11 @@
 #
 #   model.sh FLEET [GPUS]
 #
-# GPUS: how many of the job's GPUs to use, all by default; the job fails when it has fewer. Writes into
-# FLEET: `endpoints` (one base URL per server, once all answer), `api-key` (readable by the owner
-# only), `gpu.csv` (nvidia-smi every second, where there is one, for the record) and `vllm-<i>.log`.
+# GPUS: how many of the job's GPUs to use, all by default; the job fails when it has fewer. The job's
+# GPUs are those AUTONMI_GPU_VARIABLE names, as Slurm sets it; where it is not set, all the node's:
+# nvidia-smi's, or on AMD GPUs without nvidia-smi, amd-smi's. Writes into FLEET: `endpoints` (one base
+# URL per server, once all answer), `api-key` (readable by the owner only), `gpu.csv` (nvidia-smi's or
+# amd-smi's figures about every second, for the record) and `vllm-<i>.log`.
 # Ends when FLEET/stop appears. The servers' host in `endpoints` is AUTONMI_ENDPOINT_HOST, where %h
 # is the node's short name and %f its full one (default %h): `%h-ib` names another network.
 #
@@ -27,8 +29,32 @@ use_model
 echo "model job $SLURM_JOB_ID on $(hostname -s), $(date -Is), commit $MINIAPP_COMMIT, start ${SLURM_RESTART_COUNT:-0}"
 var=${AUTONMI_GPU_VARIABLE:-CUDA_VISIBLE_DEVICES}
 listed=${!var:-}
+amd=
+if ! command -v nvidia-smi > /dev/null && command -v amd-smi > /dev/null; then
+	amd=1 # AMD GPUs: amd-smi, and no nvidia-smi
+fi
+# The named columns of amd-smi's CSV on stdin, one "a, b" line per row, from its header on (the
+# first line that names the first column): its fields can hold commas in quotes, and its lines can
+# end in CR
+amd_columns() {
+	python -c '
+import csv, sys
+header = None
+for row in csv.reader(line.rstrip("\r\n") for line in sys.stdin if line.strip()):
+    if header is None:
+        header = row if sys.argv[1] in row else None
+        continue
+    print(", ".join(dict(zip(header, row)).get(k) or "?" for k in sys.argv[1:]))
+' "$@"
+}
 if [ -z "$listed" ] && command -v nvidia-smi > /dev/null; then
 	listed=$(nvidia-smi --query-gpu=index --format=csv,noheader | paste -sd, -)
+elif [ -z "$listed" ] && [ -n "$amd" ]; then
+	listed=$(amd-smi list --csv | amd_columns gpu | paste -sd, -)
+	if ! [[ $listed =~ ^[0-9]+(,[0-9]+)*$ ]]; then
+		echo "amd-smi listed no GPUs (\"$listed\"): using GPU 0"
+		listed=
+	fi
 fi
 IFS=, read -ra gpus <<< "${listed:-0}"
 if [ -n "$want" ]; then
@@ -39,6 +65,7 @@ if [ -n "$want" ]; then
 	gpus=("${gpus[@]:0:$want}")
 fi
 command -v nvidia-smi > /dev/null && nvidia-smi --query-gpu=index,name,memory.total --format=csv,noheader
+[ -z "$amd" ] || amd-smi static --asic --vram --csv | amd_columns gpu market_name size # size in MB
 tp=${AUTONMI_TP:-1}
 if [ "$tp" -lt 1 ] || [ $((${#gpus[@]} % tp)) -ne 0 ]; then
 	echo "AUTONMI_TP=$tp does not divide the job's ${#gpus[@]} GPUs"
@@ -61,6 +88,15 @@ rm -f "$fleet/stop" "$fleet/endpoints" "$fleet/endpoints.tmp"
 smi=
 if command -v nvidia-smi > /dev/null; then
 	nvidia-smi --query-gpu=timestamp,index,utilization.gpu,memory.used --format=csv,noheader,nounits -l 1 >> "$fleet/gpu.csv" &
+	smi=$!
+elif [ -n "$amd" ]; then
+	# the same columns: the time, the GPU, its activity (%) and its memory used (MB), until this
+	# script ends, even without stop_all
+	while kill -0 $$ 2> /dev/null; do
+		t=$(date '+%Y/%m/%d %H:%M:%S')
+		amd-smi metric --usage --mem-usage --csv 2> /dev/null | amd_columns gpu gfx_activity used_vram | sed "s|^|$t, |"
+		sleep 1
+	done >> "$fleet/gpu.csv" &
 	smi=$!
 fi
 reasoning=()
