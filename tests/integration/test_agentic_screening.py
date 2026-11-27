@@ -773,3 +773,60 @@ def test_an_agent_that_ends_without_its_report_is_nudged_once(monkeypatch, tmp_p
     assert all(r["finished"] for r in rows.values())
     assert all(c.ok for c in checks.values()), {n: c.detail for n, c in checks.items() if not c.ok}
     assert checks["model_calls_as_scripted"].detail["nudges"] == 3
+
+
+@needs_framework
+def test_a_miscopied_result_key_costs_one_model_call_and_the_check_counts_it(
+    monkeypatch, tmp_path
+):
+    """As Qwen3-8B does now and then: an agent passes `analyze` a key `simulate` did not return,
+    gets the keys it may use, and calls again. The agent still verifies, and the check of the
+    model calls counts the extra call."""
+    import asyncio
+
+    monkeypatch.syspath_prepend(str(EXAMPLE))
+    from autonmi.population import PopulationConfig, run_population
+    from autonmi.store import forget_store, open_store
+    from screening import physics
+    from screening.agent import Screening
+    from screening.benchmark import Benchmark
+    from screening.stub import CID, ScreeningStub, tool_results
+
+    class Miscopying(ScreeningStub):
+        """Every third agent miscopies its first result key once, then uses a key it was given."""
+
+        def next_call(self, messages):
+            results = tool_results(messages)
+            name, data = results[-1] if results else (None, {})
+            if name == "analyze" and "result_keys_returned_by_simulate" in data:
+                return "analyze", {"result_key": data["result_keys_returned_by_simulate"][-1]}
+            call = super().next_call(messages)
+            task = next(m for m in messages if m.get("role") == "user")
+            index = physics.index_of(CID.search(str(task.get("content"))).group(0))
+            done = any(n == "analyze" for n, _ in results)
+            if call and call[0] == "analyze" and not done and index % 3 == 0:
+                return "analyze", {"result_key": call[1]["result_key"] + "-miscopied"}
+            return call
+
+    bench = Benchmark(agents=9, lookup_calls=0, sim_median_s=0.01, sim_burn=False)
+    app = Screening(bench)
+    monkeypatch.setattr(app, "stub", lambda replica: Miscopying(bench))
+    spec = "memory:wrong-keys"
+    store = open_store(spec)
+    cfg = PopulationConfig(workers=2, stagger_interval_s=0.0)
+    try:
+        result = asyncio.run(run_population(app, 0, list(app.agents()), tmp_path, cfg, store, spec))
+        checks = {c.name: c for c in app.verify(result.rows, store)}
+    finally:
+        forget_store(spec)
+    rows = {r["agent_id"]: r for r in result.rows}
+    assert {a for a, r in rows.items() if r["wrong_keys"]} == {
+        "mat-000000",
+        "mat-000003",
+        "mat-000006",
+    }
+    assert all(len(r["wrong_keys"]) <= 1 for r in rows.values())
+    assert all(c.ok for c in checks.values()), {n: c.detail for n, c in checks.items() if not c.ok}
+    detail = checks["model_calls_as_scripted"].detail
+    assert detail["wrong_keys"] == 3 and detail["nudges"] == 0
+    assert detail["model_calls"] == detail["scripted"]

@@ -19,8 +19,10 @@ thinking tokens apart, they are counted from the reasoning text: with a tokenize
 otherwise as the reasoning's share of the reply's characters.
 
 An agent that ends without calling `report` (Qwen3-8B now and then answers in text after a forced
-end of thinking) is told once to report (`prompts.NUDGE`), as the benchmark's agents are. Each nudge
-is one model call more than the script's, and the check of the calls counts it.
+end of thinking) is told once to report (`prompts.NUDGE`), as the benchmark's agents are. An agent
+that passes `analyze` a key `simulate` did not return gets the keys it may use and calls again. Each
+nudge and each wrong key is one model call more than the script's, and the check of the calls
+counts both.
 """
 
 from __future__ import annotations
@@ -388,13 +390,20 @@ class Screening:
         seconds = overruns(rows)
         calls = sum(r.get("model_calls", 0) for r in rows)
         nudges = sum(r.get("nudges", 0) for r in rows)
-        scripted = sum(bench.model_calls_per_agent(len(r["sims"])) for r in rows) + nudges
+        wrong_keys = sum(len(r.get("wrong_keys") or ()) for r in rows)
+        scripted = sum(bench.model_calls_per_agent(len(r["sims"])) for r in rows)
+        scripted += nudges + wrong_keys
         return [
             Check("every_agent_finishes_and_verifies", v["verified"] == bench.agents, v),
             Check(
                 "model_calls_as_scripted",
                 calls == scripted,
-                {"model_calls": calls, "scripted": scripted, "nudges": nudges},
+                {
+                    "model_calls": calls,
+                    "scripted": scripted,
+                    "nudges": nudges,
+                    "wrong_keys": wrong_keys,
+                },
             ),
             Check(
                 "tensors_to_store_and_back",
