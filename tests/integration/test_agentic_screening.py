@@ -779,21 +779,36 @@ def test_an_agent_that_ends_without_its_report_is_nudged_once(monkeypatch, tmp_p
 def test_a_miscopied_result_key_costs_one_model_call_and_the_check_counts_it(
     monkeypatch, tmp_path
 ):
-    """As Qwen3-8B does now and then: an agent passes `analyze` a key `simulate` did not return,
-    gets the keys it may use, and calls again. The agent still verifies, and the check of the
-    model calls counts the extra call."""
+    """An agent passes `analyze` a key `simulate` did not return, gets the keys it may use, and
+    calls again. The agent still verifies, and the check of the model calls counts one call more
+    for the reply, however many wrong keys its tool calls carried."""
     import asyncio
+    import dataclasses
 
     monkeypatch.syspath_prepend(str(EXAMPLE))
     from autonmi.population import PopulationConfig, run_population
     from autonmi.store import forget_store, open_store
+    from flowgentic.fleet import ToolCall
     from screening import physics
     from screening.agent import Screening
     from screening.benchmark import Benchmark
     from screening.stub import CID, ScreeningStub, tool_results
 
     class Miscopying(ScreeningStub):
-        """Every third agent miscopies its first result key once, then uses a key it was given."""
+        """Every third agent miscopies its first result key, twice in one reply, then uses a key
+        it was given."""
+
+        async def complete(self, messages, tools=None, **kwargs):
+            reply = await super().complete(messages, tools, **kwargs)
+            calls = reply.tool_calls
+            if len(calls) == 1 and calls[0].args.get("result_key", "").endswith("-miscopied"):
+                twin = ToolCall(
+                    id=calls[0].id + "-b",
+                    name="analyze",
+                    args={"result_key": calls[0].args["result_key"] + "-again"},
+                )
+                return dataclasses.replace(reply, tool_calls=(*calls, twin))
+            return reply
 
         def next_call(self, messages):
             results = tool_results(messages)
@@ -825,8 +840,10 @@ def test_a_miscopied_result_key_costs_one_model_call_and_the_check_counts_it(
         "mat-000003",
         "mat-000006",
     }
-    assert all(len(r["wrong_keys"]) <= 1 for r in rows.values())
+    for r in rows.values():  # two wrong keys in one reply: one call more
+        expected = (2, 1) if r["wrong_keys"] else (0, 0)
+        assert (len(r["wrong_keys"]), r["wrong_key_calls"]) == expected
     assert all(c.ok for c in checks.values()), {n: c.detail for n, c in checks.items() if not c.ok}
     detail = checks["model_calls_as_scripted"].detail
-    assert detail["wrong_keys"] == 3 and detail["nudges"] == 0
+    assert detail["wrong_key_calls"] == 3 and detail["nudges"] == 0
     assert detail["model_calls"] == detail["scripted"]
