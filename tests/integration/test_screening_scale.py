@@ -1086,6 +1086,7 @@ def test_the_model_job_names_its_host_as_the_site_says_and_moves_off_a_taken_por
 # with fields that hold commas in quotes
 AMD_SMI = r"""case "$1" in
 list)
+	echo 'WARNING: a line before the header, gpu or not'
 	printf 'gpu,gpu_bdf,gpu_uuid,kfd_id,node_id,partition_id\r\n'
 	for g in 0 1 2 3; do printf '%s,000%s:02:00.0,uuid-%s,1,%s,0\r\n' $g $g $g $((g + 4)); done
 	printf '\n' ;;

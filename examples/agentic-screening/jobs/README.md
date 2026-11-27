@@ -107,18 +107,20 @@ Without it, vLLM servers on a GPU node answer. Start small: `1k stub`, `10k stub
 
 **AMD GPUs.** The model job runs the same way with a vLLM built for ROCm. `AUTONMI_MODEL_VENV` can
 also be a directory whose `bin/activate` puts a `vllm` command first on `PATH`, such as a script that
-runs vLLM's ROCm container image. In the site's file:
+runs vLLM's ROCm container image. model.sh also runs `python` (3) and `amd-smi`, from `PATH`. Such a
+script passes the environment into the container: the GPU variable, `VLLM_API_KEY` and the settings
+below (Docker and podman pass none by default). In the site's file:
 
 - `AUTONMI_GPU_VARIABLE=HIP_VISIBLE_DEVICES`: model.sh pins each server to its GPUs with it. Where
   Slurm names the job's GPUs, name the variable your site's Slurm sets instead. Where it names none
-  and there is no `nvidia-smi`, model.sh lists the node's GPUs with `amd-smi`, and writes `gpu.csv`
-  from `amd-smi metric`.
+  and there is no `nvidia-smi`, model.sh lists the node's GPUs with `amd-smi`. Without `nvidia-smi`,
+  it writes `gpu.csv` from `amd-smi metric`.
 - On APUs, where a GPU's memory is the node's, such as the MI300A:
   `AUTONMI_VLLM_ARGS='--gpu-memory-utilization 0.5'` (vLLM takes the last value given). model.sh's
   0.9 leaves the GPU's share of the node's memory nearly full, and vLLM runs slower. Measured on
   MI300A; check on your GPU.
-- `export TORCH_BLAS_PREFER_HIPBLASLT=0`: torch's matrix products in vLLM use rocBLAS rather than
-  hipBLASLt, which was faster. Measured on MI300A; check on your GPU.
+- `export TORCH_BLAS_PREFER_HIPBLASLT=0`: torch's matrix products in vLLM use rocBLAS, which was
+  faster than hipBLASLt. Measured on MI300A; check on your GPU.
 
 **For one run,** set these in front of the command:
 

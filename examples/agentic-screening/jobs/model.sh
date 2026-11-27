@@ -33,19 +33,28 @@ amd=
 if ! command -v nvidia-smi > /dev/null && command -v amd-smi > /dev/null; then
 	amd=1 # AMD GPUs: amd-smi, and no nvidia-smi
 fi
-# The named columns of amd-smi's CSV on stdin, one "a, b" line per row: its fields can hold commas
-# in quotes, and its lines can end in CR
+# The named columns of amd-smi's CSV on stdin, one "a, b" line per row, from its header on (the
+# first line that names the first column): its fields can hold commas in quotes, and its lines can
+# end in CR
 amd_columns() {
 	python -c '
 import csv, sys
-for row in csv.DictReader(line.rstrip("\r\n") for line in sys.stdin if line.strip()):
-    print(", ".join(row.get(k) or "?" for k in sys.argv[1:]))
+header = None
+for row in csv.reader(line.rstrip("\r\n") for line in sys.stdin if line.strip()):
+    if header is None:
+        header = row if sys.argv[1] in row else None
+        continue
+    print(", ".join(dict(zip(header, row)).get(k) or "?" for k in sys.argv[1:]))
 ' "$@"
 }
 if [ -z "$listed" ] && command -v nvidia-smi > /dev/null; then
 	listed=$(nvidia-smi --query-gpu=index --format=csv,noheader | paste -sd, -)
 elif [ -z "$listed" ] && [ -n "$amd" ]; then
 	listed=$(amd-smi list --csv | amd_columns gpu | paste -sd, -)
+	if ! [[ $listed =~ ^[0-9]+(,[0-9]+)*$ ]]; then
+		echo "amd-smi listed no GPUs (\"$listed\"): using GPU 0"
+		listed=
+	fi
 fi
 IFS=, read -ra gpus <<< "${listed:-0}"
 if [ -n "$want" ]; then
@@ -80,8 +89,10 @@ smi=
 if command -v nvidia-smi > /dev/null; then
 	nvidia-smi --query-gpu=timestamp,index,utilization.gpu,memory.used --format=csv,noheader,nounits -l 1 >> "$fleet/gpu.csv" &
 	smi=$!
-elif [ -n "$amd" ]; then # the same columns: the time, the GPU, its activity (%) and its memory used (MB)
-	while :; do
+elif [ -n "$amd" ]; then
+	# the same columns: the time, the GPU, its activity (%) and its memory used (MB), until this
+	# script ends, even without stop_all
+	while kill -0 $$ 2> /dev/null; do
 		t=$(date '+%Y/%m/%d %H:%M:%S')
 		amd-smi metric --usage --mem-usage --csv 2> /dev/null | amd_columns gpu gfx_activity used_vram | sed "s|^|$t, |"
 		sleep 1
