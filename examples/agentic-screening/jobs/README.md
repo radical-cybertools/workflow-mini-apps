@@ -105,6 +105,21 @@ Without it, vLLM servers on a GPU node answer. Start small: `1k stub`, `10k stub
 `jobs/local.env.example` lists the model servers' own settings too (`AUTONMI_TOOL_PARSER`,
 `AUTONMI_REASONING`, `AUTONMI_TP`, ...).
 
+**AMD GPUs.** The model job runs the same way with a vLLM built for ROCm. `AUTONMI_MODEL_VENV` can
+also be a directory whose `bin/activate` puts a `vllm` command first on `PATH`, such as a script that
+runs vLLM's ROCm container image. In the site's file:
+
+- `AUTONMI_GPU_VARIABLE=HIP_VISIBLE_DEVICES`: model.sh pins each server to its GPUs with it. Where
+  Slurm names the job's GPUs, name the variable your site's Slurm sets instead. Where it names none
+  and there is no `nvidia-smi`, model.sh lists the node's GPUs with `amd-smi`, and writes `gpu.csv`
+  from `amd-smi metric`.
+- On APUs, where a GPU's memory is the node's, such as the MI300A:
+  `AUTONMI_VLLM_ARGS='--gpu-memory-utilization 0.5'` (vLLM takes the last value given). model.sh's
+  0.9 leaves the GPU's share of the node's memory nearly full, and vLLM runs slower. Measured on
+  MI300A; check on your GPU.
+- `export TORCH_BLAS_PREFER_HIPBLASLT=0`: torch's matrix products in vLLM use rocBLAS rather than
+  hipBLASLt, which was faster. Measured on MI300A; check on your GPU.
+
 **For one run,** set these in front of the command:
 
 | Variable | What |
@@ -169,7 +184,7 @@ Everything is under `AUTONMI_RUNS`:
 | `scale-10k/app/` | the agents' rows, the checks and the ranking |
 | `scale-10k/campaign-*.out`, `report-*.out`, and Dragon's logs | the jobs' output |
 | `scale-10k/timeline`, `jobs.txt` | when the campaign job's phases began, and the chain's accounting |
-| `scale-10k-fleet/` | the model job's output, the servers' logs, and `gpu.csv` (for the record) |
+| `scale-10k-fleet/` | the model job's output, the servers' logs, and `gpu.csv` (`nvidia-smi`'s or `amd-smi`'s figures, for the record) |
 | `scale-10k-test/` | the test's run and output |
 | `scale-10k.jobs` | the job ids, the commit and the settings' file, one `key=value` per line |
 
