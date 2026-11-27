@@ -19,8 +19,10 @@ thinking tokens apart, they are counted from the reasoning text: with a tokenize
 otherwise as the reasoning's share of the reply's characters.
 
 An agent that ends without calling `report` (Qwen3-8B now and then answers in text after a forced
-end of thinking) is told once to report (`prompts.NUDGE`), as the benchmark's agents are. Each nudge
-is one model call more than the script's, and the check of the calls counts it.
+end of thinking) is told once to report (`prompts.NUDGE`), as the benchmark's agents are. An agent
+that passes `analyze` a key `simulate` did not return gets the keys it may use and calls again. Each
+nudge, and each reply with one or more wrong keys, is one model call more than the script's, and
+the check of the calls counts both.
 """
 
 from __future__ import annotations
@@ -71,6 +73,8 @@ class Record:
     lookups: int = 0
     store_misses: int = 0
     wrong_keys: list = field(default_factory=list)
+    replies: int = 0  # the agent's model calls so far, as the fleet's listener counts them
+    wrong_key_replies: set = field(default_factory=set)  # those whose tool calls had a wrong key
     report: dict | None = None
     notes: int = 0
     note_k: int = 0  # notes at the current decision point
@@ -207,6 +211,7 @@ class Screening:
                     rec.store_misses += 1
                     return json.dumps({"error": f"no result under {result_key!r}: {exc}"})
                 rec.wrong_keys.append(str(result_key)[:160])
+                rec.wrong_key_replies.add(rec.replies)  # the reply whose tool calls run now
                 keys = [k for _, _, k in rec.sims]
                 return json.dumps(
                     {
@@ -301,11 +306,15 @@ class Screening:
             }
 
         def on_call(call, reply) -> None:
-            """A decision call's reply: the budget its gain counts, kept for each simulation it asks for."""
+            """Every reply: counted, before its tool calls run. A decision call's reply: the budget
+            its gain counts, kept for each simulation it asks for."""
+            rec = records.get(call.agent_id)
+            if rec is None:
+                return
+            rec.replies += 1
             b = (call.meta or {}).get("think_budget") if isinstance(call.meta, dict) else None
             if not b:
                 return
-            rec = records[call.agent_id]
             used = thinking_tokens(reply, tokenizer)
             rec.thinking_tokens += used
             rec.think_calls.append(
@@ -357,6 +366,7 @@ class Screening:
                 "analyses": rec.analyses,
                 "store_misses": rec.store_misses,
                 "wrong_keys": rec.wrong_keys,
+                "wrong_key_calls": len(rec.wrong_key_replies),
                 "report": rec.report,
                 "finished": rec.report is not None,
                 "population": pop.index,
@@ -388,13 +398,20 @@ class Screening:
         seconds = overruns(rows)
         calls = sum(r.get("model_calls", 0) for r in rows)
         nudges = sum(r.get("nudges", 0) for r in rows)
-        scripted = sum(bench.model_calls_per_agent(len(r["sims"])) for r in rows) + nudges
+        wrong_key_calls = sum(r.get("wrong_key_calls", 0) for r in rows)
+        scripted = sum(bench.model_calls_per_agent(len(r["sims"])) for r in rows)
+        scripted += nudges + wrong_key_calls
         return [
             Check("every_agent_finishes_and_verifies", v["verified"] == bench.agents, v),
             Check(
                 "model_calls_as_scripted",
                 calls == scripted,
-                {"model_calls": calls, "scripted": scripted, "nudges": nudges},
+                {
+                    "model_calls": calls,
+                    "scripted": scripted,
+                    "nudges": nudges,
+                    "wrong_key_calls": wrong_key_calls,
+                },
             ),
             Check(
                 "tensors_to_store_and_back",
