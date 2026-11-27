@@ -205,6 +205,9 @@ runs the campaign on CPUs only, and `--model openai` uses vLLM servers. Each sim
 spins a CPU core for a seeded duration, or runs one of wfMiniAPI's compute kernels for it
 (`--sim-kernel`). The example's README lists its flags, its recipes and the run's checks.
 
+Its `jobs/scale` runs the campaign at fixed sizes, from 1,000 agents on one node to 300,000 on
+30, as a chain of Slurm jobs, with Dragon across the nodes; its `jobs/README.md` says how.
+
 ## Other directories
 
 - `examples/tutorial/`: three standalone task scripts (`simulation.py`, `training.py`,

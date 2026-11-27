@@ -9,3 +9,5 @@ examples/**/telemetry/
 examples/**/data_*.h5
 # tools/validate_node.sh output
 validation-*.tar.gz
+# the scale ladder's site settings (examples/agentic-screening/jobs/README.md)
+examples/agentic-screening/jobs/local.env

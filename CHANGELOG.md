@@ -40,6 +40,16 @@
   A simulation can run one of wfMiniAPI's compute kernels for its duration (`--sim-kernel`,
   off by default). The duration is a cost, not a deadline: each simulation's result gives the
   seconds asked and taken, and a check reports the overruns without failing on them.
+- **`examples/agentic-screening/jobs/`:** the scale ladder. `jobs/scale` runs the campaign at
+  1,000, 10,000, 100,000 or 300,000 agents as one chain of Slurm jobs: a test under Dragon, the
+  model servers on a GPU node, the campaign under one Dragon runtime across the CPU nodes, and a
+  report that verifies every agent and says where the time went. Each site's settings are in a file
+  of their own; the workers follow the site's CPUs per node, and the time limits follow the workers
+  and cover the wait for the model servers, the start-up and the wind-down. The campaign starts only
+  once the model job's servers answer, and the report fails a run of another size than the rung's.
+  Submitting is safe to interrupt, and cancelling lets a Dragon job clean its nodes. The mini-app has
+  run 1,000 and 10,000 agents; 100,000 and 300,000 are untested estimates. Its tests need no Slurm
+  and no GPU.
 
 ### Fixed
 
